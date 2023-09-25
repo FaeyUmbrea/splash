@@ -1,0 +1,48 @@
+{
+  "id": "tbe",
+  "title": "TBE",
+  "description": "",
+  "version": "This is auto replaced",
+  "library": "false",
+  "manifestPlusVersion": "1.2.0",
+  "compatibility": {
+    "maximum": 11,
+    "verified": 11,
+    "minimum": 11
+  },
+  "authors": [
+    {
+      "name": "Faey Umbrea",
+      "url": "https://github.com/FaeyUmbrea",
+      "discord": "Faey#0001"
+    }
+  ],
+  "esmodules": ["index.js"],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "languages/en.json"
+    }
+  ],
+  "url": "This is auto replaced",
+  "socket": true,
+  "manifest": "This is auto replaced",
+  "download": "This is auto replaced",
+  "license": "AGPL-3.0-only",
+  "readme": "TBE",
+  "media": [
+    {
+      "type": "icon",
+      "url": "https://avatars2.githubusercontent.com/u/71292812?s=400&u=ccdb4eeb7abf551ca8f314e5a9bfd0479a4d3d41&v=4"
+    }
+  ],
+  "relationships": {
+    "requires": [
+      {
+        "id": "lib-wrapper",
+        "type": "module"
+      }
+    ]
+  }
+}

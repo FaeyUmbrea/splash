@@ -1,0 +1,6 @@
+version: "1.0"
+
+bootstrap: yarn install
+
+include:
+  - name: Eslint
