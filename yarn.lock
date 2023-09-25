@@ -926,6 +926,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rollup/pluginutils@npm:^5.0.2":
+  version: 5.0.4
+  resolution: "@rollup/pluginutils@npm:5.0.4"
+  dependencies:
+    "@types/estree": ^1.0.0
+    estree-walker: ^2.0.2
+    picomatch: ^2.3.1
+  peerDependencies:
+    rollup: ^1.20.0||^2.0.0||^3.0.0
+  peerDependenciesMeta:
+    rollup:
+      optional: true
+  checksum: 893d5805ac4121fc704926963a0ae4e79e9e2bc8d736c3b28499ab69a404cce5119ca3a4e0c3d3a81d62f1beb3966f35285c36935d94b061794f26e94fed4cd1
+  languageName: node
+  linkType: hard
+
 "@svelte-plugins/tooltips@npm:^0.1.8":
   version: 0.1.8
   resolution: "@svelte-plugins/tooltips@npm:0.1.8"
@@ -4786,6 +4802,7 @@ __metadata:
     svelte-check: ^3.5.2
     svelte-preprocess: ^5.0.4
     vite: ^4.4.9
+    vite-plugin-glsl: ^1.1.2
   languageName: unknown
   linkType: soft
 
@@ -5215,6 +5232,17 @@ __metadata:
   version: 1.0.2
   resolution: "util-deprecate@npm:1.0.2"
   checksum: 474acf1146cb2701fe3b074892217553dfcf9a031280919ba1b8d651a068c9b15d863b7303cb15bd00a862b498e6cf4ad7b4a08fb134edd5a6f7641681cb54a2
+  languageName: node
+  linkType: hard
+
+"vite-plugin-glsl@npm:^1.1.2":
+  version: 1.1.2
+  resolution: "vite-plugin-glsl@npm:1.1.2"
+  dependencies:
+    "@rollup/pluginutils": ^5.0.2
+  peerDependencies:
+    vite: ^3.0.0 || ^4.0.0
+  checksum: 8b77944ce9529c52a83f39770bd4e9512e52e4db2d5ee3be270a7c0251d05ea713206a07e03e57c4cb0567bbaeee69c1845f3bc76e49fc4de01f4d2b6dc76578
   languageName: node
   linkType: hard
 

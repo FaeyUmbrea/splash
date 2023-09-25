@@ -3,6 +3,7 @@ import preprocess from "svelte-preprocess";
 import { postcssConfig, terserConfig } from "@typhonjs-fvtt/runtime/rollup";
 import { visualizer } from "rollup-plugin-visualizer";
 import { transform } from "esbuild";
+import glsl from "vite-plugin-glsl";
 
 // ATTENTION!
 // Please modify the below variables: s_PACKAGE_ID and s_SVELTE_HASH_ID appropriately.
@@ -86,6 +87,7 @@ export default () =>
     },
 
     plugins: [
+      glsl(),
       svelte({
         compilerOptions: {
           // Provides a custom hash adding the string defined in `s_SVELTE_HASH_ID` to scoped Svelte styles;
