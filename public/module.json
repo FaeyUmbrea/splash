@@ -1,7 +1,7 @@
 {
-  "id": "tbe",
-  "title": "TBE",
-  "description": "",
+  "id": "splash",
+  "title": "Splash",
+  "description": "Full Screen Overlays",
   "version": "This is auto replaced",
   "library": "false",
   "manifestPlusVersion": "1.2.0",

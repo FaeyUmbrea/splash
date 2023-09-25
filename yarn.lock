@@ -1263,33 +1263,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"boilerplate@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "boilerplate@workspace:."
-  dependencies:
-    "@svelte-plugins/tooltips": ^0.1.8
-    "@sveltejs/vite-plugin-svelte": ^2.4.6
-    "@typhonjs-fvtt/eslint-config-foundry.js": ^0.8.0
-    "@typhonjs-fvtt/runtime": ^0.1.2
-    "@typhonjs-fvtt/svelte-standard": ^0.1.0
-    esbuild: ^0.19.3
-    eslint: ^8.50.0
-    eslint-config-prettier: ^9.0.0
-    eslint-plugin-prettier: ^5.0.0
-    eslint-plugin-svelte: ^2.33.2
-    husky: ^8.0.3
-    lint-staged: ^14.0.1
-    prettier: ^3.0.3
-    prettier-plugin-svelte: ^3.0.3
-    rollup-plugin-visualizer: ^5.9.2
-    stylus: ^0.60.0
-    svelte: ^4.2.1
-    svelte-check: ^3.5.2
-    svelte-preprocess: ^5.0.4
-    vite: ^4.4.9
-  languageName: unknown
-  linkType: soft
-
 "boolbase@npm:^1.0.0":
   version: 1.0.0
   resolution: "boolbase@npm:1.0.0"
@@ -4788,6 +4761,33 @@ __metadata:
   checksum: 01cc5a74b1f0e1d626a58d36ad6898ea820567e87f18dfc9d24a9843a351aaa2ec09b87422589906d6ff1deed29693e176194dc88bcae7c9a852dc74b311dbf5
   languageName: node
   linkType: hard
+
+"splash@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "splash@workspace:."
+  dependencies:
+    "@svelte-plugins/tooltips": ^0.1.8
+    "@sveltejs/vite-plugin-svelte": ^2.4.6
+    "@typhonjs-fvtt/eslint-config-foundry.js": ^0.8.0
+    "@typhonjs-fvtt/runtime": ^0.1.2
+    "@typhonjs-fvtt/svelte-standard": ^0.1.0
+    esbuild: ^0.19.3
+    eslint: ^8.50.0
+    eslint-config-prettier: ^9.0.0
+    eslint-plugin-prettier: ^5.0.0
+    eslint-plugin-svelte: ^2.33.2
+    husky: ^8.0.3
+    lint-staged: ^14.0.1
+    prettier: ^3.0.3
+    prettier-plugin-svelte: ^3.0.3
+    rollup-plugin-visualizer: ^5.9.2
+    stylus: ^0.60.0
+    svelte: ^4.2.1
+    svelte-check: ^3.5.2
+    svelte-preprocess: ^5.0.4
+    vite: ^4.4.9
+  languageName: unknown
+  linkType: soft
 
 "ssri@npm:^10.0.0":
   version: 10.0.4
