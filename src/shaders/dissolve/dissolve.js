@@ -1,31 +1,28 @@
 import fragmentShader from "./fragment.glsl";
-import vertexShader from "./vertex.glsl";
+import vertexShader from "../common/vertex.glsl";
+import { getNoiseMaterial } from "../materials.js";
 
-let noise;
-
-export default async function DissolveFilter() {
-  if (!noise) {
-    noise = await PIXI.Assets.load("/modules/splash/noise.jpg");
-    noise.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
-    noise.baseTexture.mipmap = false;
-  }
-  return new Dissolve([0.5, 0.5], noise);
+export default async function DissolveFilter(app) {
+  return new Dissolve([0, 0], await getNoiseMaterial(), app);
 }
 
 export class Dissolve extends PIXI.Filter {
-  constructor(origin, noise) {
+  constructor(origin, noise, app) {
     super(vertexShader, fragmentShader);
     this.origin = origin;
     this.noise = noise;
+    this.app = app;
   }
 
   apply(filterManager, input, output, clearMode) {
     if (!this.started) {
       this.started = Date.now();
     }
-    this.uniforms.time = (Date.now() - this.started - 10) / 5000;
+    this.uniforms.time = Date.now() - this.started;
     this.uniforms.effectOrigin = this.origin;
     this.uniforms.noise = this.noise;
+    this.uniforms.worldTransform =
+      this.app.stage.worldTransform ?? new PIXI.Matrix();
     filterManager.applyFilter(this, input, output, clearMode);
   }
 }

@@ -19,6 +19,6 @@ void main() {
 
     float noise = (c_noise.r + c_noise.g + c_noise.b) / 30.0;
     float distancefromEffectOrigin = distance(effectOrigin, vTextureCoord);
-    float falloff = step(time, distancefromEffectOrigin - noise);
+    float falloff = step(time*1000, distancefromEffectOrigin - noise);
     fragColor = color * (1.0 - falloff);
 }

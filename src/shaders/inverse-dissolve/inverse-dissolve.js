@@ -1,15 +1,9 @@
 import fragmentShader from "./fragment.glsl";
-import vertexShader from "./vertex.glsl";
-
-let noise;
+import vertexShader from "../common/vertex.glsl";
+import { getNoiseMaterial } from "../materials.js";
 
 export default async function InverseDissolveFilter() {
-  if (!noise) {
-    noise = await PIXI.Assets.load("/modules/splash/noise.jpg");
-    noise.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
-    noise.baseTexture.mipmap = false;
-  }
-  return new InverseDissolve([0.5, 0.5], noise);
+  return new InverseDissolve([0.5, 0.5], await getNoiseMaterial());
 }
 
 export class InverseDissolve extends PIXI.Filter {
