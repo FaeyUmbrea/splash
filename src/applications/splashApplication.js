@@ -2,8 +2,8 @@ import { SvelteApplication } from "@typhonjs-fvtt/runtime/svelte/application";
 import Splash from "../svelte/Splash.svelte";
 
 export default class SplashApplication extends SvelteApplication {
-  constructor(popover = false, args) {
-    super(args);
+  constructor(popover = false, options) {
+    super(options);
     this.popover = popover;
   }
 
