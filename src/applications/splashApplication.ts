@@ -1,13 +1,16 @@
-import { SvelteApplication } from "@typhonjs-fvtt/runtime/svelte/application";
-import Splash from "../svelte/Splash.svelte";
+import {
+  SvelteApplication,
+  SvelteApplicationOptions,
+} from "@typhonjs-fvtt/runtime/svelte/application";
+import Splash from "../svelte/SplashUI.svelte";
 
 export default class SplashApplication extends SvelteApplication {
-  constructor(popover = false, options) {
+  constructor(options: SvelteApplicationOptions) {
     super(options);
-    this.popover = popover;
   }
 
   static get defaultOptions() {
+    //@ts-expect-error Imported type does not correctly inherit Foundry Application
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["splash-overlay"],
       id: "splash-application",
@@ -20,18 +23,5 @@ export default class SplashApplication extends SvelteApplication {
         target: document.body,
       },
     });
-  }
-
-  async _render(force, options) {
-    return await super._render(
-      force,
-      foundry.utils.mergeObject(options, {
-        svelte: {
-          props: {
-            popover: this.popover,
-          },
-        },
-      }),
-    );
   }
 }
