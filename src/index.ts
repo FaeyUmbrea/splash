@@ -1,15 +1,17 @@
-import SplashApplication from "./applications/splashApplication.js";
 import { registerKeybindings } from "./utils/keyboard.js";
 import { Splash } from "./types/splash.js";
 import { Image } from "./types/image.js";
 import { State } from "./types/state.js";
 import { TextSprite } from "./types/text.js";
-import { Animation } from "./types/animation.js";
 import SplashUI from "./svelte/SplashUI.svelte";
 import { Button } from "./types/button.js";
+import { SvelteApplication } from "@typhonjs-fvtt/runtime/svelte/application";
 
 export const img: string =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Golden_Delicious_apples.jpg/500px-Golden_Delicious_apples.jpg";
+
+export const img2: string =
+  "https://upload.wikimedia.org/wikipedia/commons/c/cc/Scan_of_an_orange.png";
 
 declare global {
   interface Window {
@@ -21,8 +23,27 @@ window.test = (popover: boolean) => {
   const image: Image = new Image({
     img: img,
     name: "Image",
-    height: window.innerHeight,
-    width: window.innerWidth,
+    states: new Map([
+      [
+        "initial",
+        new State({
+          zIndex: -1,
+          priority: 1,
+          height: window.innerHeight,
+          width: window.innerWidth,
+        }),
+      ],
+      [
+        "third",
+        new State({
+          zIndex: -1,
+          x: 700,
+          y: 200,
+          height: 200,
+          width: 400,
+        }),
+      ],
+    ]),
   });
 
   const text: TextSprite = new TextSprite({
@@ -30,8 +51,7 @@ window.test = (popover: boolean) => {
     font: "Arial",
     size: 20,
     fillColor: "#ffffff",
-    x: 500,
-    y: 500,
+    states: new Map([["second", new State({ x: 500, y: 500, zIndex: 1 })]]),
   });
 
   const button: Button = new Button({
@@ -49,51 +69,73 @@ window.test = (popover: boolean) => {
       topHeight: 0,
       bottomHeight: 0,
     },
-    onClick: "",
-    x: 500,
-    y: 500,
+    hoverImage: {
+      url: img2,
+      leftWidth: 0,
+      rightWidth: 0,
+      topHeight: 0,
+      bottomHeight: 0,
+    },
+    clickLabel: {
+      text: "SNENK",
+      fontSize: 60,
+      strokeThickness: 4,
+      stroke: "#613414",
+      fill: "#ba6234",
+    },
+    onClick: {
+      type: "change-state",
+      load: ["second"],
+      unload: ["third"],
+    },
     tint: "#cccccc",
     hoverTint: "#999999",
-    clickTint: "#000000",
-  });
-
-  const initialState: State = new State({
-    children: [button.id],
-  });
-
-  const secondState: State = new State({
-    id: "second",
-    children: [image.id],
-  });
-
-  const thirdState: State = new State({
-    id: "third",
-    children: [text.id],
+    clickTint: "#141241",
+    states: new Map([
+      [
+        "third",
+        new State({
+          x: 500,
+          y: 500,
+        }),
+      ],
+    ]),
   });
 
   const splashConfig: Splash = new Splash({
     children: [image, text, button],
-    states: [initialState, secondState, thirdState],
-    animIn: new Animation({
+    states: new Map([
+      ["initial", "Initial"],
+      ["second", "Second"],
+      ["third", "Third"],
+    ]),
+    animIn: {
       type: "dissolve",
       props: {
         randomOrigins: true,
         invert: true,
       },
-    }),
-    animOut: new Animation({
+    },
+    animOut: {
       type: "dissolve",
       props: {
         randomOrigins: true,
         invert: false,
       },
-    }),
+    },
   });
 
-  new SplashApplication({
+  new SvelteApplication({
+    classes: ["splash-overlay"],
+    id: "splash-application",
+    width: screen.width,
+    height: screen.height,
+    positionable: false,
+    zIndex: 1,
     svelte: {
       //@ts-expect-error Typing issues in base class
       class: SplashUI,
+      target: document.body,
       props: () => {
         return { splashConfig, popover };
       },

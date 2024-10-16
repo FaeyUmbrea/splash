@@ -89,8 +89,10 @@ export default () =>
       //resolve(s_RESOLVE_CONFIG), // Necessary when bundling npm-linked packages.
 
       minifyEs(),
-      visualizer(),
       ReplaceJS,
+      visualizer({
+        sourcemap: true,
+      }),
     ],
   });
 

@@ -7,7 +7,7 @@ export function registerKeybindings(): void {
     name: "Close Splash",
     hint: "Closes Splash Overlay",
     onDown: (): void => {
-      Hooks.callAll("splash.close-splash");
+      Hooks.call("splash.close-splash");
     },
   });
 }

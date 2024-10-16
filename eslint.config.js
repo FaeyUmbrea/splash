@@ -17,6 +17,7 @@ const ignores = [
   "package-lock.json",
   "yarn.lock",
   "dist/**/*",
+  ".vite-cache/**/*",
 ];
 export default [
   js.configs.recommended,
@@ -24,6 +25,10 @@ export default [
   eslintPluginPrettierRecommended,
   ...eslintPluginSvelte.configs["flat/prettier"],
   {
+    ignores: ignores,
+  },
+  {
+    ignores,
     languageOptions: {
       globals: {
         ...globals.browser,

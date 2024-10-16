@@ -2,42 +2,39 @@ import fragmentShader from "./fragment.glsl";
 import vertexShader from "../common/vertex.glsl";
 import { getNoiseMaterial } from "../materials.js";
 
-export interface DissolveFilterProps {
-  origins: number[];
+interface BaseDissolveFilterProps {
   invert: boolean;
-  randomOrigins: boolean;
-  numOrigins: number;
 }
+
+interface FixedOriginsDissolveFilterProps extends BaseDissolveFilterProps {
+  origins: number[];
+}
+
+interface RandomOriginDissolveFilterProps extends BaseDissolveFilterProps {
+  randomOrigins: boolean;
+  numOrigins?: number;
+}
+
+export type DissolveFilterProps =
+  | FixedOriginsDissolveFilterProps
+  | RandomOriginDissolveFilterProps;
 
 export default async function DissolveFilter(
   app: PIXI.Application,
   props: DissolveFilterProps,
 ): Promise<Dissolve> {
-  props = foundry.utils.mergeObject(
-    {
-      origins: [1000, 1000],
-      invert: false,
-      randomOrigins: false,
-      numOrigins: 2,
-    },
-    props,
-  );
-  if (props.randomOrigins) {
-    for (let i = 0; i < Math.min(props.numOrigins, 16); i++) {
-      props.origins.push(
+  const origins = [];
+  if ("randomOrigins" in props) {
+    for (let i = 0; i < Math.min(props.numOrigins ?? 2, 16); i++) {
+      origins.push(
         Math.random() * app.renderer.width,
         Math.random() * app.renderer.height,
       );
     }
   } else {
-    props.origins.push(...props.origins);
+    origins.push(...props.origins);
   }
-  return new Dissolve(
-    props.origins,
-    await getNoiseMaterial(),
-    props.invert,
-    app,
-  );
+  return new Dissolve(origins, await getNoiseMaterial(), props.invert, app);
 }
 
 export class Dissolve extends PIXI.Filter {
