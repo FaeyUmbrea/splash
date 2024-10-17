@@ -3,16 +3,12 @@
 <script lang="ts">
   import { getContext, onDestroy, onMount } from "svelte";
   import { Splash } from "../types/splash.ts";
-  import DissolveFilter, {
-    type DissolveFilterProps,
-  } from "../shaders/dissolve/dissolve.js";
   import { Image } from "../types/image.js";
   import { Button } from "../types/button.js";
-  import type { Animation } from "../types/animation.js";
-  import { TextSprite } from "../types/text.js";
-  import NineSlicePlaneButton from "../pixi/nineSlicePlaneButton.js";
   import { State } from "../types/state.js";
   import { Sprite } from "../types/sprite.js";
+  import { transitionState } from "../utils/helpers.js";
+  import { SplashAPI } from "../api/api.js";
 
   export let elementRoot: HTMLDivElement | undefined = void 0;
 
@@ -25,8 +21,8 @@
 
   let loading = true;
 
-  const instantiatedChildren: Map<string, PIXI.Sprite | NineSlicePlaneButton> =
-    new Map();
+  const instantiatedChildren: Map<string, PIXI.DisplayObject> = new Map();
+  const api = SplashAPI.getInstance();
   let loadedStates: string[] = [];
 
   onMount(async () => {
@@ -79,20 +75,13 @@
     const timeout = animation
       ? (animation.delay ?? 0) + (animation.duration ?? 3000)
       : 0;
-    switch (child.type) {
-      case "image": {
-        await instantiateImage(child as Image, animation, state);
-        break;
-      }
-      case "text": {
-        await instantiateText(child as TextSprite, animation, state);
-        break;
-      }
-      case "button": {
-        await instantiateButton(child as Button, animation, state);
-        break;
-      }
+    const sprite = await api.buildSprite(child, state);
+    if (!sprite) return 0;
+    if (animation) {
+      await api.buildAnimation(animation, sprite, app);
     }
+    app.stage.addChild(sprite);
+    instantiatedChildren.set(child.id, sprite);
     return timeout;
   }
 
@@ -136,7 +125,7 @@
           const animation =
             child.animOut ?? state.animOut ?? splashConfig.animOut;
           if (animation) {
-            await instantiateAnimation(value, animation);
+            await api.buildAnimation(animation, value, app);
             const timeout =
               (animation.delay ?? 0) + (animation.duration ?? 3000);
             setTimeout(() => {
@@ -155,116 +144,6 @@
     }
     loadedStates = loadedStates.filter((state) => state !== stateId);
     return longestTimeout;
-  }
-
-  function transitionState(
-    child: PIXI.Sprite | NineSlicePlaneButton,
-    state: State,
-  ) {
-    if (child instanceof NineSlicePlaneButton) {
-      child.update({
-        width: state.width ?? child.width,
-        height: state.height ?? child.height,
-      });
-    } else {
-      child.width = state.width ?? child.width;
-      child.height = state.height ?? child.height;
-    }
-    child.position.set(state.x, state.y);
-    child.zIndex = state.zIndex;
-  }
-
-  async function instantiateImage(
-    image: Image,
-    animation: Animation | undefined,
-    state: State,
-  ) {
-    const sprite = PIXI.Sprite.from(image.img);
-    transitionState(sprite, state);
-    await instantiateAnimation(sprite, animation);
-    app.stage.addChild(sprite);
-    instantiatedChildren.set(image.id, sprite);
-  }
-
-  async function instantiateText(
-    text: TextSprite,
-    animation: Animation | undefined,
-    state: State,
-  ) {
-    const sprite = new PIXI.Text(text.text, {
-      fontFamily: text.font,
-      fontSize: text.size,
-      fill: text.fillColor,
-      align: text.align,
-    });
-    transitionState(sprite, state);
-    await instantiateAnimation(sprite, animation);
-    app.stage.addChild(sprite);
-    instantiatedChildren.set(text.id, sprite);
-  }
-
-  async function instantiateButton(
-    button: Button,
-    animation: Animation | undefined,
-    state: State,
-  ) {
-    const buttonConfig = foundry.utils.mergeObject(button, {
-      onTap: () => {
-        switch (button.onClick.type) {
-          case "macro":
-            game.macros?.get(button.onClick.macroId)?.execute();
-            break;
-          case "change-state":
-            Hooks.call("splash.change-states", button.onClick);
-            break;
-          case "close":
-            Hooks.call("splash.close-splash");
-            break;
-        }
-      },
-    });
-    const sprite = new NineSlicePlaneButton(buttonConfig);
-
-    transitionState(sprite, state);
-
-    await instantiateAnimation(sprite, animation);
-
-    app.stage.addChild(sprite);
-    instantiatedChildren.set(button.id, sprite);
-  }
-
-  async function instantiateAnimation(
-    sprite: PIXI.Sprite | PIXI.NineSlicePlane,
-    animation: Animation | undefined,
-  ) {
-    if (!animation) return;
-    let animClass;
-    switch (animation.type) {
-      case "dissolve": {
-        animClass = await DissolveFilter(
-          app,
-          animation.props as DissolveFilterProps,
-        );
-        break;
-      }
-      default:
-        break;
-    }
-    if (animClass) {
-      setTimeout(() => {
-        if (!sprite.filters) {
-          sprite.filters = [];
-        }
-        sprite.filters.push(animClass);
-        setTimeout(() => {
-          if (sprite.filters) {
-            sprite.filters.splice(
-              sprite.filters.findIndex((item) => item === animClass),
-            );
-          }
-        }, animation.duration ?? 3000);
-      }, animation.delay ?? 0);
-    }
   }
 
   let context: { application: Application } = getContext("#external");

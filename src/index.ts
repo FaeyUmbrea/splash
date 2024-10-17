@@ -6,6 +6,8 @@ import { TextSprite } from "./types/text.js";
 import SplashUI from "./svelte/SplashUI.svelte";
 import { Button } from "./types/button.js";
 import { SvelteApplication } from "@typhonjs-fvtt/runtime/svelte/application";
+import { SplashAPI } from "./api/api.js";
+import { setupAPI } from "./utils/setup.js";
 
 export const img: string =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Golden_Delicious_apples.jpg/500px-Golden_Delicious_apples.jpg";
@@ -146,4 +148,15 @@ window.test = (popover: boolean) => {
 
 Hooks.once("init", () => {
   registerKeybindings();
+
+  const api = SplashAPI.getInstance();
+
+  const moduleData = (game as InitGame)?.modules?.get("splash");
+  if (moduleData) {
+    moduleData.api = api;
+  }
+
+  setupAPI(api);
+
+  Hooks.call("splashInit");
 });
