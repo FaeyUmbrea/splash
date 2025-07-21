@@ -1,1 +1,1 @@
-export const ID: string = "splash";
+export const ID: string = 'splash';
