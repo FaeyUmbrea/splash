@@ -95,6 +95,41 @@ export class SplashAPI {
 		}
 	}
 
+	/**
+	 * Show a splash page (macro/module entry point), locally and optionally for other players.
+	 * The caller must be a GM or an owner of the page.
+	 */
+	public async show(
+		uuid: string,
+		{ popover = false, broadcast = false, targetUser }: { popover?: boolean; broadcast?: boolean; targetUser?: string } = {},
+	): Promise<void> {
+		const { canTriggerSplash, isSplashPage } = await import('../utils/launch.ts');
+		const page = await fromUuid(uuid);
+		if (!isSplashPage(page)) {
+			ui.notifications?.warn(`Splash | ${uuid} is not a splash journal page.`);
+			return;
+		}
+		if (!canTriggerSplash(page)) {
+			ui.notifications?.warn('Splash | You lack permission to show this splash.');
+			return;
+		}
+		const { openSplashOverlay } = await import('../apps/overlay.ts');
+		await openSplashOverlay(page, popover);
+		if (broadcast) {
+			const { broadcastShowSplash } = await import('../utils/socket.ts');
+			broadcastShowSplash(uuid, popover, targetUser);
+		}
+	}
+
+	/** Close the active splash locally; GMs can also close it for other players. */
+	public async close({ broadcast = false, targetUser }: { broadcast?: boolean; targetUser?: string } = {}): Promise<void> {
+		Hooks.call('splash.close-splash');
+		if (broadcast && game.user?.isGM) {
+			const { broadcastCloseSplash } = await import('../utils/socket.ts');
+			broadcastCloseSplash(targetUser);
+		}
+	}
+
 	private static instance: SplashAPI | undefined;
 
 	public static getInstance() {

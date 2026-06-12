@@ -1,8 +1,23 @@
 {
-	"splash": "Splash",
-	"splash.settings.renderer.name": "Splash Renderer",
-	"splash.settings.renderer.hint": "How splashes are drawn. Auto picks WebGL on high canvas performance modes and plain HTML on low ones.",
-	"splash.settings.renderer.auto": "Automatic",
-	"splash.settings.renderer.webgl": "WebGL (shader effects)",
-	"splash.settings.renderer.html": "Plain HTML (weak computers)"
+	"TYPES": {
+		"JournalEntryPage": {
+			"splash": {
+				"splash": "Splash"
+			}
+		}
+	},
+	"splash": {
+		"settings": {
+			"renderer": {
+				"name": "Splash Renderer",
+				"hint": "How splashes are drawn. Auto picks WebGL on high canvas performance modes and plain HTML on low ones.",
+				"auto": "Automatic",
+				"webgl": "WebGL (shader effects)",
+				"html": "Plain HTML (weak computers)"
+			}
+		},
+		"quickAccess": {
+			"title": "Splashes"
+		}
+	}
 }

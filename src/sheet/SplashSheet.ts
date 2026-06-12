@@ -1,7 +1,7 @@
+import { openSplashOverlay } from '../apps/overlay.ts';
 import { SvelteRenderer } from '../apps/SvelteRenderer.ts';
 import { img, img2 } from '../index.ts';
 import SplashEditor from '../svelte/SplashEditor.svelte';
-import SplashUI from '../svelte/SplashUI.svelte';
 
 export class SplashSheet extends foundry.applications.sheets.journal.JournalEntryPageHandlebarsSheet {
 	static VIEW_PARTS = {
@@ -42,11 +42,7 @@ export class SplashSheet extends foundry.applications.sheets.journal.JournalEntr
 	};
 
 	showSplash() {
-		new SvelteRenderer(
-			SplashUI,
-			{ splashConfig: this.document.system, popover: true },
-			{ id: 'splash-application', classes: ['splash-overlay'] },
-		).render(true);
+		openSplashOverlay(this.document as JournalEntryPage.OfType<'splash.splash'>, true);
 	};
 
 	async testSplash() {

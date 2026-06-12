@@ -3,8 +3,10 @@ import { SplashAPI } from './api/api.js';
 import { SplashModel } from './datamodel/SplashModel.js';
 import { SplashSheet } from './sheet/SplashSheet.ts';
 import { registerKeybindings } from './utils/keyboard.js';
+import { listTriggerableSplashPages } from './utils/launch.ts';
 import { registerSettings } from './utils/settings.ts';
 import { setupAPI } from './utils/setup.js';
+import { registerSocket } from './utils/socket.ts';
 import './css/splash.scss';
 
 export const img: string
@@ -31,6 +33,7 @@ Hooks.once('init', () => {
 
 	registerKeybindings();
 	registerSettings();
+	registerSocket();
 
 	const api = SplashAPI.getInstance();
 
@@ -42,4 +45,20 @@ Hooks.once('init', () => {
 	setupAPI(api);
 
 	Hooks.call('splash.init');
+});
+
+Hooks.on('getSceneControlButtons', (controls) => {
+	if (!game.user?.isGM && listTriggerableSplashPages().length === 0) return;
+	const tool = {
+		name: 'splashQuickAccess',
+		icon: 'fa-solid fa-images',
+		title: 'splash.quickAccess.title',
+		toggle: true,
+		onChange: async (_event: unknown, active: boolean) => {
+			const { toggleQuickAccess } = await import('./apps/QuickAccessApplication.ts');
+			await toggleQuickAccess(active, tool);
+		},
+	};
+	// @ts-expect-error tool shape is narrower than SceneControls.Tool
+	controls.tokens.tools.splashQuickAccess = tool;
 });
