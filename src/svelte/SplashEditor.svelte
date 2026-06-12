@@ -2,11 +2,16 @@
 	import type { SplashCreate } from '../datamodel/SplashModel.ts';
 	import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
 	import type { SplashPage } from '../utils/launch.ts';
+	import { onDestroy, onMount } from 'svelte';
+	import { closeSplashOverlay } from '../apps/overlay.ts';
+	import { SvelteRenderer } from '../apps/SvelteRenderer.ts';
+	import { SplashModel } from '../datamodel/SplashModel.ts';
 	import EditorCanvas from './editor/EditorCanvas.svelte';
 	import InspectorPanel from './editor/InspectorPanel.svelte';
 	import LayersPanel from './editor/LayersPanel.svelte';
 	import SplashPanel from './editor/SplashPanel.svelte';
 	import StateTabs from './editor/StateTabs.svelte';
+	import SplashUI from './SplashUI.svelte';
 
 	export let foundryApp: SvelteApplication;
 
@@ -19,9 +24,71 @@
 
 	$: selected = (working.children ?? []).find(child => child?.id === selectedId) ?? null;
 
+	// Undo history: snapshots are taken shortly after the last change so a
+	// whole drag collapses into one entry.
+	const history: SplashCreate[] = [foundry.utils.deepClone(working)];
+	let redoStack: SplashCreate[] = [];
+	let snapshotTimer: ReturnType<typeof setTimeout> | undefined;
+
 	function touch() {
 		dirty = true;
 		working = working;
+		redoStack = [];
+		clearTimeout(snapshotTimer);
+		snapshotTimer = setTimeout(() => {
+			history.push(foundry.utils.deepClone(working));
+			snapshotTimer = undefined;
+		}, 300);
+	}
+
+	function restore(snapshot: SplashCreate) {
+		working = foundry.utils.deepClone(snapshot);
+		if (!working.states?.[activeState]) {
+			activeState = Object.keys(working.states ?? {})[0] ?? 'initial';
+		}
+		if (!(working.children ?? []).some(child => child?.id === selectedId)) {
+			selectedId = null;
+		}
+		dirty = true;
+	}
+
+	function undo() {
+		if (snapshotTimer) {
+			clearTimeout(snapshotTimer);
+			snapshotTimer = undefined;
+			history.push(foundry.utils.deepClone(working));
+		}
+		if (history.length < 2) return;
+		redoStack.push(history.pop()!);
+		restore(history.at(-1)!);
+	}
+
+	function redo() {
+		const snapshot = redoStack.pop();
+		if (!snapshot) return;
+		history.push(snapshot);
+		restore(snapshot);
+	}
+
+	function onKeydown(event: KeyboardEvent) {
+		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
+		event.preventDefault();
+		if (event.shiftKey) redo();
+		else undo();
+	}
+
+	onMount(() => window.addEventListener('keydown', onKeydown));
+	onDestroy(() => window.removeEventListener('keydown', onKeydown));
+
+	async function preview() {
+		await closeSplashOverlay();
+		// Preview runs the real runtime on the unsaved working copy.
+		const model = new SplashModel(foundry.utils.deepClone(working));
+		new SvelteRenderer(
+			SplashUI,
+			{ splashConfig: model, popover: true },
+			{ id: 'splash-application', classes: ['splash-overlay', 'splash-preview'] },
+		).render(true);
 	}
 
 	async function save() {
@@ -66,6 +133,9 @@
 			on:activate={event => activeState = event.detail}
 			on:change={touch}
 		/>
+		<button type='button' class='preview' title='Preview (unsaved changes included)' on:click={preview}>
+			<i class='fas fa-play'></i>
+		</button>
 		<button type='button' class='save' title='Save' on:click={save}>
 			<i class='fas fa-save'></i>
 		</button>
@@ -106,6 +176,11 @@
 		z-index: 9000;
 	}
 
+	// Previews launched from the editor must cover the editor itself.
+	:global(#splash-application.splash-preview) {
+		z-index: 9100;
+	}
+
 	.splash-editor {
 		position: absolute;
 		width: 100%;
@@ -133,6 +208,7 @@
 				border: none;
 			}
 
+			.preview,
 			.save,
 			.exit {
 				background: none;

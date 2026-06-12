@@ -3,6 +3,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import ActionEditor from './ActionEditor.svelte';
 	import AnimationEditor from './AnimationEditor.svelte';
+	import ButtonImageEditor from './ButtonImageEditor.svelte';
 
 	export let sprite: SpriteCreate;
 	export let activeState: string;
@@ -43,6 +44,9 @@
 		<label>Label <input type='text' bind:value={sprite.label.text} on:change={change} /></label>
 		<label>Label size <input type='number' bind:value={sprite.label.fontSize} on:change={change} /></label>
 		<label>Label color <input type='color' bind:value={sprite.label.fill} on:change={change} /></label>
+		<ButtonImageEditor owner={sprite} key='image' label='Image' required on:change={change} />
+		<ButtonImageEditor owner={sprite} key='hoverImage' label='Hover image' on:change={change} />
+		<ButtonImageEditor owner={sprite} key='clickImage' label='Click image' on:change={change} />
 		<ActionEditor owner={sprite} key='onClick' {states} on:change={change} />
 	{/if}
 
