@@ -8,15 +8,7 @@ import type {
 import type { RenderedSprite, SplashRenderer } from './SplashRenderer.ts';
 import * as svelte from 'svelte';
 import BaseSprite from '../svelte/components/BaseSprite.svelte';
-import Button from '../svelte/components/Button.svelte';
-import ImageSprite from '../svelte/components/Image.svelte';
-import TextSprite from '../svelte/components/Text.svelte';
-
-const components: Record<string, svelte.Component<any>> = {
-	image: ImageSprite,
-	text: TextSprite,
-	button: Button,
-};
+import { spriteComponents } from '../svelte/components/index.ts';
 
 class HtmlRenderedSprite implements RenderedSprite {
 	#mounted: object;
@@ -73,7 +65,7 @@ export class HtmlRenderer implements SplashRenderer {
 		state: StateInitialized,
 		_animIn?: AnimationInitialized | null,
 	): Promise<RenderedSprite | undefined> {
-		const component = components[sprite.type];
+		const component = spriteComponents[sprite.type];
 		if (!component) {
 			console.warn(`Splash | No HTML renderer for sprite type ${sprite.type}. Did not create.`);
 			return undefined;

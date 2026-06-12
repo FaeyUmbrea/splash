@@ -36,7 +36,7 @@ export class SplashSheet extends foundry.applications.sheets.journal.JournalEntr
 	editSplash() {
 		new SvelteRenderer(
 			SplashEditor,
-			{ splashConfig: this.document },
+			{ page: this.document },
 			{ id: 'splash-editor', classes: ['splash-editor'] },
 		).render(true);
 	};

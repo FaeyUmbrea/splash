@@ -153,6 +153,7 @@ export default class NineSlicePlaneButton extends PIXI.NineSlicePlane {
 		this.label.x = this.width * 0.5;
 		this.label.y = this.height * 0.5;
 
-		this.pivot.set(this.width * 0.5, this.height * 0.5);
+		// No pivot offset: position means top-left for every sprite type in both renderers.
+		this.pivot.set(0, 0);
 	}
 }
