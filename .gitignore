@@ -136,4 +136,3 @@ coverage/*
 stats.html
 
 .vite-cache/
-types/

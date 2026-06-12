@@ -6,9 +6,9 @@
 	"library": "false",
 	"manifestPlusVersion": "1.2.0",
 	"compatibility": {
+		"minimum": 13.344,
 		"verified": 13,
-		"maximum": 13,
-		"minimum": 13
+		"maximum": 14
 	},
 	"authors": [
 		{
@@ -31,7 +31,7 @@
 	"manifest": "This is auto replaced",
 	"download": "This is auto replaced",
 	"license": "AGPL-3.0-only",
-	"readme": "TBE",
+	"readme": "https://github.com/FaeyUmbrea/splash/blob/master/README.md",
 	"media": [
 		{
 			"type": "icon",

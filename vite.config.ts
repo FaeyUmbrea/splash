@@ -1,5 +1,4 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { postcssConfig, terserConfig } from '@typhonjs-fvtt/runtime/rollup';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 import { sveltePreprocess } from 'svelte-preprocess';
@@ -39,10 +38,6 @@ export default defineConfig(({ mode }) => {
 			conditions: ['browser', 'import'],
 		},
 
-		esbuild: {
-			target: ['es2022'],
-		},
-
 		test: {
 			globals: true,
 			environment: 'jsdom',
@@ -54,11 +49,6 @@ export default defineConfig(({ mode }) => {
 				exclude: ['node_modules/', 'tests/'],
 				reportsDirectory: '../test-results/coverage/vitest',
 			},
-		},
-
-		css: {
-			// Creates a standard configuration for PostCSS with autoprefixer & postcss-preset-env.
-			postcss: postcssConfig({ compress: s_COMPRESS, sourceMap: s_SOURCEMAPS }),
 		},
 
 		// About server options:
@@ -95,9 +85,8 @@ export default defineConfig(({ mode }) => {
 			emptyOutDir: false,
 			sourcemap: s_SOURCEMAPS,
 			brotliSize: true,
-			minify: s_COMPRESS ? 'terser' : false,
+			minify: s_COMPRESS,
 			target: ['esnext', 'chrome127'],
-			terserOptions: s_COMPRESS ? { ...terserConfig(), ecma: 2022 } : void 0,
 			lib: {
 				entry: './index.ts',
 				formats: ['es'],
@@ -109,13 +98,6 @@ export default defineConfig(({ mode }) => {
 					assetFileNames: assetInfo =>
 						assetInfo.name === 'style.css' ? `${moduleJSON.id}.css` : assetInfo.name as string,
 				},
-			},
-		},
-
-		// Necessary when using the dev server for top-level await usage inside TRL.
-		optimizeDeps: {
-			esbuildOptions: {
-				target: ['esnext', 'chrome127'],
 			},
 		},
 

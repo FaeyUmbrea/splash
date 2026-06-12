@@ -94,7 +94,7 @@ export default class NineSlicePlaneButton extends PIXI.NineSlicePlane {
 
 	/** Updates the button's appearance after changing its settings */
 	update(
-    settings: Partial<NineSlicePlaneButtonSettings> | undefined = undefined,
+		settings: Partial<NineSlicePlaneButtonSettings> | undefined = undefined,
 	) {
 		// Creating new settings which include old ones and apply new ones over it
 		if (settings) {

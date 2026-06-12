@@ -3,58 +3,52 @@
 	"type": "module",
 	"version": "0.0.0",
 	"private": true,
-	"packageManager": "yarn@3.5.1",
-	"license": "AGPL3.0",
-	"module": "src/index.js",
-	"imports": {
-		"#runtime/*": "@typhonjs-fvtt/runtime/*"
+	"packageManager": "yarn@4.9.2",
+	"description": "Full Screen Overlays",
+	"author": "Faey Umbrea",
+	"license": "AGPL-3.0-only",
+	"homepage": "https://github.com/FaeyUmbrea/splash",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/FaeyUmbrea/splash.git"
 	},
+	"bugs": {
+		"url": "https://github.com/FaeyUmbrea/splash/issues"
+	},
+	"main": "src/index.ts",
 	"scripts": {
-		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
 		"watch": "vite build --watch",
-		"prepare": "husky install",
+		"dev": "vite --host",
+		"test:unit": "vitest run",
 		"lint": "eslint .",
-		"lint:fix": "eslint --fix .",
+		"lint:fix": "eslint . --fix",
 		"linkFoundry": "node tools/foundryLink.js"
 	},
 	"dependencies": {
-		"@typhonjs-fvtt/runtime": "^0.3.0-next.2",
-		"@typhonjs-fvtt/standard": "^0.3.0-next.2",
 		"nanoid": "^5.1.5"
 	},
 	"devDependencies": {
-		"@antfu/eslint-config": "^4.18.0",
-		"@playwright/test": "^1.54.1",
-		"@sveltejs/vite-plugin-svelte": "^3.1.2",
-		"autoprefixer": "^10.4.21",
-		"cssnano": "^7.1.0",
-		"esbuild": "^0.25.6",
-		"eslint": "^9.31.0",
-		"eslint-plugin-antfu": "^3.1.1",
-		"eslint-plugin-format": "^1.0.1",
-		"eslint-plugin-svelte": "^2.46.1",
-		"fvtt-types": "github:League-of-Foundry-Developers/foundry-vtt-types#main",
-		"globals": "^16.3.0",
-		"postcss": "^8.5.6",
-		"postcss-preset-env": "^10.2.4",
-		"postcss-styl": "^0.12.3",
-		"rollup-plugin-visualizer": "^6.0.3",
-		"sass": "^1.89.2",
-		"svelte": "^4.2.20",
+		"@antfu/eslint-config": "^9.0.0",
+		"@playwright/test": "^1.60.0",
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"esbuild": "^0.28.0",
+		"eslint": "^10.4.0",
+		"eslint-plugin-antfu": "^3.2.3",
+		"eslint-plugin-format": "^2.0.1",
+		"eslint-plugin-svelte": "^3.17.1",
+		"fvtt-types": "13.346.0-beta.20251209192131",
+		"globals": "^17.6.0",
+		"jsdom": "^29.1.1",
+		"rollup-plugin-visualizer": "^7.0.1",
+		"sass": "^1.99.0",
+		"stylus": "^0.64.0",
+		"svelte": "^5.55.7",
 		"svelte-preprocess": "^6.0.3",
 		"typescript": "^5.8.3",
-		"vite": "^6.3.5",
+		"vite": "^8.0.13",
 		"vite-plugin-glsl": "^1.5.1",
-		"vitest": "^3.2.4"
-	},
-	"browserslist": [
-		">5%",
-		"not IE 11"
-	],
-	"lint-staged": {
-		"*.js": "eslint --fix",
-		"*.svelte": "eslint --fix"
+		"vitest": "^4.1.6"
 	}
 }

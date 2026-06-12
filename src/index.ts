@@ -7,10 +7,10 @@ import { setupAPI } from './utils/setup.js';
 import './css/splash.scss';
 
 export const img: string
-  = 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Golden_Delicious_apples.jpg/500px-Golden_Delicious_apples.jpg';
+	= 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Golden_Delicious_apples.jpg/500px-Golden_Delicious_apples.jpg';
 
 export const img2: string
-  = 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Scan_of_an_orange.png';
+	= 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Scan_of_an_orange.png';
 
 declare global {
 	interface Window {

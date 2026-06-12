@@ -64,7 +64,7 @@ export class Dissolve extends PIXI.Filter {
 		this.uniforms.noise = this.noise;
 		this.uniforms.invert = this.invert;
 		this.uniforms.worldTransform
-      = this.app.stage.worldTransform ?? new PIXI.Matrix();
+			= this.app.stage.worldTransform ?? new PIXI.Matrix();
 		filterManager.applyFilter(this, input, output, clearMode);
 	}
 }

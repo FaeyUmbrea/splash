@@ -1,4 +1,4 @@
-import { SvelteApplication } from '@typhonjs-fvtt/runtime/svelte/application';
+import { SvelteRenderer } from '../apps/SvelteRenderer.ts';
 import { img, img2 } from '../index.ts';
 import SplashEditor from '../svelte/SplashEditor.svelte';
 import SplashUI from '../svelte/SplashUI.svelte';
@@ -10,7 +10,7 @@ export class SplashSheet extends foundry.applications.sheets.journal.JournalEntr
 		},
 	};
 
-	async _onRender(context, options) {
+	async _onRender(_context, _options) {
 		const editButton = this.element.querySelector('[data-action="editSplash"]');
 		if (editButton) {
 			editButton.addEventListener('click', this.editSplash.bind(this));
@@ -26,41 +26,19 @@ export class SplashSheet extends foundry.applications.sheets.journal.JournalEntr
 	}
 
 	editSplash() {
-		new SvelteApplication({
-			// @ts-expect-error no type support yet
-			classes: ['splash-editor'],
-			id: 'splash-editor',
-			width: screen.width,
-			height: screen.height,
-			positionable: false,
-			zIndex: 1,
-			svelte: {
-				class: SplashEditor,
-				target: document.body,
-				props: () => {
-					return { splashConfig: this.document };
-				},
-			},
-		}).render(true);
+		new SvelteRenderer(
+			SplashEditor,
+			{ splashConfig: this.document },
+			{ id: 'splash-editor', classes: ['splash-editor'] },
+		).render(true);
 	};
 
 	showSplash() {
-		new SvelteApplication({
-			// @ts-expect-error no type support yet
-			classes: ['splash-overlay'],
-			id: 'splash-application',
-			width: screen.width,
-			height: screen.height,
-			positionable: false,
-			zIndex: 1,
-			svelte: {
-				class: SplashUI,
-				target: document.body,
-				props: () => {
-					return { splashConfig: this.document.system, popover: true };
-				},
-			},
-		}).render(true);
+		new SvelteRenderer(
+			SplashUI,
+			{ splashConfig: this.document.system, popover: true },
+			{ id: 'splash-application', classes: ['splash-overlay'] },
+		).render(true);
 	};
 
 	async testSplash() {
@@ -107,7 +85,9 @@ function createSplash() {
 		font: 'Arial',
 		size: 20,
 		fillColor: '#ffffff',
-		states: new Map([['second', { x: 500, y: 500, zIndex: 1 }]]),
+		states: {
+			second: { x: 500, y: 500, zIndex: 1 },
+		},
 	};
 
 	const button = {
@@ -148,15 +128,9 @@ function createSplash() {
 		tint: '#cccccc',
 		hoverTint: '#999999',
 		clickTint: '#141241',
-		states: new Map([
-			[
-				'third',
-				{
-					x: 500,
-					y: 500,
-				},
-			],
-		]),
+		states: {
+			third: { x: 500, y: 500 },
+		},
 	};
 
 	return {

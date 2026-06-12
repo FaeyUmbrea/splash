@@ -1,24 +1,22 @@
-<svelte:options accessors={true} />
-
 <script lang='ts'>
-
 	import type { SplashInitialized } from '../datamodel/SplashModel.ts';
+	import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
 
-	export let elementRoot: HTMLDivElement | undefined = void 0;
+	export let foundryApp: SvelteApplication;
 
 	export let splashConfig: SplashInitialized;
 </script>
 
-<div class='splash-editor' bind:this={elementRoot}>
+<div class='splash-editor'>
 	<section class='title'>
 		<h1>
 			Splash Edit Mode
 		</h1>
 	</section>
-	<button class='save'>
+	<button class='save' title='Save'>
 		<i class='fas fa-save'></i>
 	</button>
-	<button class='exit'>
+	<button class='exit' title='Exit' on:click={() => foundryApp.close()}>
 		<i class='fas fa-x'></i>
 	</button>
 </div>

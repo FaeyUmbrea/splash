@@ -1,5 +1,3 @@
-<svelte:options accessors={true} />
-
 <script lang='ts'>
 	import type {
 		ButtonSpriteInitialized,
@@ -8,11 +6,12 @@
 		SpriteInitialized,
 		StateInitialized,
 	} from '../datamodel/SplashModel.ts';
-	import { getContext, onDestroy, onMount } from 'svelte';
+	import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
+	import { onDestroy, onMount } from 'svelte';
 	import { SplashAPI } from '../api/api.js';
 	import { getChildrenWithState, transitionState } from '../utils/helpers.js';
 
-	export let elementRoot: HTMLDivElement | undefined = void 0;
+	export let foundryApp: SvelteApplication;
 
 	export let popover;
 
@@ -23,6 +22,8 @@
 
 	let loading = true;
 
+	// Plain Map on purpose: PIXI bookkeeping only, never read from the template.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const instantiatedChildren: Map<string, PIXI.DisplayObject> = new Map();
 	const api = SplashAPI.getInstance();
 	let loadedStates: string[] = [];
@@ -149,10 +150,8 @@
 		return longestTimeout;
 	}
 
-	const context: { application: Application } = getContext('#external');
-
 	const closeHook = Hooks.on('splash.close-splash', () => {
-		context.application.close();
+		foundryApp.close();
 	});
 
 	const loadStateHook = Hooks.on(
@@ -201,7 +200,7 @@
 	});
 </script>
 
-<div class={popover ? 'popover' : ''} bind:this={elementRoot}>
+<div class={popover ? 'popover' : ''}>
 	{#if loading}
 		<div class='loading'><span>Loading</span></div>
 	{/if}
@@ -209,6 +208,15 @@
 </div>
 
 <style lang='stylus'>
+  // The frameless ApplicationV2 host element must span the screen without Foundry's window theming.
+  :global(#splash-application)
+    position fixed
+    inset 0
+    margin 0
+    padding 0
+    border none
+    background none
+
   div
     z-index 2
     position absolute
