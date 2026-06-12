@@ -30,7 +30,7 @@ export async function openSplashOverlay(page: SplashPage, { layer = 'full', skip
 	applyLayerClasses(layer);
 	new SplashOverlayApplication(
 		SplashUI,
-		{ splashConfig: page.system, skipAnimations },
+		{ splashConfig: page.system, pageUuid: page.uuid, skipAnimations },
 		{ id: OVERLAY_ID, classes: ['splash-overlay', `splash-layer-${layer}`] },
 	).render(true);
 }

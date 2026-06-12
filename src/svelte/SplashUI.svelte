@@ -1,16 +1,21 @@
 <script lang='ts'>
 	import type { SplashInitialized } from '../datamodel/SplashModel.ts';
 	import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
+	import type { SyncDriver } from '../utils/sync.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { SplashAPI } from '../api/api.ts';
 	import { HtmlRenderer } from '../renderer/HtmlRenderer.svelte.ts';
 	import { PixiRenderer } from '../renderer/PixiRenderer.ts';
 	import { selectRenderer } from '../renderer/selectRenderer.ts';
 	import { SplashRuntime } from '../renderer/SplashRuntime.ts';
+	import { createSyncDriver } from '../utils/sync.ts';
 
 	export let foundryApp: SvelteApplication;
 
 	export let splashConfig: SplashInitialized;
+
+	/** Source page uuid; synced mode needs it to key shared state (null = preview). */
+	export let pageUuid: string | null = null;
 
 	/** Restored splashes appear instantly so nothing behind them is glimpsed. */
 	export let skipAnimations: boolean = false;
@@ -21,6 +26,7 @@
 	let htmlStage: HTMLDivElement;
 	let loading = true;
 	let runtime: SplashRuntime | undefined;
+	let sync: SyncDriver | undefined;
 
 	// close-requested stays instance-scoped (this window only); everything else
 	// becomes a regular hook for the rest of the world to observe.
@@ -34,10 +40,15 @@
 
 	onMount(async () => {
 		const renderer = rendererKind === 'webgl' ? new PixiRenderer(view) : new HtmlRenderer(htmlStage);
+		const synced = splashConfig.mode === 'synced' && !!pageUuid;
 		runtime = new SplashRuntime(splashConfig, renderer, emitEvent, {
 			externalAction: action => SplashAPI.getInstance().processAction(action),
+			interceptAction: action => sync?.interceptAction(action) ?? false,
+			onChanged: snapshot => sync?.onChanged(snapshot),
 		});
+		if (synced) sync = createSyncDriver(pageUuid!, splashConfig, runtime);
 		await runtime.initialize({ skipAnimations });
+		await sync?.connect();
 		loading = false;
 	});
 
@@ -53,6 +64,7 @@
 	);
 
 	onDestroy(() => {
+		sync?.dispose();
 		runtime?.destroy();
 		Hooks.off('splash.close-splash', closeHook);
 		Hooks.off('splash.change-states', changeStatesHook);

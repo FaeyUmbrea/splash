@@ -10,9 +10,22 @@ import { getChildrenWithState } from '../utils/helpers.ts';
 /** Notification of state lifecycle events; the Foundry layer maps these onto Hooks. */
 export type SplashEventSink = (event: string, ...args: unknown[]) => void;
 
+/** Serializable snapshot of the interactive runtime state. */
+export interface RuntimeSnapshot {
+	loadedStates: string[];
+	values: SplashValues;
+}
+
 export interface SplashRuntimeOptions {
 	/** Executes action types the runtime does not handle itself (e.g. macros). */
 	externalAction?: (action: ActionInitialized) => Promise<void> | void;
+	/**
+	 * Pre-empts action handling; returning true consumes the action. Synced
+	 * players use this to forward intents to the GM instead of acting locally.
+	 */
+	interceptAction?: (action: ActionInitialized) => Promise<boolean> | boolean;
+	/** Notified after loaded states or values change (used to persist shared state). */
+	onChanged?: (snapshot: RuntimeSnapshot) => void;
 }
 
 /**
@@ -25,28 +38,59 @@ export class SplashRuntime {
 	#renderer: SplashRenderer;
 	#events: SplashEventSink;
 	#externalAction: (action: ActionInitialized) => Promise<void> | void;
+	#interceptAction: (action: ActionInitialized) => Promise<boolean> | boolean;
+	#onChanged: (snapshot: RuntimeSnapshot) => void;
 
 	#rendered: Map<string, RenderedSprite> = new Map();
 	#loadedStates: string[] = [];
 	#changingBlocked = false;
 	#suppressAnimIn = false;
+	#mirroring = false;
 	#values: SplashValues = {};
 
 	constructor(
 		splash: SplashInitialized,
 		renderer: SplashRenderer,
 		events: SplashEventSink = () => {},
-		{ externalAction = () => {} }: SplashRuntimeOptions = {},
+		{ externalAction = () => {}, interceptAction = () => false, onChanged = () => {} }: SplashRuntimeOptions = {},
 	) {
 		this.#splash = splash;
 		this.#renderer = renderer;
 		this.#events = events;
 		this.#externalAction = externalAction;
+		this.#interceptAction = interceptAction;
+		this.#onChanged = onChanged;
 		this.#values = { ...(splash.values ?? {}) };
 	}
 
 	get values(): SplashValues {
 		return { ...this.#values };
+	}
+
+	get snapshot(): RuntimeSnapshot {
+		return { loadedStates: [...this.#loadedStates], values: { ...this.#values } };
+	}
+
+	/**
+	 * Mirror an authoritative shared snapshot: load/unload to match its states and
+	 * adopt its values. onEnter actions are suppressed — only the executing
+	 * (GM) client may cause side effects like macros.
+	 */
+	async applyShared(snapshot: RuntimeSnapshot): Promise<void> {
+		this.#mirroring = true;
+		try {
+			for (const [key, value] of Object.entries(snapshot.values)) {
+				if (this.#values[key] !== value) this.#setValue(key, value);
+			}
+			for (const stateId of snapshot.loadedStates) {
+				if (!this.#loadedStates.includes(stateId)) await this.loadState(stateId);
+			}
+			for (const stateId of [...this.#loadedStates]) {
+				if (!snapshot.loadedStates.includes(stateId)) await this.unloadState(stateId);
+			}
+		} finally {
+			this.#mirroring = false;
+		}
 	}
 
 	/**
@@ -72,6 +116,7 @@ export class SplashRuntime {
 	 * is delegated to the external executor.
 	 */
 	async handleAction(action: ActionInitialized): Promise<void> {
+		if (await this.#interceptAction(action)) return;
 		switch (action.type) {
 			case 'set-value':
 				this.#setValue(action.key ?? '', action.value ?? '');
@@ -107,6 +152,7 @@ export class SplashRuntime {
 		for (const rendered of this.#rendered.values()) {
 			rendered.updateValues(this.#values);
 		}
+		if (!this.#mirroring) this.#onChanged(this.snapshot);
 	}
 
 	#conditionsMet(conditions: Record<string, string> | null | undefined): boolean {
@@ -115,6 +161,7 @@ export class SplashRuntime {
 	}
 
 	async #executeOnEnter(stateId: string): Promise<void> {
+		if (this.#mirroring) return;
 		for (const action of this.#splash.states?.[stateId]?.onEnter ?? []) {
 			if (action) await this.handleAction(action);
 		}
@@ -165,6 +212,7 @@ export class SplashRuntime {
 			}
 		}
 		this.#loadedStates.push(stateId);
+		if (!this.#mirroring) this.#onChanged(this.snapshot);
 		await this.#executeOnEnter(stateId);
 		return longestTimeout;
 	}
@@ -200,6 +248,7 @@ export class SplashRuntime {
 			}
 		}
 		this.#loadedStates = this.#loadedStates.filter(state => state !== stateId);
+		if (!this.#mirroring) this.#onChanged(this.snapshot);
 		return longestTimeout;
 	}
 

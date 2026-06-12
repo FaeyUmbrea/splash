@@ -8,6 +8,7 @@ import { listTriggerableSplashPages } from './utils/launch.ts';
 import { registerSettings } from './utils/settings.ts';
 import { setupAPI } from './utils/setup.js';
 import { registerSocket } from './utils/socket.ts';
+import { registerSyncSocket } from './utils/sync.ts';
 import './css/splash.scss';
 
 export const img: string
@@ -29,6 +30,7 @@ Hooks.once('init', () => {
 	registerKeybindings();
 	registerSettings();
 	registerSocket();
+	registerSyncSocket();
 	registerControllerHooks();
 
 	const api = SplashAPI.getInstance();

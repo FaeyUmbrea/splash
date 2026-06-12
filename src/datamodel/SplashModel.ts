@@ -269,6 +269,9 @@ function SplashModelSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
 		schemaVersion: new fields.NumberField({ required: true, initial: 2 }),
+		// local: every client runs its own copy. synced: one shared state for the
+		// whole table, executed on the GM client (e.g. a communal puzzle).
+		mode: new fields.StringField({ required: true, choices: ['local', 'synced'], initial: 'local' }),
 		children: new fields.ArrayField(
 			SpriteFieldCreator(),
 		),

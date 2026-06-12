@@ -273,6 +273,52 @@ describe('splashRuntime', () => {
 		expect(runtime.values['from-sprite']).toBe('yes');
 	});
 
+	it('lets an interceptor consume actions before local handling', async () => {
+		const { renderer } = fakeRenderer();
+		const intercepted: unknown[] = [];
+		const runtime = new SplashRuntime(fixture(), renderer, () => {}, {
+			interceptAction: (action) => {
+				intercepted.push(action);
+				return true;
+			},
+		});
+		await runtime.initialize();
+		// @ts-expect-error plain test action
+		await runtime.handleAction({ type: 'set-value', key: 'k', value: 'v' });
+
+		expect(intercepted).toHaveLength(1);
+		expect(runtime.values.k).toBeUndefined();
+	});
+
+	it('mirrors shared snapshots without firing onEnter or change notifications', async () => {
+		const { renderer } = fakeRenderer();
+		const external = vi.fn();
+		const changed = vi.fn();
+		const splash = fixture();
+		// @ts-expect-error plain test fixture
+		splash.states.second.onEnter = [{ type: 'macro', macro: 'm1' }];
+		const runtime = new SplashRuntime(splash, renderer, () => {}, { externalAction: external, onChanged: changed });
+		await runtime.initialize();
+		changed.mockClear();
+
+		await runtime.applyShared({ loadedStates: ['initial', 'second'], values: { d: 5 } });
+
+		expect(runtime.snapshot).toEqual({ loadedStates: ['initial', 'second'], values: { d: 5 } });
+		// Mirrors never execute side effects or echo authoritative state back.
+		expect(external).not.toHaveBeenCalled();
+		expect(changed).not.toHaveBeenCalled();
+	});
+
+	it('reports snapshots after local changes', async () => {
+		const { renderer } = fakeRenderer();
+		const changed = vi.fn();
+		const runtime = new SplashRuntime(fixture(), renderer, () => {}, { onChanged: changed });
+		await runtime.initialize();
+
+		await runtime.loadState('second');
+		expect(changed).toHaveBeenLastCalledWith({ loadedStates: ['initial', 'second'], values: {} });
+	});
+
 	it('destroy clears the stage via the renderer', async () => {
 		const { renderer } = fakeRenderer();
 		const runtime = new SplashRuntime(fixture(), renderer);

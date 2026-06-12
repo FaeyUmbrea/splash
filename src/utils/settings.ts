@@ -2,6 +2,13 @@ import { ID } from './const.js';
 
 export const SETTING_RENDERER = 'renderer';
 export const SETTING_ACTIVE_SPLASH = 'activeSplash';
+export const SETTING_SHARED_STATE = 'sharedState';
+
+/** Snapshot of a synced splash's runtime, persisted per page uuid. */
+export interface SharedSplashState {
+	loadedStates: string[];
+	values: Record<string, string | number>;
+}
 
 /** Splash-mode stacking: scene = above canvas only, hud = scene + hides scene chrome, full = above all UI. */
 export type SplashLayer = 'scene' | 'hud' | 'full';
@@ -39,6 +46,24 @@ export function registerSettings(): void {
 			await applyActiveSplash(value as ActiveSplash | null);
 		},
 	});
+
+	// Hidden shared-state store for synced splashes, keyed by page uuid. Only the
+	// GM client writes it; everyone else mirrors. Entries persist so a communal
+	// puzzle keeps its progress between opens and across reloads.
+	game.settings?.register(ID, SETTING_SHARED_STATE, {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: {},
+		onChange: async (value) => {
+			const { onSharedStateChanged } = await import('./sync.ts');
+			onSharedStateChanged((value ?? {}) as Record<string, SharedSplashState>);
+		},
+	});
+}
+
+export function getSharedStates(): Record<string, SharedSplashState> {
+	return (game.settings?.get(ID, SETTING_SHARED_STATE) ?? {}) as Record<string, SharedSplashState>;
 }
 
 export function getActiveSplash(): ActiveSplash | null {

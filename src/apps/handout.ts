@@ -9,7 +9,7 @@ class HandoutApplication extends SvelteRenderer {
 	constructor(page: SplashPage) {
 		super(
 			SplashUI,
-			{ splashConfig: page.system },
+			{ splashConfig: page.system, pageUuid: page.uuid },
 			{
 				id: `splash-handout-${page.id}`,
 				classes: ['splash-handout'],

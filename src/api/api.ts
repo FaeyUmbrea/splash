@@ -141,11 +141,11 @@ export class SplashAPI {
 		await openSplashOverlay(page, { layer });
 	}
 
-	/** Open a page as a handout window (player-closable). Caller must be a GM or page owner. */
+	/** Open a page as a handout window (player-closable). Caller only needs to be able to see it. */
 	public async openHandout(uuid: string): Promise<void> {
-		const { canTriggerSplash, isSplashPage } = await import('../utils/launch.ts');
+		const { canViewSplash, isSplashPage } = await import('../utils/launch.ts');
 		const page = await fromUuid(uuid);
-		if (!isSplashPage(page) || !canTriggerSplash(page)) {
+		if (!isSplashPage(page) || !canViewSplash(page)) {
 			ui.notifications?.warn('Splash | You lack permission to open this handout.');
 			return;
 		}

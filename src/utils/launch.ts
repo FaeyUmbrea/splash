@@ -11,6 +11,12 @@ export function canTriggerSplash(page: SplashPage, user = game.user): boolean {
 	return user.isGM || page.testUserPermission(user, 'OWNER');
 }
 
+/** Opening a handout for yourself only needs visibility, not trigger rights. */
+export function canViewSplash(page: SplashPage, user = game.user): boolean {
+	if (!user) return false;
+	return user.isGM || page.testUserPermission(user, 'OBSERVER');
+}
+
 /** All splash pages the given user is allowed to trigger. */
 export function listTriggerableSplashPages(user = game.user): SplashPage[] {
 	return (game.journal?.contents ?? [])

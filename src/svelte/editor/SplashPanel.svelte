@@ -39,6 +39,14 @@
 <aside class='splash-panel'>
 	<h2>Splash</h2>
 
+	<label class='mode-pick'>
+		Mode
+		<select bind:value={working.mode} on:change={change}>
+			<option value='local'>Local (every client on its own)</option>
+			<option value='synced'>Synced (one shared state for the table)</option>
+		</select>
+	</label>
+
 	<h3>States</h3>
 	{#each Object.entries(working.states ?? {}) as [stateId, def] (stateId)}
 		<div class='state-block'>
@@ -102,6 +110,21 @@
 			margin: 0.5rem 0 0.25rem;
 			font-size: 0.9rem;
 			border: none;
+		}
+
+		.mode-pick {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			margin-bottom: 0.5rem;
+			font-size: 0.85em;
+
+			select {
+				flex: 1;
+				min-width: 0;
+				color: #fff;
+				background: #ffffff10;
+			}
 		}
 
 		.state-block {
