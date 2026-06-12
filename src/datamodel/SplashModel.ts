@@ -12,8 +12,9 @@ function BaseSpriteSchemaCreator(choice: string) {
 		states: new fields.TypedObjectField(new fields.SchemaField(StateSchemaCreator()), { required: true }),
 		x: new fields.NumberField({ required: true, initial: 0 }),
 		y: new fields.NumberField({ required: true, initial: 0 }),
-		height: new fields.NumberField({ required: true, initial: 0 }),
-		width: new fields.NumberField({ required: true, initial: 0 }),
+		// null means "natural size" — 0 would collapse the sprite.
+		height: new fields.NumberField({ nullable: true, initial: null }),
+		width: new fields.NumberField({ nullable: true, initial: null }),
 	};
 }
 
@@ -114,10 +115,12 @@ function ButtonSpriteSchemaCreator() {
 		...base,
 		label: new fields.SchemaField(ButtonLabelSchemaCreator(), { required: true }),
 		image: new fields.SchemaField(ButtonImageSchemaCreator(), { required: true }),
-		clickLabel: new fields.SchemaField(ButtonLabelSchemaCreator()),
-		clickImage: new fields.SchemaField(ButtonImageSchemaCreator()),
-		hoverLabel: new fields.SchemaField(ButtonLabelSchemaCreator()),
-		hoverImage: new fields.SchemaField(ButtonImageSchemaCreator()),
+		// Optional variants must initialize to null, not an empty object — the
+		// renderers treat any truthy value as "use this label/image".
+		clickLabel: new fields.SchemaField(ButtonLabelSchemaCreator(), { nullable: true, initial: null }),
+		clickImage: new fields.SchemaField(ButtonImageSchemaCreator(), { nullable: true, initial: null }),
+		hoverLabel: new fields.SchemaField(ButtonLabelSchemaCreator(), { nullable: true, initial: null }),
+		hoverImage: new fields.SchemaField(ButtonImageSchemaCreator(), { nullable: true, initial: null }),
 		tint: new fields.StringField(),
 		hoverTint: new fields.StringField(),
 		clickTint: new fields.StringField(),
@@ -236,8 +239,9 @@ function StateSchemaCreator() {
 		x: new fields.NumberField({ initial: 0 }),
 		y: new fields.NumberField({ initial: 0 }),
 		zIndex: new fields.NumberField({ initial: 0 }),
-		width: new fields.NumberField({ initial: 0 }),
-		height: new fields.NumberField({ initial: 0 }),
+		// null means "keep the sprite's current/natural size" — 0 would collapse it.
+		width: new fields.NumberField({ nullable: true, initial: null }),
+		height: new fields.NumberField({ nullable: true, initial: null }),
 		animIn: AnimationFieldCreator(),
 		animOut: AnimationFieldCreator(),
 	};

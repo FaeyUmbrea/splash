@@ -10,6 +10,14 @@ export class SplashSheet extends foundry.applications.sheets.journal.JournalEntr
 		},
 	};
 
+	static EDIT_PARTS = {
+		header: super.EDIT_PARTS.header,
+		content: {
+			template: 'modules/splash/templates/splash-sheet-edit.hbs',
+		},
+		footer: super.EDIT_PARTS.footer,
+	};
+
 	async _onRender(_context, _options) {
 		const editButton = this.element.querySelector('[data-action="editSplash"]');
 		if (editButton) {
