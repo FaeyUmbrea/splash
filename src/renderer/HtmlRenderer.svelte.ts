@@ -1,0 +1,101 @@
+import type {
+	AnimationInitialized,
+	ButtonSpriteInitialized,
+	ImageSpriteInitialized,
+	SpriteInitialized,
+	StateInitialized,
+} from '../datamodel/SplashModel.ts';
+import type { RenderedSprite, SplashRenderer } from './SplashRenderer.ts';
+import * as svelte from 'svelte';
+import BaseSprite from '../svelte/components/BaseSprite.svelte';
+import Button from '../svelte/components/Button.svelte';
+import ImageSprite from '../svelte/components/Image.svelte';
+import TextSprite from '../svelte/components/Text.svelte';
+
+const components: Record<string, svelte.Component<any>> = {
+	image: ImageSprite,
+	text: TextSprite,
+	button: Button,
+};
+
+class HtmlRenderedSprite implements RenderedSprite {
+	#mounted: object;
+	#props: { sprite: SpriteInitialized; state: StateInitialized; component: svelte.Component<any> };
+	#destroyed = false;
+
+	constructor(target: HTMLElement, sprite: SpriteInitialized, state: StateInitialized, component: svelte.Component<any>) {
+		this.#props = $state({ sprite, state, component });
+		this.#mounted = svelte.mount(BaseSprite, { target, props: this.#props });
+	}
+
+	transition(state: StateInitialized): void {
+		this.#props.state = state;
+	}
+
+	destroy(): void {
+		if (this.#destroyed) return;
+		this.#destroyed = true;
+		svelte.unmount(this.#mounted);
+	}
+}
+
+/** Plain HTML splash renderer for weak machines: DOM sprites, full interactivity, no GL effects. */
+export class HtmlRenderer implements SplashRenderer {
+	#target: HTMLElement;
+	// Plain Set on purpose: teardown bookkeeping only, never rendered.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	#sprites: Set<HtmlRenderedSprite> = new Set();
+
+	constructor(target: HTMLElement) {
+		this.#target = target;
+	}
+
+	async preload(sprites: SpriteInitialized[]): Promise<void> {
+		const urls: string[] = [];
+		for (const sprite of sprites) {
+			if (sprite.type === 'image') {
+				urls.push((sprite as ImageSpriteInitialized).img);
+			} else if (sprite.type === 'button') {
+				const button = sprite as ButtonSpriteInitialized;
+				urls.push(...[button.image?.url, button.hoverImage?.url, button.clickImage?.url].filter(Boolean) as string[]);
+			}
+		}
+		await Promise.all(urls.map(url => new Promise((resolve) => {
+			const image = new Image();
+			image.onload = resolve;
+			image.onerror = resolve;
+			image.src = url;
+		})));
+	}
+
+	async addSprite(
+		sprite: SpriteInitialized,
+		state: StateInitialized,
+		_animIn?: AnimationInitialized | null,
+	): Promise<RenderedSprite | undefined> {
+		const component = components[sprite.type];
+		if (!component) {
+			console.warn(`Splash | No HTML renderer for sprite type ${sprite.type}. Did not create.`);
+			return undefined;
+		}
+		const rendered = new HtmlRenderedSprite(this.#target, sprite, state, component);
+		this.#sprites.add(rendered);
+		return rendered;
+	}
+
+	async animate(_animation: AnimationInitialized, _sprite: RenderedSprite): Promise<void> {
+		// Animations are GL-only effects; the HTML renderer shows state changes instantly.
+	}
+
+	animationDuration(_animation: AnimationInitialized | null | undefined): number {
+		// Animations are skipped, so they never block state changes.
+		return 0;
+	}
+
+	destroy(): void {
+		for (const sprite of this.#sprites) {
+			sprite.destroy();
+		}
+		this.#sprites.clear();
+	}
+}

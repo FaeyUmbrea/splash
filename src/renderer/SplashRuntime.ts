@@ -1,5 +1,4 @@
 import type {
-	AnimationInitialized,
 	SplashInitialized,
 	SpriteInitialized,
 	StateInitialized,
@@ -55,18 +54,13 @@ export class SplashRuntime {
 		return nextState;
 	}
 
-	/** How long an animation keeps the stage busy. */
-	#animationTimeout(animation: AnimationInitialized | null | undefined): number {
-		return animation ? (animation.delay ?? 0) + (animation.duration ?? 3000) : 0;
-	}
-
 	async #loadChild(child: SpriteInitialized, state: StateInitialized): Promise<number> {
 		if (!state) return 0;
 		const animation = state.animIn ?? child.animIn ?? this.#splash.animIn;
 		const sprite = await this.#renderer.addSprite(child, state, animation);
 		if (!sprite) return 0;
 		this.#rendered.set(child.id, sprite);
-		return this.#animationTimeout(animation);
+		return this.#renderer.animationDuration(animation);
 	}
 
 	/** Load a state: instantiate its sprites or transition already-rendered ones. */
@@ -104,9 +98,9 @@ export class SplashRuntime {
 			} else {
 				const state = child.states[stateId]!;
 				const animation = child.animOut ?? state.animOut ?? this.#splash.animOut;
-				if (animation) {
+				if (animation && this.#renderer.animationDuration(animation) > 0) {
 					await this.#renderer.animate(animation, rendered);
-					const timeout = this.#animationTimeout(animation);
+					const timeout = this.#renderer.animationDuration(animation);
 					setTimeout(() => {
 						rendered.destroy();
 						this.#rendered.delete(child.id);

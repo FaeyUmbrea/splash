@@ -2,7 +2,9 @@
 	import type { SplashInitialized } from '../datamodel/SplashModel.ts';
 	import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
 	import { onDestroy, onMount } from 'svelte';
+	import { HtmlRenderer } from '../renderer/HtmlRenderer.svelte.ts';
 	import { PixiRenderer } from '../renderer/PixiRenderer.ts';
+	import { selectRenderer } from '../renderer/selectRenderer.ts';
 	import { SplashRuntime } from '../renderer/SplashRuntime.ts';
 
 	export let foundryApp: SvelteApplication;
@@ -11,12 +13,15 @@
 
 	export let splashConfig: SplashInitialized;
 
+	const rendererKind = selectRenderer();
+
 	let view: HTMLCanvasElement;
+	let htmlStage: HTMLDivElement;
 	let loading = true;
 	let runtime: SplashRuntime | undefined;
 
 	onMount(async () => {
-		const renderer = new PixiRenderer(view);
+		const renderer = rendererKind === 'webgl' ? new PixiRenderer(view) : new HtmlRenderer(htmlStage);
 		runtime = new SplashRuntime(splashConfig, renderer, (event, ...args) => Hooks.call(event, ...args));
 		await runtime.initialize();
 		loading = false;
@@ -44,7 +49,11 @@
 	{#if loading}
 		<div class='loading'><span>Loading</span></div>
 	{/if}
-	<canvas bind:this={view}></canvas>
+	{#if rendererKind === 'webgl'}
+		<canvas bind:this={view}></canvas>
+	{:else}
+		<div class='html-stage' bind:this={htmlStage}></div>
+	{/if}
 </div>
 
 <style lang='stylus'>
@@ -64,6 +73,12 @@
     height 100vh
   .popover
     z-index 200
+
+  .html-stage
+    position relative
+    width 100%
+    height 100%
+    overflow hidden
 
   .loading
     z-index -1

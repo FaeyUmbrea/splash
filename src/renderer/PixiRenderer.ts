@@ -73,6 +73,10 @@ export class PixiRenderer implements SplashRenderer {
 		}
 	}
 
+	animationDuration(animation: AnimationInitialized | null | undefined): number {
+		return animation ? (animation.delay ?? 0) + (animation.duration ?? 3000) : 0;
+	}
+
 	destroy(): void {
 		this.#app.stop();
 		this.#app.stage.destroy();

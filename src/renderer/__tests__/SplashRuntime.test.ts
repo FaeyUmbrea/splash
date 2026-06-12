@@ -13,6 +13,8 @@ function fakeRenderer() {
 			return handle;
 		}),
 		animate: vi.fn(async () => {}),
+		animationDuration: vi.fn((animation?: { delay?: number; duration?: number } | null) =>
+			animation ? (animation.delay ?? 0) + (animation.duration ?? 3000) : 0),
 		destroy: vi.fn(),
 	} satisfies SplashRenderer;
 	return { renderer, handles };
@@ -161,6 +163,22 @@ describe('splashRuntime', () => {
 
 		const [, , animIn] = renderer.addSprite.mock.calls[0];
 		expect(animIn).toEqual({ type: 'fade', delay: 1, duration: 2 });
+	});
+
+	it('never blocks state changes when the renderer skips animations', async () => {
+		const { renderer, handles } = fakeRenderer();
+		renderer.animationDuration.mockImplementation(() => 0);
+		const events = vi.fn();
+		const runtime = new SplashRuntime(fixture(), renderer, events);
+		await runtime.initialize();
+		await runtime.changeStates({ load: ['second'] });
+
+		// txt-1 has an out-animation in the data, but the renderer reports zero duration:
+		// the sprite is destroyed immediately and the next change is not swallowed.
+		await runtime.changeStates({ unload: ['second'] });
+		expect(handles[1].destroy).toHaveBeenCalledOnce();
+		await runtime.changeStates({ unload: ['initial'] });
+		expect(handles[0].destroy).toHaveBeenCalledOnce();
 	});
 
 	it('destroy clears the stage via the renderer', async () => {

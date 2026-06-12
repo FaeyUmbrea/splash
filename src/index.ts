@@ -3,6 +3,7 @@ import { SplashAPI } from './api/api.js';
 import { SplashModel } from './datamodel/SplashModel.js';
 import { SplashSheet } from './sheet/SplashSheet.ts';
 import { registerKeybindings } from './utils/keyboard.js';
+import { registerSettings } from './utils/settings.ts';
 import { setupAPI } from './utils/setup.js';
 import './css/splash.scss';
 
@@ -29,6 +30,7 @@ Hooks.once('init', () => {
 	});
 
 	registerKeybindings();
+	registerSettings();
 
 	const api = SplashAPI.getInstance();
 
