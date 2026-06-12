@@ -16,8 +16,84 @@ interface ActionIntentEvent {
 	payload: { uuid: string; action: ActionInitialized };
 }
 
-/** Synced runtimes currently open on this client, by page uuid. */
-const syncedRuntimes = new Map<string, SplashRuntime>();
+/** Runtimes currently open on this client, by page uuid (synced and local alike). */
+const openRuntimes = new Map<string, SplashRuntime>();
+
+export function registerRuntime(uuid: string, runtime: SplashRuntime): void {
+	openRuntimes.set(uuid, runtime);
+}
+
+export function unregisterRuntime(uuid: string, runtime: SplashRuntime): void {
+	if (openRuntimes.get(uuid) === runtime) openRuntimes.delete(uuid);
+}
+
+export function getRuntime(uuid: string): SplashRuntime | undefined {
+	return openRuntimes.get(uuid);
+}
+
+/** Vote ledgers per synced splash, GM-side only: uuid → userId → optionId. */
+const voteLedgers = new Map<string, Map<string, string>>();
+
+/** Every vote option a splash declares on its buttons. */
+function declaredVoteOptions(splash: SplashInitialized): string[] {
+	const options: string[] = [];
+	for (const child of splash.children ?? []) {
+		if (child?.type === 'button' && child.onClick?.type === 'vote' && child.onClick.optionId) {
+			options.push(child.onClick.optionId);
+		}
+	}
+	return options;
+}
+
+/** GM-side: record a player's vote and surface tallies according to visibility. */
+async function recordVote(uuid: string, userId: string, optionId: string, splash: SplashInitialized, runtime: SplashRuntime): Promise<void> {
+	const ledger = voteLedgers.get(uuid) ?? new Map<string, string>();
+	ledger.set(userId, optionId);
+	voteLedgers.set(uuid, ledger);
+	if (splash.voteVisibility === 'all') {
+		for (const option of declaredVoteOptions(splash)) {
+			const count = [...ledger.values()].filter(choice => choice === option).length;
+			// Tallies ride the regular value pipeline: persisted, mirrored, and
+			// displayable via {vote:option} interpolation.
+			await runtime.handleAction({ type: 'set-value', key: `vote:${option}`, value: String(count) } as ActionInitialized);
+		}
+	}
+	Hooks.callAll('splash.votes-changed', uuid, getVotes(uuid));
+}
+
+/** Current tallies with voter names, for the GM control surface. */
+export function getVotes(uuid: string): Record<string, { count: number; voters: string[] }> {
+	const tallies: Record<string, { count: number; voters: string[] }> = {};
+	for (const [userId, optionId] of voteLedgers.get(uuid) ?? []) {
+		tallies[optionId] ??= { count: 0, voters: [] };
+		tallies[optionId].count += 1;
+		tallies[optionId].voters.push(game.users?.get(userId)?.name ?? userId);
+	}
+	return tallies;
+}
+
+/** All current tallies by page uuid, for control-surface mounting. */
+export function getAllVotes(): Record<string, Record<string, { count: number; voters: string[] }>> {
+	const board: Record<string, Record<string, { count: number; voters: string[] }>> = {};
+	for (const uuid of voteLedgers.keys()) {
+		board[uuid] = getVotes(uuid);
+	}
+	return board;
+}
+
+/** GM: wipe a splash's votes (and zero visible tallies). */
+export async function clearVotes(uuid: string): Promise<void> {
+	voteLedgers.delete(uuid);
+	const runtime = openRuntimes.get(uuid);
+	const page = await fromUuid(uuid);
+	const splash = (page as JournalEntryPage | null)?.system as SplashInitialized | undefined;
+	if (runtime && splash?.voteVisibility === 'all') {
+		for (const option of declaredVoteOptions(splash)) {
+			await runtime.handleAction({ type: 'set-value', key: `vote:${option}`, value: '0' } as ActionInitialized);
+		}
+	}
+	Hooks.callAll('splash.votes-changed', uuid, {});
+}
 
 export interface SyncDriver {
 	interceptAction: (action: ActionInitialized) => boolean;
@@ -54,7 +130,14 @@ export function createSyncDriver(uuid: string, splash: SplashInitialized, runtim
 
 	return {
 		interceptAction: (action) => {
-			if (isExecutor()) return false;
+			if (isExecutor()) {
+				// Votes need attribution, which the runtime doesn't know about.
+				if (action.type === 'vote') {
+					recordVote(uuid, game.userId ?? '', action.optionId ?? '', splash, runtime);
+					return true;
+				}
+				return false;
+			}
 			game.socket?.emit(`module.${ID}`, {
 				eventType: 'splashActionIntent',
 				senderId: game.userId,
@@ -66,7 +149,6 @@ export function createSyncDriver(uuid: string, splash: SplashInitialized, runtim
 			if (live && isExecutor()) persist(snapshot);
 		},
 		connect: async () => {
-			syncedRuntimes.set(uuid, runtime);
 			const shared = getSharedStates()[uuid];
 			if (shared) await runtime.applyShared(shared);
 			live = true;
@@ -75,20 +157,15 @@ export function createSyncDriver(uuid: string, splash: SplashInitialized, runtim
 		},
 		dispose: () => {
 			clearTimeout(persistTimer);
-			if (syncedRuntimes.get(uuid) === runtime) syncedRuntimes.delete(uuid);
 		},
 	};
-}
-
-export function getSyncedRuntime(uuid: string): SplashRuntime | undefined {
-	return syncedRuntimes.get(uuid);
 }
 
 /** Setting onChange: mirror the authoritative snapshots into open runtimes. */
 export function onSharedStateChanged(states: Record<string, SharedSplashState>): void {
 	// The executor's runtimes are the source of these snapshots, not mirrors.
 	if (game.users?.activeGM?.id === game.userId) return;
-	for (const [uuid, runtime] of syncedRuntimes) {
+	for (const [uuid, runtime] of openRuntimes) {
 		const shared = states[uuid];
 		if (shared) runtime.applyShared(shared);
 	}
@@ -101,12 +178,16 @@ export function registerSyncSocket(): void {
 		if (game.users?.activeGM?.id !== game.userId) return;
 		const { uuid, action } = event.payload ?? {};
 		if (!uuid || !action) return;
-		const runtime = syncedRuntimes.get(uuid);
+		const runtime = openRuntimes.get(uuid);
 		if (!runtime) return;
 		// Reject anything the splash's data doesn't declare — intents are unauthenticated.
 		const page = await fromUuid(uuid);
 		const splash = (page as JournalEntryPage | null)?.system as SplashInitialized | undefined;
 		if (!splash || !isDeclaredAction(splash, action)) return;
+		if (action.type === 'vote') {
+			await recordVote(uuid, event.senderId, action.optionId ?? '', splash, runtime);
+			return;
+		}
 		await runtime.handleAction(action);
 	});
 }

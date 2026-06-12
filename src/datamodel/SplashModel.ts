@@ -130,6 +130,21 @@ export type IncrementValueActionCreate = foundry.data.fields.SchemaField.CreateD
 export type IncrementValueActionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof IncrementValueActionSchemaCreator>>;
 export type IncrementValueAction = IncrementValueActionCreate | IncrementValueActionInitialized;
 
+function VoteActionSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseActionSchemaCreator('vote');
+	return {
+		...base,
+		// One vote per player; revoting switches it. Tallies surface as
+		// `vote:<optionId>` values for {token} display when visibility allows.
+		optionId: new fields.StringField({ required: true }),
+	};
+}
+
+export type VoteActionCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof VoteActionSchemaCreator>>;
+export type VoteActionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof VoteActionSchemaCreator>>;
+export type VoteAction = VoteActionCreate | VoteActionInitialized;
+
 function ActionFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
@@ -138,11 +153,12 @@ function ActionFieldCreator() {
 		'close': new fields.SchemaField(CloseActionSchemaCreator()),
 		'set-value': new fields.SchemaField(SetValueActionSchemaCreator()),
 		'increment-value': new fields.SchemaField(IncrementValueActionSchemaCreator()),
+		'vote': new fields.SchemaField(VoteActionSchemaCreator()),
 	});
 }
 
-export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitialized | CloseActionInitialized | SetValueActionInitialized | IncrementValueActionInitialized;
-export type ActionCreate = MacroActionCreate | ChangeStateActionCreate | CloseActionCreate | SetValueActionCreate | IncrementValueActionCreate;
+export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitialized | CloseActionInitialized | SetValueActionInitialized | IncrementValueActionInitialized | VoteActionInitialized;
+export type ActionCreate = MacroActionCreate | ChangeStateActionCreate | CloseActionCreate | SetValueActionCreate | IncrementValueActionCreate | VoteActionCreate;
 export type Action = ActionCreate | ActionInitialized;
 
 function ButtonSpriteSchemaCreator() {
@@ -272,6 +288,9 @@ function SplashModelSchemaCreator() {
 		// local: every client runs its own copy. synced: one shared state for the
 		// whole table, executed on the GM client (e.g. a communal puzzle).
 		mode: new fields.StringField({ required: true, choices: ['local', 'synced'], initial: 'local' }),
+		// 'all': vote tallies are written into shared values (players see pips);
+		// 'gm': tallies stay on the GM client (control surface only).
+		voteVisibility: new fields.StringField({ required: true, choices: ['all', 'gm'], initial: 'all' }),
 		children: new fields.ArrayField(
 			SpriteFieldCreator(),
 		),

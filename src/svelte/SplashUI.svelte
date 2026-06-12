@@ -1,6 +1,7 @@
 <script lang='ts'>
 	import type { SplashInitialized } from '../datamodel/SplashModel.ts';
 	import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
+	import type { PresenceReporter } from '../utils/presence.ts';
 	import type { SyncDriver } from '../utils/sync.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { SplashAPI } from '../api/api.ts';
@@ -8,7 +9,8 @@
 	import { PixiRenderer } from '../renderer/PixiRenderer.ts';
 	import { selectRenderer } from '../renderer/selectRenderer.ts';
 	import { SplashRuntime } from '../renderer/SplashRuntime.ts';
-	import { createSyncDriver } from '../utils/sync.ts';
+	import { createPresenceReporter } from '../utils/presence.ts';
+	import { createSyncDriver, registerRuntime, unregisterRuntime } from '../utils/sync.ts';
 
 	export let foundryApp: SvelteApplication;
 
@@ -27,6 +29,7 @@
 	let loading = true;
 	let runtime: SplashRuntime | undefined;
 	let sync: SyncDriver | undefined;
+	let presence: PresenceReporter | undefined;
 
 	// close-requested stays instance-scoped (this window only); everything else
 	// becomes a regular hook for the rest of the world to observe.
@@ -41,12 +44,19 @@
 	onMount(async () => {
 		const renderer = rendererKind === 'webgl' ? new PixiRenderer(view) : new HtmlRenderer(htmlStage);
 		const synced = splashConfig.mode === 'synced' && !!pageUuid;
+		// Players on local splashes report their position so the GM can follow along.
+		const reportsPresence = splashConfig.mode === 'local' && !!pageUuid && !game.user?.isGM;
 		runtime = new SplashRuntime(splashConfig, renderer, emitEvent, {
 			externalAction: action => SplashAPI.getInstance().processAction(action),
 			interceptAction: action => sync?.interceptAction(action) ?? false,
-			onChanged: snapshot => sync?.onChanged(snapshot),
+			onChanged: (snapshot) => {
+				sync?.onChanged(snapshot);
+				presence?.onChanged(snapshot);
+			},
 		});
+		if (pageUuid) registerRuntime(pageUuid, runtime);
 		if (synced) sync = createSyncDriver(pageUuid!, splashConfig, runtime);
+		if (reportsPresence) presence = createPresenceReporter(pageUuid!);
 		await runtime.initialize({ skipAnimations });
 		await sync?.connect();
 		loading = false;
@@ -64,7 +74,9 @@
 	);
 
 	onDestroy(() => {
+		presence?.dispose();
 		sync?.dispose();
+		if (pageUuid && runtime) unregisterRuntime(pageUuid, runtime);
 		runtime?.destroy();
 		Hooks.off('splash.close-splash', closeHook);
 		Hooks.off('splash.change-states', changeStatesHook);

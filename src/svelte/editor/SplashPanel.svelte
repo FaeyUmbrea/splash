@@ -47,6 +47,14 @@
 		</select>
 	</label>
 
+	<label class='mode-pick'>
+		Votes
+		<select bind:value={working.voteVisibility} on:change={change}>
+			<option value='all'>Visible to everyone</option>
+			<option value='gm'>GM only</option>
+		</select>
+	</label>
+
 	<h3>States</h3>
 	{#each Object.entries(working.states ?? {}) as [stateId, def] (stateId)}
 		<div class='state-block'>

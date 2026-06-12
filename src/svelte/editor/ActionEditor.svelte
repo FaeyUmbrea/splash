@@ -19,6 +19,7 @@
 		'change-state': () => ({ type: 'change-state', load: [], unload: [], conditions: null }),
 		'set-value': () => ({ type: 'set-value', key: '', value: '' }),
 		'increment-value': () => ({ type: 'increment-value', key: '', step: 1, min: null, max: null, wrap: false }),
+		'vote': () => ({ type: 'vote', optionId: '' }),
 	};
 
 	function setType(event: Event) {
@@ -133,6 +134,9 @@
 			<input type='checkbox' bind:checked={owner[key].wrap} on:change={change} />
 			Wrap around
 		</label>
+	{:else if owner[key]?.type === 'vote'}
+		<label>Option <input type='text' bind:value={owner[key].optionId} on:change={change} /></label>
+		<p class='hint'>Tally is readable as &#123;vote:option&#125; in text sprites.</p>
 	{/if}
 </fieldset>
 
