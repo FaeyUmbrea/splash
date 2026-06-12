@@ -13,9 +13,11 @@ import type { DissolveFilterProps } from '../shaders/dissolve/dissolve.js';
 import NineSlicePlaneButton from '../pixi/nineSlicePlaneButton.js';
 import { transitionState } from '../pixi/transitionState.ts';
 import DissolveFilter from '../shaders/dissolve/dissolve.js';
+import GlitchFilter from '../shaders/glitch/glitch.ts';
 
 export function setupAPI(api: SplashAPI) {
 	api.registerAnimation('dissolve', 'Dissolve Animation', instantiateDissolve);
+	api.registerAnimation('glitch', 'Glitch Transition', instantiateGlitch);
 	api.registerSprite('text', 'Text', instantiateText);
 	api.registerSprite('image', 'Image', instantiateImage);
 	api.registerSprite('button', 'Button', instantiateButton);
@@ -57,6 +59,23 @@ async function instantiateDissolve(
 			}, animation?.duration ?? 3000);
 		}, animation?.delay ?? 0);
 	}
+}
+
+async function instantiateGlitch(
+	animation: AnimationInitialized,
+	sprite: PIXI.DisplayObject,
+	app: PIXI.Application,
+) {
+	if (animation.type !== 'glitch') return;
+	const filter = await GlitchFilter(app, animation);
+	setTimeout(() => {
+		sprite.filters = [...(sprite.filters ?? []), filter];
+		setTimeout(() => {
+			if (sprite.filters) {
+				sprite.filters = sprite.filters.filter(item => item !== filter);
+			}
+		}, animation.duration ?? 3000);
+	}, animation.delay ?? 0);
 }
 
 async function instantiateImage(image: ImageSpriteInitialized, state: State, _context: SpriteContext) {

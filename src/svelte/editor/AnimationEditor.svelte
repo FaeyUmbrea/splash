@@ -22,6 +22,19 @@
 				duration: 3000,
 				props: { type: 'randomOrigins', randomOrigins: true, numOrigins: 2 },
 			};
+		} else if (type === 'glitch') {
+			owner[key] = {
+				type: 'glitch',
+				delay: 0,
+				duration: 3000,
+				props: {
+					origins: { type: 'randomOrigins', randomOrigins: true, numOrigins: 2 },
+					bands: 20,
+					intensity: 0.05,
+					tint: '#0044ff',
+					invert: false,
+				},
+			};
 		}
 		change();
 	}
@@ -55,6 +68,15 @@
 	{#if owner[key]}
 		<label>Delay (ms) <input type='number' bind:value={owner[key].delay} on:change={change} /></label>
 		<label>Duration (ms) <input type='number' bind:value={owner[key].duration} on:change={change} /></label>
+		{#if owner[key].type === 'glitch'}
+			<label>Bands <input type='number' min='1' bind:value={owner[key].props.bands} on:change={change} /></label>
+			<label>Intensity <input type='number' step='0.01' min='0' max='1' bind:value={owner[key].props.intensity} on:change={change} /></label>
+			<label>Tint <input type='color' bind:value={owner[key].props.tint} on:change={change} /></label>
+			<label class='check'>
+				<input type='checkbox' bind:checked={owner[key].props.invert} on:change={change} />
+				Invert (corrupt instead of reveal)
+			</label>
+		{/if}
 		{#if owner[key].type === 'dissolve'}
 			<label>
 				Origins

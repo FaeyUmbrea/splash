@@ -19,10 +19,8 @@ export type DissolveFilterProps
 	= | FixedOriginsDissolveFilterProps
 		| RandomOriginDissolveFilterProps;
 
-export default async function DissolveFilter(
-	app: PIXI.Application,
-	props: DissolveFilterProps,
-): Promise<Dissolve> {
+/** Resolve an origins prop variant into flat x,y pairs (shared with dissolve-derived effects). */
+export function originsFromProps(app: PIXI.Application, props: DissolveFilterProps): number[] {
 	const origins: number[] = [];
 	if ('randomOrigins' in props) {
 		for (let i = 0; i < Math.min(props.numOrigins ?? 2, 16); i++) {
@@ -34,7 +32,14 @@ export default async function DissolveFilter(
 	} else {
 		origins.push(...props.origins);
 	}
-	return new Dissolve(origins, await getNoiseMaterial(), props.invert, app);
+	return origins;
+}
+
+export default async function DissolveFilter(
+	app: PIXI.Application,
+	props: DissolveFilterProps,
+): Promise<Dissolve> {
+	return new Dissolve(originsFromProps(app, props), await getNoiseMaterial(), props.invert, app);
 }
 
 export class Dissolve extends PIXI.Filter {
@@ -45,8 +50,9 @@ export class Dissolve extends PIXI.Filter {
 		public noise: PIXI.Texture,
 		public invert: boolean,
 		public app: PIXI.Application,
+		fragment: string = fragmentShader,
 	) {
-		super(vertexShader, fragmentShader);
+		super(vertexShader, fragment);
 	}
 
 	override apply(

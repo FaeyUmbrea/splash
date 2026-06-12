@@ -257,15 +257,48 @@ export type DissolveAnimationCreate = foundry.data.fields.SchemaField.CreateData
 export type DissolveAnimationInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof DissolveAnimationSchemaCreator>>;
 export type DissolveAnimation = DissolveAnimationCreate | DissolveAnimationInitialized;
 
+function OriginVariantsFieldCreator() {
+	const fields = foundry.data.fields;
+	return new fields.TypedSchemaField({
+		fixedOrigins: {
+			type: new fields.StringField({ required: true, choices: ['fixedOrigins'] }),
+			origins: new fields.ArrayField(new fields.NumberField(), { required: true }),
+		},
+		randomOrigins: {
+			type: new fields.StringField({ required: true, choices: ['randomOrigins'] }),
+			randomOrigins: new fields.BooleanField({ required: true, initial: true }),
+			numOrigins: new fields.NumberField({ required: true }),
+		},
+	}, { required: true });
+}
+
+function GlitchAnimationSchemaCreator() {
+	const fields = foundry.data.fields;
+	return BaseAnimationModelSchemaCreator('glitch', new fields.SchemaField({
+		// Same origin-driven reveal as the dissolve; the border treatment differs.
+		origins: OriginVariantsFieldCreator(),
+		bands: new fields.NumberField({ required: true, initial: 20 }),
+		// Horizontal tear distance as a fraction of the screen.
+		intensity: new fields.NumberField({ required: true, initial: 0.05 }),
+		tint: new fields.ColorField({ required: true, initial: '#0044ff' }),
+		invert: new fields.BooleanField({ required: true, initial: false }),
+	}, { required: true }));
+}
+
+export type GlitchAnimationCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof GlitchAnimationSchemaCreator>>;
+export type GlitchAnimationInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof GlitchAnimationSchemaCreator>>;
+export type GlitchAnimation = GlitchAnimationCreate | GlitchAnimationInitialized;
+
 function AnimationFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
 		dissolve: DissolveAnimationSchemaCreator(),
+		glitch: GlitchAnimationSchemaCreator(),
 	}, { required: false });
 }
 
-export type AnimationInitialized = DissolveAnimationInitialized;
-export type AnimationCreate = DissolveAnimationCreate;
+export type AnimationInitialized = DissolveAnimationInitialized | GlitchAnimationInitialized;
+export type AnimationCreate = DissolveAnimationCreate | GlitchAnimationCreate;
 export type Animation = AnimationCreate | AnimationInitialized;
 
 function StateDefinitionSchemaCreator() {
