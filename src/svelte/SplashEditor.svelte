@@ -5,6 +5,7 @@
 	import EditorCanvas from './editor/EditorCanvas.svelte';
 	import InspectorPanel from './editor/InspectorPanel.svelte';
 	import LayersPanel from './editor/LayersPanel.svelte';
+	import SplashPanel from './editor/SplashPanel.svelte';
 	import StateTabs from './editor/StateTabs.svelte';
 
 	export let foundryApp: SvelteApplication;
@@ -85,8 +86,11 @@
 		<InspectorPanel
 			sprite={selected}
 			{activeState}
+			states={Object.keys(working.states ?? {})}
 			on:change={touch}
 		/>
+	{:else}
+		<SplashPanel {working} on:change={touch} />
 	{/if}
 </div>
 

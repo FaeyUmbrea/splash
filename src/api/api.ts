@@ -95,6 +95,16 @@ export class SplashAPI {
 		}
 	}
 
+	/** Registered animation types with display names (for editors and pickers). */
+	public get registeredAnimations(): { type: string; name: string }[] {
+		return Array.from(this.animationNames.entries()).map(([type, name]) => ({ type, name }));
+	}
+
+	/** Registered action types with display names (for editors and pickers). */
+	public get registeredActions(): { type: string; name: string }[] {
+		return Array.from(this.actionNames.entries()).map(([type, name]) => ({ type, name }));
+	}
+
 	/**
 	 * Show a splash page (macro/module entry point), locally and optionally for other players.
 	 * The caller must be a GM or an owner of the page.

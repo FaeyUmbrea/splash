@@ -1,9 +1,12 @@
 <script lang='ts'>
 	import type { SpriteCreate } from '../../datamodel/SplashModel.ts';
 	import { createEventDispatcher } from 'svelte';
+	import ActionEditor from './ActionEditor.svelte';
+	import AnimationEditor from './AnimationEditor.svelte';
 
 	export let sprite: SpriteCreate;
 	export let activeState: string;
+	export let states: string[];
 
 	const dispatch = createEventDispatcher<{ change: void }>();
 
@@ -40,6 +43,7 @@
 		<label>Label <input type='text' bind:value={sprite.label.text} on:change={change} /></label>
 		<label>Label size <input type='number' bind:value={sprite.label.fontSize} on:change={change} /></label>
 		<label>Label color <input type='color' bind:value={sprite.label.fill} on:change={change} /></label>
+		<ActionEditor owner={sprite} key='onClick' {states} on:change={change} />
 	{/if}
 
 	{#if sprite.states?.[activeState]}
@@ -52,6 +56,8 @@
 			<label>Z <input type='number' bind:value={sprite.states[activeState].zIndex} on:change={change} /></label>
 			<label>Priority <input type='number' bind:value={sprite.states[activeState].priority} on:change={change} /></label>
 		</div>
+		<AnimationEditor owner={sprite.states[activeState]} key='animIn' label='Animation In' on:change={change} />
+		<AnimationEditor owner={sprite.states[activeState]} key='animOut' label='Animation Out' on:change={change} />
 	{:else}
 		<p class='hint'>Not placed in this state.</p>
 	{/if}
