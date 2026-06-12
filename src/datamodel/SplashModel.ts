@@ -1,8 +1,11 @@
+import { nanoid } from 'nanoid';
+
 function BaseSpriteSchemaCreator(choice: string) {
 	const fields = foundry.data.fields;
 	return {
 		type: new fields.StringField({ required: true, choices: [choice] }),
-		id: new fields.StringField({ required: true }),
+		// Sprites need distinct ids: the runtime tracks rendered sprites by this key.
+		id: new fields.StringField({ required: true, blank: false, initial: () => nanoid() }),
 		name: new fields.StringField({ required: true }),
 		animIn: AnimationFieldCreator(),
 		animOut: AnimationFieldCreator(),

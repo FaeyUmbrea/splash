@@ -10,8 +10,8 @@ import type {
 import type { DissolveFilterProps } from '../shaders/dissolve/dissolve.js';
 import { SplashAPI } from '../api/api.js';
 import NineSlicePlaneButton from '../pixi/nineSlicePlaneButton.js';
+import { transitionState } from '../pixi/transitionState.ts';
 import DissolveFilter from '../shaders/dissolve/dissolve.js';
-import { transitionState } from './helpers.js';
 
 export function setupAPI(api: SplashAPI) {
 	api.registerAnimation('dissolve', 'Dissolve Animation', instantiateDissolve);
