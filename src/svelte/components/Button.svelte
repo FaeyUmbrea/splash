@@ -1,8 +1,9 @@
 <script lang='ts'>
 	import type { ButtonSpriteInitialized } from '../../datamodel/SplashModel.ts';
-	import { SplashAPI } from '../../api/api.ts';
+	import type { SpriteContext } from '../../renderer/SplashRenderer.ts';
 
 	export let sprite: ButtonSpriteInitialized;
+	export let context: SpriteContext = { onAction: () => {} };
 
 	let hover = false;
 	let active = false;
@@ -25,7 +26,7 @@
 	}}
 	on:mousedown={() => active = true}
 	on:mouseup={() => active = false}
-	on:click={() => SplashAPI.getInstance().processAction(sprite.onClick)}
+	on:click={() => context.onAction(sprite.onClick)}
 >
 	<span
 		style:font-size='{label.fontSize}px'

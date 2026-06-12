@@ -140,9 +140,9 @@ function createSplash() {
 	return {
 		children: [image, text, button],
 		states: {
-			initial: 'Initial',
-			second: 'Second',
-			third: 'Third',
+			initial: { label: 'Initial', onEnter: [] },
+			second: { label: 'Second', onEnter: [] },
+			third: { label: 'Third', onEnter: [] },
 		},
 		animIn: {
 			type: 'dissolve',

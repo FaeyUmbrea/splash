@@ -2,6 +2,7 @@
 	import type { SplashInitialized } from '../datamodel/SplashModel.ts';
 	import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
 	import { onDestroy, onMount } from 'svelte';
+	import { SplashAPI } from '../api/api.ts';
 	import { HtmlRenderer } from '../renderer/HtmlRenderer.svelte.ts';
 	import { PixiRenderer } from '../renderer/PixiRenderer.ts';
 	import { selectRenderer } from '../renderer/selectRenderer.ts';
@@ -21,9 +22,21 @@
 	let loading = true;
 	let runtime: SplashRuntime | undefined;
 
+	// close-requested stays instance-scoped (this window only); everything else
+	// becomes a regular hook for the rest of the world to observe.
+	function emitEvent(event: string, ...args: unknown[]) {
+		if (event === 'splash.close-requested') {
+			foundryApp.close();
+			return;
+		}
+		Hooks.call(event, ...args);
+	}
+
 	onMount(async () => {
 		const renderer = rendererKind === 'webgl' ? new PixiRenderer(view) : new HtmlRenderer(htmlStage);
-		runtime = new SplashRuntime(splashConfig, renderer, (event, ...args) => Hooks.call(event, ...args));
+		runtime = new SplashRuntime(splashConfig, renderer, emitEvent, {
+			externalAction: action => SplashAPI.getInstance().processAction(action),
+		});
 		await runtime.initialize({ skipAnimations });
 		loading = false;
 	});

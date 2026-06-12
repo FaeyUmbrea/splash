@@ -1,3 +1,4 @@
+import type { SplashAPI } from '../api/api.js';
 import type {
 	AnimationInitialized,
 	ButtonSpriteInitialized,
@@ -7,8 +8,8 @@ import type {
 	State,
 	TextSpriteInitialized,
 } from '../datamodel/SplashModel.ts';
+import type { SpriteContext } from '../renderer/SplashRenderer.ts';
 import type { DissolveFilterProps } from '../shaders/dissolve/dissolve.js';
-import { SplashAPI } from '../api/api.js';
 import NineSlicePlaneButton from '../pixi/nineSlicePlaneButton.js';
 import { transitionState } from '../pixi/transitionState.ts';
 import DissolveFilter from '../shaders/dissolve/dissolve.js';
@@ -23,6 +24,12 @@ export function setupAPI(api: SplashAPI) {
 	api.registerAction('close', 'Close Splash', () => {
 		Hooks.call('splash.close-splash');
 	});
+	// Value actions are handled inside each runtime instance; these registrations
+	// exist so editors can list them. Reaching the processor means the action was
+	// dispatched outside a splash, where values don't exist.
+	const valueActionWarning = () => console.warn('Splash | Value actions only work inside a running splash.');
+	api.registerAction('set-value', 'Set Value', valueActionWarning);
+	api.registerAction('increment-value', 'Increment Value', valueActionWarning);
 }
 
 async function instantiateDissolve(
@@ -52,7 +59,7 @@ async function instantiateDissolve(
 	}
 }
 
-async function instantiateImage(image: ImageSpriteInitialized, state: State) {
+async function instantiateImage(image: ImageSpriteInitialized, state: State, _context: SpriteContext) {
 	if (image.type !== 'image') throw new Error('Image type is not \'image\'');
 
 	const sprite = PIXI.Sprite.from(image.img);
@@ -60,7 +67,7 @@ async function instantiateImage(image: ImageSpriteInitialized, state: State) {
 	return sprite;
 }
 
-async function instantiateText(text: TextSpriteInitialized, state: State) {
+async function instantiateText(text: TextSpriteInitialized, state: State, _context: SpriteContext) {
 	if (text.type !== 'text') throw new Error('Text type is not \'text\'');
 	const sprite = new PIXI.Text(text.text, {
 		fontFamily: text.font,
@@ -72,12 +79,13 @@ async function instantiateText(text: TextSpriteInitialized, state: State) {
 	return sprite;
 }
 
-async function instantiateButton(button: ButtonSpriteInitialized, state: State) {
+async function instantiateButton(button: ButtonSpriteInitialized, state: State, context: SpriteContext) {
 	if (button.type !== 'button') throw new Error('Button type is not \'button\'');
 
 	const buttonConfig = foundry.utils.mergeObject(button, {
 		onTap: async () => {
-			await SplashAPI.getInstance().processAction(button.onClick);
+			// Routed through the owning runtime so actions stay instance-scoped.
+			await context.onAction(button.onClick);
 		},
 	});
 	const sprite = new NineSlicePlaneButton(buttonConfig);

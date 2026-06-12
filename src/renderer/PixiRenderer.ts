@@ -5,18 +5,26 @@ import type {
 	SpriteInitialized,
 	StateInitialized,
 } from '../datamodel/SplashModel.ts';
-import type { RenderedSprite, SplashRenderer } from './SplashRenderer.ts';
+import type { RenderedSprite, SplashRenderer, SplashValues, SpriteContext } from './SplashRenderer.ts';
 import { SplashAPI } from '../api/api.ts';
 import { transitionState } from '../pixi/transitionState.ts';
+import { interpolate } from '../utils/interpolate.ts';
 
 class PixiRenderedSprite implements RenderedSprite {
 	constructor(
 		readonly object: PIXI.DisplayObject,
 		readonly stage: PIXI.Container,
+		readonly sprite: SpriteInitialized,
 	) {}
 
 	transition(state: StateInitialized): void {
 		transitionState(this.object, state);
+	}
+
+	updateValues(values: SplashValues): void {
+		if (this.sprite.type === 'text') {
+			(this.object as PIXI.Text).text = interpolate(this.sprite.text ?? '', values);
+		}
 	}
 
 	destroy(): void {
@@ -67,15 +75,16 @@ export class PixiRenderer implements SplashRenderer {
 	async addSprite(
 		sprite: SpriteInitialized,
 		state: StateInitialized,
-		animIn?: AnimationInitialized | null,
+		animIn: AnimationInitialized | null | undefined,
+		context: SpriteContext,
 	): Promise<RenderedSprite | undefined> {
-		const object = await this.#api.buildSprite(sprite, state);
+		const object = await this.#api.buildSprite(sprite, state, context);
 		if (!object) return undefined;
 		if (animIn) {
 			await this.#api.buildAnimation(animIn, object, this.#app);
 		}
 		this.#app.stage.addChild(object);
-		return new PixiRenderedSprite(object, this.#app.stage);
+		return new PixiRenderedSprite(object, this.#app.stage, sprite);
 	}
 
 	async animate(animation: AnimationInitialized, sprite: RenderedSprite): Promise<void> {

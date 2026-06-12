@@ -4,6 +4,7 @@ import type {
 	SpriteInitialized as Sprite,
 	StateInitialized as State,
 } from '../datamodel/SplashModel.ts';
+import type { SpriteContext } from '../renderer/SplashRenderer.ts';
 import type { SplashLayer } from '../utils/settings.ts';
 
 /**
@@ -18,6 +19,7 @@ export type AnimationBuilder<A extends Animation> = (
 export type SpriteBuilder<S extends Sprite> = (
 	Sprite: S,
 	state: State,
+	context: SpriteContext,
 ) => Promise<PIXI.DisplayObject> | PIXI.DisplayObject;
 
 export type ActionProcessor<A extends Action> = (
@@ -84,10 +86,10 @@ export class SplashAPI {
 		}
 	}
 
-	public async buildSprite(sprite: Sprite, state: State) {
+	public async buildSprite(sprite: Sprite, state: State, context: SpriteContext) {
 		const builder = this.sprites.get(sprite.type);
 		if (builder) {
-			return builder(sprite, state);
+			return builder(sprite, state, context);
 		} else {
 			console.warn(
 				`Splash | Sprite type ${sprite.type} not found. Did not create.`,

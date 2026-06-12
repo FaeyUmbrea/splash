@@ -5,23 +5,35 @@ import type {
 	SpriteInitialized,
 	StateInitialized,
 } from '../datamodel/SplashModel.ts';
-import type { RenderedSprite, SplashRenderer } from './SplashRenderer.ts';
+import type { RenderedSprite, SplashRenderer, SplashValues, SpriteContext } from './SplashRenderer.ts';
 import * as svelte from 'svelte';
 import BaseSprite from '../svelte/components/BaseSprite.svelte';
 import { spriteComponents } from '../svelte/components/index.ts';
 
+interface HtmlSpriteProps {
+	sprite: SpriteInitialized;
+	state: StateInitialized;
+	component: svelte.Component<any>;
+	values: SplashValues;
+	context: SpriteContext;
+}
+
 class HtmlRenderedSprite implements RenderedSprite {
 	#mounted: object;
-	#props: { sprite: SpriteInitialized; state: StateInitialized; component: svelte.Component<any> };
+	#props: HtmlSpriteProps;
 	#destroyed = false;
 
-	constructor(target: HTMLElement, sprite: SpriteInitialized, state: StateInitialized, component: svelte.Component<any>) {
-		this.#props = $state({ sprite, state, component });
+	constructor(target: HTMLElement, sprite: SpriteInitialized, state: StateInitialized, component: svelte.Component<any>, context: SpriteContext) {
+		this.#props = $state({ sprite, state, component, values: {}, context });
 		this.#mounted = svelte.mount(BaseSprite, { target, props: this.#props });
 	}
 
 	transition(state: StateInitialized): void {
 		this.#props.state = state;
+	}
+
+	updateValues(values: SplashValues): void {
+		this.#props.values = { ...values };
 	}
 
 	destroy(): void {
@@ -63,14 +75,15 @@ export class HtmlRenderer implements SplashRenderer {
 	async addSprite(
 		sprite: SpriteInitialized,
 		state: StateInitialized,
-		_animIn?: AnimationInitialized | null,
+		_animIn: AnimationInitialized | null | undefined,
+		context: SpriteContext,
 	): Promise<RenderedSprite | undefined> {
 		const component = spriteComponents[sprite.type];
 		if (!component) {
 			console.warn(`Splash | No HTML renderer for sprite type ${sprite.type}. Did not create.`);
 			return undefined;
 		}
-		const rendered = new HtmlRenderedSprite(this.#target, sprite, state, component);
+		const rendered = new HtmlRenderedSprite(this.#target, sprite, state, component, context);
 		this.#sprites.add(rendered);
 		return rendered;
 	}

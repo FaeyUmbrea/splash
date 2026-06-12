@@ -77,6 +77,9 @@ function ChangeStateActionSchemaCreator() {
 		...base,
 		load: new fields.ArrayField(new fields.StringField(), { required: true }),
 		unload: new fields.ArrayField(new fields.StringField(), { required: true }),
+		// Optional value gate: the transition only fires when every entry matches
+		// the runtime's current values (e.g. a combination lock).
+		conditions: new fields.TypedObjectField(new fields.StringField({ required: true }), { required: false, nullable: true, initial: null }),
 	};
 }
 
@@ -95,17 +98,51 @@ export type CloseActionCreate = foundry.data.fields.SchemaField.CreateData<Retur
 export type CloseActionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof CloseActionSchemaCreator>>;
 export type CloseAction = CloseActionCreate | CloseActionInitialized;
 
+function SetValueActionSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseActionSchemaCreator('set-value');
+	return {
+		...base,
+		key: new fields.StringField({ required: true }),
+		value: new fields.StringField({ required: true, initial: '' }),
+	};
+}
+
+export type SetValueActionCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof SetValueActionSchemaCreator>>;
+export type SetValueActionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof SetValueActionSchemaCreator>>;
+export type SetValueAction = SetValueActionCreate | SetValueActionInitialized;
+
+function IncrementValueActionSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseActionSchemaCreator('increment-value');
+	return {
+		...base,
+		key: new fields.StringField({ required: true }),
+		step: new fields.NumberField({ required: true, initial: 1 }),
+		min: new fields.NumberField({ nullable: true, initial: null }),
+		max: new fields.NumberField({ nullable: true, initial: null }),
+		// Wrapping min..max makes a single button cycle a tumbler digit.
+		wrap: new fields.BooleanField({ required: true, initial: false }),
+	};
+}
+
+export type IncrementValueActionCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof IncrementValueActionSchemaCreator>>;
+export type IncrementValueActionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof IncrementValueActionSchemaCreator>>;
+export type IncrementValueAction = IncrementValueActionCreate | IncrementValueActionInitialized;
+
 function ActionFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
 		'macro': new fields.SchemaField(MacroActionSchemaCreator()),
 		'change-state': new fields.SchemaField(ChangeStateActionSchemaCreator()),
 		'close': new fields.SchemaField(CloseActionSchemaCreator()),
+		'set-value': new fields.SchemaField(SetValueActionSchemaCreator()),
+		'increment-value': new fields.SchemaField(IncrementValueActionSchemaCreator()),
 	});
 }
 
-export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitialized | CloseActionInitialized;
-export type ActionCreate = MacroActionCreate | ChangeStateActionCreate | CloseActionCreate;
+export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitialized | CloseActionInitialized | SetValueActionInitialized | IncrementValueActionInitialized;
+export type ActionCreate = MacroActionCreate | ChangeStateActionCreate | CloseActionCreate | SetValueActionCreate | IncrementValueActionCreate;
 export type Action = ActionCreate | ActionInitialized;
 
 function ButtonSpriteSchemaCreator() {
@@ -215,9 +252,23 @@ export type AnimationInitialized = DissolveAnimationInitialized;
 export type AnimationCreate = DissolveAnimationCreate;
 export type Animation = AnimationCreate | AnimationInitialized;
 
+function StateDefinitionSchemaCreator() {
+	const fields = foundry.data.fields;
+	return {
+		label: new fields.StringField({ required: true, initial: '' }),
+		// Actions executed when the state finishes loading (e.g. a door-unlock macro).
+		onEnter: new fields.ArrayField(ActionFieldCreator(), { required: true, initial: [] }),
+	};
+}
+
+export type StateDefinitionCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof StateDefinitionSchemaCreator>>;
+export type StateDefinitionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof StateDefinitionSchemaCreator>>;
+export type StateDefinition = StateDefinitionCreate | StateDefinitionInitialized;
+
 function SplashModelSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
+		schemaVersion: new fields.NumberField({ required: true, initial: 2 }),
 		children: new fields.ArrayField(
 			SpriteFieldCreator(),
 		),
@@ -227,7 +278,16 @@ function SplashModelSchemaCreator() {
 		}),
 		animIn: AnimationFieldCreator(),
 		animOut: AnimationFieldCreator(),
-		states: new fields.TypedObjectField(new fields.StringField(), { required: true, initial: { initial: 'Initial State' } }),
+		states: new fields.TypedObjectField(new fields.SchemaField(StateDefinitionSchemaCreator()), {
+			required: true,
+			initial: { initial: { label: 'Initial State', onEnter: [] } },
+		}),
+		// Named runtime values with their initial (string) contents; the runtime's
+		// interactivity (tumblers, counters, conditions) lives on these.
+		values: new fields.TypedObjectField(new fields.StringField({ required: true, initial: '' }), {
+			required: true,
+			initial: {},
+		}),
 	};
 }
 
@@ -257,6 +317,18 @@ export class SplashModel extends foundry.abstract.TypeDataModel<
 > {
 	static override defineSchema() {
 		return SplashModelSchemaCreator();
+	}
+
+	static override migrateData(source: Record<string, any>) {
+		// Schema v1 stored states as plain label strings.
+		if (source?.states) {
+			for (const [key, value] of Object.entries(source.states)) {
+				if (typeof value === 'string') {
+					source.states[key] = { label: value, onEnter: [] };
+				}
+			}
+		}
+		return super.migrateData(source);
 	}
 }
 

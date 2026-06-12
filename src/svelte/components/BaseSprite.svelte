@@ -1,11 +1,14 @@
 <script lang='ts'>
 	import type { Component } from 'svelte';
 	import type { SpriteInitialized, StateInitialized } from '../../datamodel/SplashModel.ts';
+	import type { SplashValues, SpriteContext } from '../../renderer/SplashRenderer.ts';
 	import { spriteDefaultSize } from './index.ts';
 
 	export let sprite: SpriteInitialized;
 	export let state: StateInitialized;
 	export let component: Component<any>;
+	export let values: SplashValues = {};
+	export let context: SpriteContext = { onAction: () => {} };
 
 	$: fallback = spriteDefaultSize(sprite.type);
 </script>
@@ -19,7 +22,7 @@
 	style:height={(state.height ?? fallback.height) ? `${state.height ?? fallback.height}px` : 'auto'}
 	style:z-index={state.zIndex ?? 0}
 >
-	<svelte:component this={component} {sprite} />
+	<svelte:component this={component} {sprite} {values} {context} />
 </div>
 
 <style>

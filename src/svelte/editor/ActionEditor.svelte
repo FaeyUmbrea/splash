@@ -6,6 +6,7 @@
 	export let owner: Record<string, any>;
 	export let key: string;
 	export let states: string[];
+	export let label: string = 'On Click';
 
 	const dispatch = createEventDispatcher<{ change: void }>();
 	const change = () => dispatch('change');
@@ -15,7 +16,9 @@
 	const defaults: Record<string, () => object> = {
 		'close': () => ({ type: 'close' }),
 		'macro': () => ({ type: 'macro', macro: null }),
-		'change-state': () => ({ type: 'change-state', load: [], unload: [] }),
+		'change-state': () => ({ type: 'change-state', load: [], unload: [], conditions: null }),
+		'set-value': () => ({ type: 'set-value', key: '', value: '' }),
+		'increment-value': () => ({ type: 'increment-value', key: '', step: 1, min: null, max: null, wrap: false }),
 	};
 
 	function setType(event: Event) {
@@ -31,10 +34,28 @@
 			: [...current, stateId];
 		change();
 	}
+
+	let conditionKey = '';
+	let conditionValue = '';
+
+	function addCondition() {
+		if (!conditionKey) return;
+		owner[key].conditions = { ...(owner[key].conditions ?? {}), [conditionKey]: conditionValue };
+		conditionKey = '';
+		conditionValue = '';
+		change();
+	}
+
+	function removeCondition(name: string) {
+		const conditions = { ...(owner[key].conditions ?? {}) };
+		delete conditions[name];
+		owner[key].conditions = Object.keys(conditions).length ? conditions : null;
+		change();
+	}
 </script>
 
 <fieldset class='action-editor'>
-	<legend>On Click</legend>
+	<legend>{label}</legend>
 	<label>
 		Action
 		<select value={owner[key]?.type ?? 'close'} on:change={setType}>
@@ -82,6 +103,36 @@
 				{/each}
 			</div>
 		</div>
+		<div class='conditions'>
+			<span>Only when</span>
+			{#each Object.entries(owner[key].conditions ?? {}) as [name, expected] (name)}
+				<div class='condition'>
+					<code>{name} = {expected}</code>
+					<button type='button' title='Remove condition' on:click={() => removeCondition(name)}>
+						<i class='fas fa-x'></i>
+					</button>
+				</div>
+			{/each}
+			<div class='condition new'>
+				<input type='text' placeholder='value key' bind:value={conditionKey} />
+				<input type='text' placeholder='equals' bind:value={conditionValue} />
+				<button type='button' title='Add condition' on:click={addCondition}>
+					<i class='fas fa-plus'></i>
+				</button>
+			</div>
+		</div>
+	{:else if owner[key]?.type === 'set-value'}
+		<label>Key <input type='text' bind:value={owner[key].key} on:change={change} /></label>
+		<label>Value <input type='text' bind:value={owner[key].value} on:change={change} /></label>
+	{:else if owner[key]?.type === 'increment-value'}
+		<label>Key <input type='text' bind:value={owner[key].key} on:change={change} /></label>
+		<label>Step <input type='number' bind:value={owner[key].step} on:change={change} /></label>
+		<label>Min <input type='number' bind:value={owner[key].min} on:change={change} /></label>
+		<label>Max <input type='number' bind:value={owner[key].max} on:change={change} /></label>
+		<label class='check'>
+			<input type='checkbox' bind:checked={owner[key].wrap} on:change={change} />
+			Wrap around
+		</label>
 	{/if}
 </fieldset>
 
@@ -126,6 +177,45 @@
 				display: flex;
 				gap: 0.25rem;
 				margin: 0;
+			}
+		}
+
+		.check {
+			display: flex;
+			gap: 0.25rem;
+		}
+
+		.conditions {
+			font-size: 0.85em;
+
+			span {
+				font-weight: bold;
+			}
+
+			.condition {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+
+				code {
+					flex: 1;
+				}
+
+				input {
+					flex: 1;
+					min-width: 0;
+					color: #fff;
+					background: #ffffff10;
+				}
+
+				button {
+					background: none;
+					border: 1px solid #666;
+					border-radius: 4px;
+					color: #fff;
+					cursor: pointer;
+					font-size: 0.8em;
+				}
 			}
 		}
 	}

@@ -4,12 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SplashRuntime } from '../SplashRuntime.ts';
 
 function fakeRenderer() {
-	const handles: Array<RenderedSprite & { transition: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> }> = [];
+	const handles: Array<RenderedSprite & { transition: ReturnType<typeof vi.fn>; updateValues: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> }> = [];
+	const contexts: Array<{ onAction: (action: unknown) => Promise<void> | void }> = [];
 	const renderer = {
 		preload: vi.fn(async () => {}),
-		addSprite: vi.fn(async () => {
-			const handle = { transition: vi.fn(), destroy: vi.fn() };
+		addSprite: vi.fn(async (_sprite, _state, _animIn, context) => {
+			const handle = { transition: vi.fn(), updateValues: vi.fn(), destroy: vi.fn() };
 			handles.push(handle);
+			contexts.push(context);
 			return handle;
 		}),
 		animate: vi.fn(async () => {}),
@@ -17,13 +19,18 @@ function fakeRenderer() {
 			animation ? (animation.delay ?? 0) + (animation.duration ?? 3000) : 0),
 		destroy: vi.fn(),
 	} satisfies SplashRenderer;
-	return { renderer, handles };
+	return { renderer, handles, contexts };
 }
 
 function fixture(): SplashInitialized {
 	return {
 		initialState: ['initial'],
-		states: { initial: 'Initial', second: 'Second', third: 'Third' },
+		states: {
+			initial: { label: 'Initial', onEnter: [] },
+			second: { label: 'Second', onEnter: [] },
+			third: { label: 'Third', onEnter: [] },
+		},
+		values: {},
 		animIn: null,
 		animOut: null,
 		children: [
@@ -194,6 +201,76 @@ describe('splashRuntime', () => {
 		// ...but later state changes animate normally again.
 		await runtime.loadState('second');
 		expect(renderer.addSprite.mock.calls[1][2]).toEqual({ type: 'dissolve', delay: 0, duration: 100 });
+	});
+
+	it('seeds values from the splash and pushes changes to rendered sprites', async () => {
+		const { renderer, handles } = fakeRenderer();
+		const splash = fixture();
+		// @ts-expect-error plain test fixture
+		splash.values = { digit: '3' };
+		const runtime = new SplashRuntime(splash, renderer);
+		await runtime.initialize();
+
+		expect(runtime.values).toEqual({ digit: '3' });
+		// @ts-expect-error plain test action
+		await runtime.handleAction({ type: 'set-value', key: 'digit', value: '7' });
+		expect(runtime.values.digit).toBe('7');
+		expect(handles[0].updateValues).toHaveBeenLastCalledWith({ digit: '7' });
+	});
+
+	it('increments values with wrapping bounds (a tumbler digit)', async () => {
+		const { renderer } = fakeRenderer();
+		const runtime = new SplashRuntime(fixture(), renderer);
+		await runtime.initialize();
+
+		const bump = { type: 'increment-value', key: 'd', step: 1, min: 0, max: 2, wrap: true };
+		// @ts-expect-error plain test action
+		await runtime.handleAction(bump);
+		// @ts-expect-error plain test action
+		await runtime.handleAction(bump);
+		// @ts-expect-error plain test action
+		await runtime.handleAction(bump);
+		expect(runtime.values.d).toBe(0);
+	});
+
+	it('gates change-state actions behind value conditions', async () => {
+		const { renderer } = fakeRenderer();
+		const events = vi.fn();
+		const runtime = new SplashRuntime(fixture(), renderer, events);
+		await runtime.initialize();
+
+		const locked = { type: 'change-state', load: ['second'], unload: [], conditions: { code: '42' } };
+		// @ts-expect-error plain test action
+		await runtime.handleAction(locked);
+		expect(events).not.toHaveBeenCalled();
+
+		// @ts-expect-error plain test action
+		await runtime.handleAction({ type: 'set-value', key: 'code', value: '42' });
+		// @ts-expect-error plain test action
+		await runtime.handleAction(locked);
+		expect(events.mock.calls.map(c => c[0])).toContain('splash.changed-states');
+	});
+
+	it('runs onEnter actions when a state loads', async () => {
+		const { renderer } = fakeRenderer();
+		const external = vi.fn();
+		const splash = fixture();
+		// @ts-expect-error plain test fixture
+		splash.states.second.onEnter = [{ type: 'macro', macro: 'm1' }];
+		const runtime = new SplashRuntime(splash, renderer, () => {}, { externalAction: external });
+		await runtime.initialize();
+		await runtime.loadState('second');
+
+		expect(external).toHaveBeenCalledWith({ type: 'macro', macro: 'm1' });
+	});
+
+	it('routes sprite actions through the owning runtime instance', async () => {
+		const { renderer, contexts } = fakeRenderer();
+		const runtime = new SplashRuntime(fixture(), renderer);
+		await runtime.initialize();
+
+		await contexts[0].onAction({ type: 'set-value', key: 'from-sprite', value: 'yes' });
+		expect(runtime.values['from-sprite']).toBe('yes');
 	});
 
 	it('destroy clears the stage via the renderer', async () => {

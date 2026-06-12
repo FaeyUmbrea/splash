@@ -1,33 +1,52 @@
 import type {
+	ActionInitialized,
 	SplashInitialized,
 	SpriteInitialized,
 	StateInitialized,
 } from '../datamodel/SplashModel.ts';
-import type { RenderedSprite, SplashRenderer } from './SplashRenderer.ts';
+import type { RenderedSprite, SplashRenderer, SplashValues } from './SplashRenderer.ts';
 import { getChildrenWithState } from '../utils/helpers.ts';
 
 /** Notification of state lifecycle events; the Foundry layer maps these onto Hooks. */
 export type SplashEventSink = (event: string, ...args: unknown[]) => void;
 
+export interface SplashRuntimeOptions {
+	/** Executes action types the runtime does not handle itself (e.g. macros). */
+	externalAction?: (action: ActionInitialized) => Promise<void> | void;
+}
+
 /**
  * Renderer-agnostic splash orchestration: which sprites exist, which states are
- * loaded, and how sprites move between states. All drawing is delegated to the
- * injected SplashRenderer.
+ * loaded, how sprites move between states, and the named values that drive
+ * interactivity. All drawing is delegated to the injected SplashRenderer.
  */
 export class SplashRuntime {
 	#splash: SplashInitialized;
 	#renderer: SplashRenderer;
 	#events: SplashEventSink;
+	#externalAction: (action: ActionInitialized) => Promise<void> | void;
 
 	#rendered: Map<string, RenderedSprite> = new Map();
 	#loadedStates: string[] = [];
 	#changingBlocked = false;
 	#suppressAnimIn = false;
+	#values: SplashValues = {};
 
-	constructor(splash: SplashInitialized, renderer: SplashRenderer, events: SplashEventSink = () => {}) {
+	constructor(
+		splash: SplashInitialized,
+		renderer: SplashRenderer,
+		events: SplashEventSink = () => {},
+		{ externalAction = () => {} }: SplashRuntimeOptions = {},
+	) {
 		this.#splash = splash;
 		this.#renderer = renderer;
 		this.#events = events;
+		this.#externalAction = externalAction;
+		this.#values = { ...(splash.values ?? {}) };
+	}
+
+	get values(): SplashValues {
+		return { ...this.#values };
 	}
 
 	/**
@@ -44,6 +63,60 @@ export class SplashRuntime {
 			}
 		} finally {
 			this.#suppressAnimIn = false;
+		}
+	}
+
+	/**
+	 * Apply a sprite-triggered action. Value and state actions are handled
+	 * in-instance (so multiple open splashes never cross-talk); everything else
+	 * is delegated to the external executor.
+	 */
+	async handleAction(action: ActionInitialized): Promise<void> {
+		switch (action.type) {
+			case 'set-value':
+				this.#setValue(action.key ?? '', action.value ?? '');
+				break;
+			case 'increment-value': {
+				const current = Number(this.#values[action.key ?? ''] ?? 0);
+				let next = current + (action.step ?? 1);
+				const { min, max, wrap } = action;
+				if (wrap && min !== null && max !== null && min !== undefined && max !== undefined) {
+					if (next > max) next = min;
+					if (next < min) next = max;
+				} else {
+					if (max !== null && max !== undefined) next = Math.min(next, max);
+					if (min !== null && min !== undefined) next = Math.max(next, min);
+				}
+				this.#setValue(action.key ?? '', next);
+				break;
+			}
+			case 'change-state':
+				if (!this.#conditionsMet(action.conditions)) return;
+				await this.changeStates({ load: action.load as string[], unload: action.unload as string[] });
+				break;
+			case 'close':
+				this.#events('splash.close-requested');
+				break;
+			default:
+				await this.#externalAction(action);
+		}
+	}
+
+	#setValue(key: string, value: unknown): void {
+		this.#values[key] = value;
+		for (const rendered of this.#rendered.values()) {
+			rendered.updateValues(this.#values);
+		}
+	}
+
+	#conditionsMet(conditions: Record<string, string> | null | undefined): boolean {
+		if (!conditions) return true;
+		return Object.entries(conditions).every(([key, expected]) => String(this.#values[key] ?? '') === expected);
+	}
+
+	async #executeOnEnter(stateId: string): Promise<void> {
+		for (const action of this.#splash.states?.[stateId]?.onEnter ?? []) {
+			if (action) await this.handleAction(action);
 		}
 	}
 
@@ -67,8 +140,11 @@ export class SplashRuntime {
 	async #loadChild(child: SpriteInitialized, state: StateInitialized): Promise<number> {
 		if (!state) return 0;
 		const animation = this.#suppressAnimIn ? null : (state.animIn ?? child.animIn ?? this.#splash.animIn);
-		const sprite = await this.#renderer.addSprite(child, state, animation);
+		const sprite = await this.#renderer.addSprite(child, state, animation, {
+			onAction: action => this.handleAction(action),
+		});
 		if (!sprite) return 0;
+		sprite.updateValues(this.#values);
 		this.#rendered.set(child.id, sprite);
 		return this.#renderer.animationDuration(animation);
 	}
@@ -89,6 +165,7 @@ export class SplashRuntime {
 			}
 		}
 		this.#loadedStates.push(stateId);
+		await this.#executeOnEnter(stateId);
 		return longestTimeout;
 	}
 

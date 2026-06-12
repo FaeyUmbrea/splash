@@ -9,7 +9,7 @@
 
 	function addState() {
 		const name = `state-${Object.keys(working.states ?? {}).length + 1}`;
-		working.states = { ...(working.states ?? {}), [name]: name };
+		working.states = { ...(working.states ?? {}), [name]: { label: name, onEnter: [] } };
 		dispatch('change');
 		dispatch('activate', name);
 	}
@@ -33,10 +33,10 @@
 </script>
 
 <nav class='state-tabs'>
-	{#each Object.entries(working.states ?? {}) as [stateId, label] (stateId)}
+	{#each Object.entries(working.states ?? {}) as [stateId, def] (stateId)}
 		<div class='tab' class:active={stateId === activeState}>
 			<button type='button' class='activate' on:click={() => dispatch('activate', stateId)}>
-				{label || stateId}
+				{def?.label || stateId}
 			</button>
 			<button type='button' class='remove' title='Delete state' on:click={() => removeState(stateId)}>
 				<i class='fas fa-x'></i>
