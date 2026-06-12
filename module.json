@@ -1,7 +1,7 @@
 {
 	"id": "splash",
-	"title": "Splash",
-	"description": "Full Screen Overlays",
+	"title": "Splash: Interactive Handouts",
+	"description": "Interactive fullscreen handouts: hide scene changes behind splash screens, build clickable puzzles, votes, and branching story screens.",
 	"version": "This is auto replaced",
 	"library": "false",
 	"manifestPlusVersion": "1.2.0",

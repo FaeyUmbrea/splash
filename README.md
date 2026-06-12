@@ -1,6 +1,6 @@
-# Splash
+# Splash: Interactive Handouts
 
-Full screen overlays for Foundry VTT.
+Interactive fullscreen handouts for Foundry VTT — hide scene changes behind splash screens, build clickable puzzles, votes, and branching story screens.
 
 ## Development
 

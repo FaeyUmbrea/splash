@@ -4,7 +4,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"packageManager": "yarn@4.9.2",
-	"description": "Full Screen Overlays",
+	"description": "Interactive fullscreen handouts for Foundry VTT",
 	"author": "Faey Umbrea",
 	"license": "AGPL-3.0-only",
 	"homepage": "https://github.com/FaeyUmbrea/splash",
