@@ -1,6 +1,7 @@
 import type {
 	ActionInitialized as Action,
 	AnimationInitialized as Animation,
+	EffectInitialized as Effect,
 	SpriteInitialized as Sprite,
 	StateInitialized as State,
 } from '../datamodel/SplashModel.ts';
@@ -26,6 +27,12 @@ export type ActionProcessor<A extends Action> = (
 	action: A,
 ) => Promise<void> | void;
 
+/** Builds the persistent filter for a static (non-transition) sprite effect. */
+export type EffectBuilder<E extends Effect> = (
+	app: PIXI.Application,
+	effect: E,
+) => Promise<PIXI.Filter> | PIXI.Filter;
+
 /**
  *
  */
@@ -36,6 +43,8 @@ export class SplashAPI {
 	private spriteNames: Map<string, string> = new Map();
 	private actions: Map<string, ActionProcessor<Action>> = new Map();
 	private actionNames: Map<string, string> = new Map();
+	private effects: Map<string, EffectBuilder<Effect>> = new Map();
+	private effectNames: Map<string, string> = new Map();
 
 	public registerAnimation<A extends Animation>(
 		type: A['type'],
@@ -98,9 +107,32 @@ export class SplashAPI {
 		}
 	}
 
+	public registerEffect<E extends Effect>(
+		type: E['type'],
+		name: string,
+		builder: EffectBuilder<E>,
+	): void {
+		this.effects.set(type, builder as EffectBuilder<Effect>);
+		this.effectNames.set(type, name);
+	}
+
+	public async buildEffect(app: PIXI.Application, effect: Effect): Promise<PIXI.Filter | undefined> {
+		const builder = this.effects.get(effect.type);
+		if (builder) {
+			return builder(app, effect);
+		}
+		console.warn(`Splash | Effect type ${effect.type} not found. Did not create.`);
+		return undefined;
+	}
+
 	/** Registered animation types with display names (for editors and pickers). */
 	public get registeredAnimations(): { type: string; name: string }[] {
 		return Array.from(this.animationNames.entries()).map(([type, name]) => ({ type, name }));
+	}
+
+	/** Registered static effect types with display names (for editors and pickers). */
+	public get registeredEffects(): { type: string; name: string }[] {
+		return Array.from(this.effectNames.entries()).map(([type, name]) => ({ type, name }));
 	}
 
 	/** Registered action types with display names (for editors and pickers). */

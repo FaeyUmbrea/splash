@@ -83,6 +83,12 @@ export class PixiRenderer implements SplashRenderer {
 		if (animIn) {
 			await this.#api.buildAnimation(animIn, object, this.#app);
 		}
+		// Persistent effects live for the sprite's whole life; destroyed with it.
+		for (const effect of sprite.effects ?? []) {
+			if (!effect) continue;
+			const filter = await this.#api.buildEffect(this.#app, effect);
+			if (filter) object.filters = [...(object.filters ?? []), filter];
+		}
 		this.#app.stage.addChild(object);
 		return new PixiRenderedSprite(object, this.#app.stage, sprite);
 	}

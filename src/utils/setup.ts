@@ -14,10 +14,12 @@ import NineSlicePlaneButton from '../pixi/nineSlicePlaneButton.js';
 import { transitionState } from '../pixi/transitionState.ts';
 import DissolveFilter from '../shaders/dissolve/dissolve.js';
 import GlitchFilter from '../shaders/glitch/glitch.ts';
+import StaticGlitchFilter from '../shaders/glitch/staticGlitch.ts';
 
 export function setupAPI(api: SplashAPI) {
 	api.registerAnimation('dissolve', 'Dissolve Animation', instantiateDissolve);
 	api.registerAnimation('glitch', 'Glitch Transition', instantiateGlitch);
+	api.registerEffect('glitch', 'Glitch', (app, effect) => StaticGlitchFilter(app, effect));
 	api.registerSprite('text', 'Text', instantiateText);
 	api.registerSprite('image', 'Image', instantiateImage);
 	api.registerSprite('button', 'Button', instantiateButton);

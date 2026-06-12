@@ -1,15 +1,10 @@
 import type { GlitchAnimationInitialized } from '../../datamodel/SplashModel.ts';
 import { Dissolve, originsFromProps } from '../dissolve/dissolve.ts';
 import { getNoiseMaterial } from '../materials.js';
+import { MAX_BANDS, REROLL_MS, rollBands } from './bands.ts';
 import fragmentShader from './fragment.glsl';
 
 export type GlitchFilterProps = GlitchAnimationInitialized['props'];
-
-/** Must match MAX_BANDS in the shared shader lib. */
-const MAX_BANDS = 16;
-
-/** How often the tear pattern jumps; stepped motion reads as digital, smooth reads as wobble. */
-const REROLL_MS = 90;
 
 interface GlitchSettings {
 	bands: number;
@@ -52,24 +47,6 @@ export class Glitch extends Dissolve {
 		super(origins, noise, invert, app, fragmentShader);
 	}
 
-	/**
-	 * Randomization is the caller's job — the shader is deterministic data-in,
-	 * pixels-out. Bands partition the y axis and tear along x (horizontal=false).
-	 */
-	#rollBands(): void {
-		const height = this.app.renderer.height;
-		const maxTear = this.glitch.intensity * this.app.renderer.width;
-		this.#numBands = Math.min(3 + Math.floor(Math.random() * (this.glitch.bands - 2)), MAX_BANDS);
-		for (let i = 0; i < this.#numBands; i++) {
-			const start = Math.random() * height;
-			const bandHeight = 6 + Math.random() * 50;
-			const tear = (Math.random() * 2 - 1) * maxTear;
-			this.#bandTable[i * 3] = start;
-			this.#bandTable[i * 3 + 1] = start + bandHeight;
-			this.#bandTable[i * 3 + 2] = tear;
-		}
-	}
-
 	override apply(
 		filterManager: PIXI.FilterSystem,
 		input: PIXI.RenderTexture,
@@ -79,7 +56,12 @@ export class Glitch extends Dissolve {
 		const now = Date.now();
 		if (now - this.#lastRoll > REROLL_MS) {
 			this.#lastRoll = now;
-			this.#rollBands();
+			this.#numBands = rollBands(
+				this.#bandTable,
+				this.app.renderer.height,
+				this.glitch.intensity * this.app.renderer.width,
+				this.glitch.bands,
+			);
 		}
 		this.uniforms.bands = this.#bandTable;
 		this.uniforms.numBands = this.#numBands;

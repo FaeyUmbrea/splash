@@ -4,6 +4,7 @@
 	import ActionEditor from './ActionEditor.svelte';
 	import AnimationEditor from './AnimationEditor.svelte';
 	import ButtonImageEditor from './ButtonImageEditor.svelte';
+	import EffectsEditor from './EffectsEditor.svelte';
 
 	export let sprite: SpriteCreate;
 	export let activeState: string;
@@ -62,6 +63,7 @@
 		</div>
 		<AnimationEditor owner={sprite.states[activeState]} key='animIn' label='Animation In' on:change={change} />
 		<AnimationEditor owner={sprite.states[activeState]} key='animOut' label='Animation Out' on:change={change} />
+		<EffectsEditor {sprite} on:change={change} />
 	{:else}
 		<p class='hint'>Not placed in this state.</p>
 	{/if}

@@ -1,5 +1,32 @@
 import { nanoid } from 'nanoid';
 
+function GlitchEffectSchemaCreator() {
+	const fields = foundry.data.fields;
+	return {
+		type: new fields.StringField({ required: true, choices: ['glitch'] }),
+		bands: new fields.NumberField({ required: true, initial: 8 }),
+		// Tear distance as a fraction of the sprite's width; static effects read subtler than transitions.
+		intensity: new fields.NumberField({ required: true, initial: 0.01 }),
+		tint: new fields.ColorField({ required: true, initial: '#0044ff' }),
+	};
+}
+
+export type GlitchEffectCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof GlitchEffectSchemaCreator>>;
+export type GlitchEffectInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof GlitchEffectSchemaCreator>>;
+export type GlitchEffect = GlitchEffectCreate | GlitchEffectInitialized;
+
+// Persistent sprite effects (no transition timing); distinct from animations.
+function EffectFieldCreator() {
+	const fields = foundry.data.fields;
+	return new fields.TypedSchemaField({
+		glitch: new fields.SchemaField(GlitchEffectSchemaCreator()),
+	});
+}
+
+export type EffectInitialized = GlitchEffectInitialized;
+export type EffectCreate = GlitchEffectCreate;
+export type Effect = EffectCreate | EffectInitialized;
+
 function BaseSpriteSchemaCreator(choice: string) {
 	const fields = foundry.data.fields;
 	return {
@@ -9,6 +36,8 @@ function BaseSpriteSchemaCreator(choice: string) {
 		name: new fields.StringField({ required: true }),
 		animIn: AnimationFieldCreator(),
 		animOut: AnimationFieldCreator(),
+		// Persistent (non-transition) effects, applied for the sprite's whole life. GL-only.
+		effects: new fields.ArrayField(EffectFieldCreator(), { required: true, initial: [] }),
 		states: new fields.TypedObjectField(new fields.SchemaField(StateSchemaCreator()), { required: true }),
 		x: new fields.NumberField({ required: true, initial: 0 }),
 		y: new fields.NumberField({ required: true, initial: 0 }),
