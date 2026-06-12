@@ -19,7 +19,7 @@ const s_PACKAGE_ID = `modules/${moduleJSON.id}`;
 // by shortening 'template-svelte-ts'.
 const s_SVELTE_HASH_ID = 'splsh';
 
-const s_COMPRESS = false; // Set to true to compress the module bundle.
+const s_COMPRESS = true; // Set to true to compress the module bundle.
 const s_SOURCEMAPS = true; // Generate sourcemaps for the bundle (recommended).
 
 export default defineConfig(({ mode }) => {

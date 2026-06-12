@@ -1,5 +1,6 @@
 import { SvelteApplication } from '@typhonjs-fvtt/runtime/svelte/application';
 import { img, img2 } from '../index.ts';
+import SplashEditor from '../svelte/SplashEditor.svelte';
 import SplashUI from '../svelte/SplashUI.svelte';
 
 export class SplashSheet extends foundry.applications.sheets.journal.JournalEntryPageHandlebarsSheet {
@@ -25,11 +26,27 @@ export class SplashSheet extends foundry.applications.sheets.journal.JournalEntr
 	}
 
 	editSplash() {
-		console.error('target');
+		new SvelteApplication({
+			// @ts-expect-error no type support yet
+			classes: ['splash-editor'],
+			id: 'splash-editor',
+			width: screen.width,
+			height: screen.height,
+			positionable: false,
+			zIndex: 1,
+			svelte: {
+				class: SplashEditor,
+				target: document.body,
+				props: () => {
+					return { splashConfig: this.document };
+				},
+			},
+		}).render(true);
 	};
 
 	showSplash() {
 		new SvelteApplication({
+			// @ts-expect-error no type support yet
 			classes: ['splash-overlay'],
 			id: 'splash-application',
 			width: screen.width,
@@ -43,20 +60,20 @@ export class SplashSheet extends foundry.applications.sheets.journal.JournalEntr
 					return { splashConfig: this.document.system, popover: true };
 				},
 			},
-			// @ts-expect-error The render method does not exist on the imported type, but does exist in the application
 		}).render(true);
 	};
 
 	async testSplash() {
 		const data = this.document as JournalEntryPage.OfType<'splash.splash'>;
 
-		const splash = createSplash(false);
-		console.error(splash);
+		const splash = createSplash();
+
+		// @ts-expect-error why thoooo
 		await data.update({ system: splash });
 	}
 }
 
-function createSplash(popover: boolean) {
+function createSplash() {
 	const image = {
 		type: 'image',
 		img,

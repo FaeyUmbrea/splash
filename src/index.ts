@@ -1,8 +1,10 @@
 import { SplashAPI } from './api/api.js';
+
 import { SplashModel } from './datamodel/SplashModel.js';
 import { SplashSheet } from './sheet/SplashSheet.ts';
 import { registerKeybindings } from './utils/keyboard.js';
 import { setupAPI } from './utils/setup.js';
+import './css/splash.scss';
 
 export const img: string
   = 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Golden_Delicious_apples.jpg/500px-Golden_Delicious_apples.jpg';

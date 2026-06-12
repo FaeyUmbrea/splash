@@ -7,6 +7,10 @@ function BaseSpriteSchemaCreator(choice: string) {
 		animIn: AnimationFieldCreator(),
 		animOut: AnimationFieldCreator(),
 		states: new fields.TypedObjectField(new fields.SchemaField(StateSchemaCreator()), { required: true }),
+		x: new fields.NumberField({ required: true, initial: 0 }),
+		y: new fields.NumberField({ required: true, initial: 0 }),
+		height: new fields.NumberField({ required: true, initial: 0 }),
+		width: new fields.NumberField({ required: true, initial: 0 }),
 	};
 }
 

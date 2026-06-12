@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"target": "ES2022",
 		"baseUrl": ".",
-		"module": "ESNext",
+		"module": "esnext",
 		"moduleResolution": "Bundler",
 
 		"types": ["fvtt-types"],
