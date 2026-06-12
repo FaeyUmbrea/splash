@@ -24,6 +24,7 @@ declare module 'fvtt-types/configuration' {
 	namespace Hooks {
 		interface HookConfig {
 			'splash.init': () => void;
+			'splash.active-changed': (active: { uuid: string; layer: string } | null) => void;
 			'splash.change-states': (action: ChangeStateAction) => void;
 			'splash.close-splash': () => void;
 			'splash.loading-state': (state: string) => void;

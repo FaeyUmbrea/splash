@@ -42,7 +42,7 @@ export class SplashSheet extends foundry.applications.sheets.journal.JournalEntr
 	};
 
 	showSplash() {
-		openSplashOverlay(this.document as JournalEntryPage.OfType<'splash.splash'>, true);
+		openSplashOverlay(this.document as JournalEntryPage.OfType<'splash.splash'>, { layer: 'full' });
 	};
 
 	async testSplash() {

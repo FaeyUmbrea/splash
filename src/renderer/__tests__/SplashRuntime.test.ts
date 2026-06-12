@@ -181,6 +181,21 @@ describe('splashRuntime', () => {
 		expect(handles[0].destroy).toHaveBeenCalledOnce();
 	});
 
+	it('suppresses entrance animations only while restoring', async () => {
+		const { renderer } = fakeRenderer();
+		const splash = fixture();
+		// @ts-expect-error plain test fixture
+		splash.animIn = { type: 'dissolve', delay: 0, duration: 100 };
+		const runtime = new SplashRuntime(splash, renderer);
+		await runtime.initialize({ skipAnimations: true });
+
+		// Restored sprite appears with no animation...
+		expect(renderer.addSprite.mock.calls[0][2]).toBeNull();
+		// ...but later state changes animate normally again.
+		await runtime.loadState('second');
+		expect(renderer.addSprite.mock.calls[1][2]).toEqual({ type: 'dissolve', delay: 0, duration: 100 });
+	});
+
 	it('destroy clears the stage via the renderer', async () => {
 		const { renderer } = fakeRenderer();
 		const runtime = new SplashRuntime(fixture(), renderer);

@@ -1,3 +1,4 @@
+import type { SplashLayer } from './settings.ts';
 import { openSplashOverlay } from '../apps/overlay.ts';
 import { ID } from './const.js';
 import { canTriggerSplash, isSplashPage } from './launch.ts';
@@ -7,7 +8,7 @@ interface SplashSocketEvent {
 	/** Restrict the event to a single user; undefined means everyone. */
 	targetUser?: string;
 	senderId: string;
-	payload: { uuid?: string; popover?: boolean };
+	payload: { uuid?: string; layer?: SplashLayer };
 }
 
 export function registerSocket(): void {
@@ -23,19 +24,19 @@ async function handleEvent({ eventType, targetUser, senderId, payload }: SplashS
 		const page = await fromUuid(payload.uuid ?? '');
 		// Only honor senders that are actually allowed to trigger this splash.
 		if (!isSplashPage(page) || !canTriggerSplash(page, sender)) return;
-		await openSplashOverlay(page, payload.popover ?? false);
+		await openSplashOverlay(page, { layer: payload.layer ?? 'full' });
 	} else if (eventType === 'closeSplash') {
 		if (!sender.isGM) return;
 		Hooks.call('splash.close-splash');
 	}
 }
 
-export function broadcastShowSplash(uuid: string, popover: boolean = false, targetUser?: string): void {
+export function broadcastShowSplash(uuid: string, layer: SplashLayer = 'full', targetUser?: string): void {
 	game.socket?.emit(`module.${ID}`, {
 		eventType: 'showSplash',
 		targetUser,
 		senderId: game.userId,
-		payload: { uuid, popover },
+		payload: { uuid, layer },
 	} satisfies SplashSocketEvent);
 }
 

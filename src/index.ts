@@ -1,4 +1,5 @@
 import { SplashAPI } from './api/api.js';
+import { registerControllerHooks } from './apps/controller.ts';
 
 import { SplashModel } from './datamodel/SplashModel.js';
 import { SplashSheet } from './sheet/SplashSheet.ts';
@@ -15,12 +16,6 @@ export const img: string
 export const img2: string
 	= 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Scan_of_an_orange.png';
 
-declare global {
-	interface Window {
-		test: (popover: boolean) => void;
-	}
-}
-
 Hooks.once('init', () => {
 	Object.assign(CONFIG.JournalEntryPage.dataModels, {
 		'splash.splash': SplashModel,
@@ -34,6 +29,7 @@ Hooks.once('init', () => {
 	registerKeybindings();
 	registerSettings();
 	registerSocket();
+	registerControllerHooks();
 
 	const api = SplashAPI.getInstance();
 

@@ -1,6 +1,16 @@
 import { ID } from './const.js';
 
 export const SETTING_RENDERER = 'renderer';
+export const SETTING_ACTIVE_SPLASH = 'activeSplash';
+
+/** Splash-mode stacking: scene = above canvas only, hud = scene + hides scene chrome, full = above all UI. */
+export type SplashLayer = 'scene' | 'hud' | 'full';
+
+/** The world-global splash shown to everyone; null when none is up. */
+export interface ActiveSplash {
+	uuid: string;
+	layer: SplashLayer;
+}
 
 export function registerSettings(): void {
 	game.settings?.register(ID, SETTING_RENDERER, {
@@ -16,4 +26,21 @@ export function registerSettings(): void {
 		},
 		default: 'auto',
 	});
+
+	// Hidden lifecycle setting: GM-written; every client opens/closes in onChange,
+	// and reloading clients restore from it so a splash survives world reboots.
+	game.settings?.register(ID, SETTING_ACTIVE_SPLASH, {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: null,
+		onChange: async (value) => {
+			const { applyActiveSplash } = await import('../apps/controller.ts');
+			await applyActiveSplash(value as ActiveSplash | null);
+		},
+	});
+}
+
+export function getActiveSplash(): ActiveSplash | null {
+	return (game.settings?.get(ID, SETTING_ACTIVE_SPLASH) ?? null) as ActiveSplash | null;
 }

@@ -29,16 +29,27 @@ class PixiRenderedSprite implements RenderedSprite {
 export class PixiRenderer implements SplashRenderer {
 	#app: PIXI.Application;
 	#api = SplashAPI.getInstance();
+	#resizeObserver: ResizeObserver | undefined;
 
 	constructor(view: HTMLCanvasElement) {
+		// Sized to the host container so the renderer works fullscreen and in handout
+		// windows; the observer also covers the container not being laid out yet at
+		// mount time and users resizing handout windows.
+		const container = view.parentElement;
 		this.#app = new PIXI.Application({
 			view,
 			backgroundAlpha: 0,
-			width: window.innerWidth,
-			height: window.innerHeight,
+			width: container?.clientWidth || window.innerWidth,
+			height: container?.clientHeight || window.innerHeight,
 		});
 		this.#app.stage.sortableChildren = true;
 		this.#app.ticker.maxFPS = game?.canvas?.app?.ticker?.maxFPS ?? 60;
+		if (container) {
+			this.#resizeObserver = new ResizeObserver(() => {
+				this.#app.renderer.resize(container.clientWidth, container.clientHeight);
+			});
+			this.#resizeObserver.observe(container);
+		}
 	}
 
 	async preload(sprites: SpriteInitialized[]): Promise<void> {
@@ -78,6 +89,7 @@ export class PixiRenderer implements SplashRenderer {
 	}
 
 	destroy(): void {
+		this.#resizeObserver?.disconnect();
 		this.#app.stop();
 		this.#app.stage.destroy();
 	}

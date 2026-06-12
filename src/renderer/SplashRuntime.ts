@@ -22,6 +22,7 @@ export class SplashRuntime {
 	#rendered: Map<string, RenderedSprite> = new Map();
 	#loadedStates: string[] = [];
 	#changingBlocked = false;
+	#suppressAnimIn = false;
 
 	constructor(splash: SplashInitialized, renderer: SplashRenderer, events: SplashEventSink = () => {}) {
 		this.#splash = splash;
@@ -29,11 +30,20 @@ export class SplashRuntime {
 		this.#events = events;
 	}
 
-	/** Preload assets and bring up the splash's initial states. */
-	async initialize(): Promise<void> {
-		await this.#renderer.preload(this.#splash.children);
-		for (const state of this.#splash.initialState) {
-			if (state) await this.loadState(state);
+	/**
+	 * Preload assets and bring up the splash's initial states.
+	 * skipAnimations suppresses entrance animations: restoring clients must show
+	 * the splash instantly so nothing behind it is ever glimpsed.
+	 */
+	async initialize({ skipAnimations = false }: { skipAnimations?: boolean } = {}): Promise<void> {
+		this.#suppressAnimIn = skipAnimations;
+		try {
+			await this.#renderer.preload(this.#splash.children);
+			for (const state of this.#splash.initialState) {
+				if (state) await this.loadState(state);
+			}
+		} finally {
+			this.#suppressAnimIn = false;
 		}
 	}
 
@@ -56,7 +66,7 @@ export class SplashRuntime {
 
 	async #loadChild(child: SpriteInitialized, state: StateInitialized): Promise<number> {
 		if (!state) return 0;
-		const animation = state.animIn ?? child.animIn ?? this.#splash.animIn;
+		const animation = this.#suppressAnimIn ? null : (state.animIn ?? child.animIn ?? this.#splash.animIn);
 		const sprite = await this.#renderer.addSprite(child, state, animation);
 		if (!sprite) return 0;
 		this.#rendered.set(child.id, sprite);

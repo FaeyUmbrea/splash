@@ -4,3 +4,36 @@
 	justify-self: center;
 	padding-top: 50px;
 }
+
+/* Splash-mode layering.
+ * scene/hud sit above the canvas but below the interface: #interface is z-auto
+ * and DOM-earlier than the overlay host, so it must be raised explicitly. */
+body.splash-scene-covered #interface {
+	position: relative;
+	z-index: 100;
+}
+
+#splash-application.splash-layer-scene,
+#splash-application.splash-layer-hud {
+	z-index: 50;
+}
+
+#splash-application.splash-layer-full {
+	z-index: 8000;
+}
+
+/* hud mode additionally hides the scene chrome that would spoil the upcoming map. */
+body.splash-hud-covered:not(.splash-peeking) {
+	#scene-navigation,
+	#scene-controls,
+	#loading {
+		visibility: hidden;
+	}
+}
+
+/* Handout-mode windows host the same stage component inside a framed window. */
+.splash-handout .window-content {
+	position: relative;
+	padding: 0;
+	overflow: hidden;
+}

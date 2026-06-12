@@ -86,7 +86,7 @@
 		const model = new SplashModel(foundry.utils.deepClone(working));
 		new SvelteRenderer(
 			SplashUI,
-			{ splashConfig: model, popover: true },
+			{ splashConfig: model },
 			{ id: 'splash-application', classes: ['splash-overlay', 'splash-preview'] },
 		).render(true);
 	}

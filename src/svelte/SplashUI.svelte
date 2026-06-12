@@ -9,9 +9,10 @@
 
 	export let foundryApp: SvelteApplication;
 
-	export let popover;
-
 	export let splashConfig: SplashInitialized;
+
+	/** Restored splashes appear instantly so nothing behind them is glimpsed. */
+	export let skipAnimations: boolean = false;
 
 	const rendererKind = selectRenderer();
 
@@ -23,7 +24,7 @@
 	onMount(async () => {
 		const renderer = rendererKind === 'webgl' ? new PixiRenderer(view) : new HtmlRenderer(htmlStage);
 		runtime = new SplashRuntime(splashConfig, renderer, (event, ...args) => Hooks.call(event, ...args));
-		await runtime.initialize();
+		await runtime.initialize({ skipAnimations });
 		loading = false;
 	});
 
@@ -45,7 +46,7 @@
 	});
 </script>
 
-<div class={popover ? 'popover' : ''}>
+<div class='splash-stage'>
 	{#if loading}
 		<div class='loading'><span>Loading</span></div>
 	{/if}
@@ -58,6 +59,7 @@
 
 <style lang='stylus'>
   // The frameless ApplicationV2 host element must span the screen without Foundry's window theming.
+  // Stacking per layer (scene/hud/full) is assigned by css/splash.scss via host classes.
   :global(#splash-application)
     position fixed
     inset 0
@@ -66,13 +68,10 @@
     border none
     background none
 
-  div
-    z-index 2
+  // Sized relative to the host so the same component works fullscreen and in handout windows.
+  .splash-stage
     position absolute
-    width 100vw
-    height 100vh
-  .popover
-    z-index 200
+    inset 0
 
   .html-stage
     position relative
@@ -84,8 +83,8 @@
     z-index -1
     color white
     position absolute
-    width 100vw
-    height 100vh
+    width 100%
+    height 100%
     background #00000050
     align-content center
     text-align center

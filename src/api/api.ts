@@ -4,6 +4,7 @@ import type {
 	SpriteInitialized as Sprite,
 	StateInitialized as State,
 } from '../datamodel/SplashModel.ts';
+import type { SplashLayer } from '../utils/settings.ts';
 
 /**
  * Accepts the definition of an animation type and a sprite object and initializes the requested animation on that sprite.
@@ -106,12 +107,13 @@ export class SplashAPI {
 	}
 
 	/**
-	 * Show a splash page (macro/module entry point), locally and optionally for other players.
-	 * The caller must be a GM or an owner of the page.
+	 * Show a splash page (macro/module entry point). The caller must be a GM or page owner.
+	 * `global` (GM only) shows it to the whole table and persists across reloads;
+	 * `targetUser` shows it transiently to one player; otherwise it opens locally.
 	 */
 	public async show(
 		uuid: string,
-		{ popover = false, broadcast = false, targetUser }: { popover?: boolean; broadcast?: boolean; targetUser?: string } = {},
+		{ layer = 'full', global = false, targetUser }: { layer?: SplashLayer; global?: boolean; targetUser?: string } = {},
 	): Promise<void> {
 		const { canTriggerSplash, isSplashPage } = await import('../utils/launch.ts');
 		const page = await fromUuid(uuid);
@@ -123,21 +125,40 @@ export class SplashAPI {
 			ui.notifications?.warn('Splash | You lack permission to show this splash.');
 			return;
 		}
-		const { openSplashOverlay } = await import('../apps/overlay.ts');
-		await openSplashOverlay(page, popover);
-		if (broadcast) {
-			const { broadcastShowSplash } = await import('../utils/socket.ts');
-			broadcastShowSplash(uuid, popover, targetUser);
+		if (global && game.user?.isGM) {
+			const { launchGlobalSplash } = await import('../apps/controller.ts');
+			await launchGlobalSplash(page, layer);
+			return;
 		}
+		if (targetUser) {
+			const { broadcastShowSplash } = await import('../utils/socket.ts');
+			broadcastShowSplash(uuid, layer, targetUser);
+			return;
+		}
+		const { openSplashOverlay } = await import('../apps/overlay.ts');
+		await openSplashOverlay(page, { layer });
 	}
 
-	/** Close the active splash locally; GMs can also close it for other players. */
-	public async close({ broadcast = false, targetUser }: { broadcast?: boolean; targetUser?: string } = {}): Promise<void> {
-		Hooks.call('splash.close-splash');
-		if (broadcast && game.user?.isGM) {
-			const { broadcastCloseSplash } = await import('../utils/socket.ts');
-			broadcastCloseSplash(targetUser);
+	/** Open a page as a handout window (player-closable). Caller must be a GM or page owner. */
+	public async openHandout(uuid: string): Promise<void> {
+		const { canTriggerSplash, isSplashPage } = await import('../utils/launch.ts');
+		const page = await fromUuid(uuid);
+		if (!isSplashPage(page) || !canTriggerSplash(page)) {
+			ui.notifications?.warn('Splash | You lack permission to open this handout.');
+			return;
 		}
+		const { openHandout } = await import('../apps/handout.ts');
+		await openHandout(page);
+	}
+
+	/** Close the active splash locally; `global` (GM only) kills it for the whole table. */
+	public async close({ global = false }: { global?: boolean } = {}): Promise<void> {
+		if (global && game.user?.isGM) {
+			const { killGlobalSplash } = await import('../apps/controller.ts');
+			await killGlobalSplash();
+			return;
+		}
+		Hooks.call('splash.close-splash');
 	}
 
 	private static instance: SplashAPI | undefined;
