@@ -2,10 +2,12 @@ import type {
 	ActionInitialized as Action,
 	AnimationInitialized as Animation,
 	EffectInitialized as Effect,
+	SplashInitialized,
 	SpriteInitialized as Sprite,
 	StateInitialized as State,
 } from '../datamodel/SplashModel.ts';
 import type { SpriteContext } from '../renderer/SplashRenderer.ts';
+import type { TriggerBinding, TriggerDefinition, TriggerOptions } from '../triggers/types.ts';
 import type { SplashLayer } from '../utils/settings.ts';
 
 /**
@@ -45,6 +47,7 @@ export class SplashAPI {
 	private actionNames: Map<string, string> = new Map();
 	private effects: Map<string, EffectBuilder<Effect>> = new Map();
 	private effectNames: Map<string, string> = new Map();
+	private triggers: Map<string, TriggerDefinition> = new Map();
 
 	public registerAnimation<A extends Animation>(
 		type: A['type'],
@@ -141,6 +144,29 @@ export class SplashAPI {
 	}
 
 	/**
+	 * Register a trigger type. First-party triggers (door, region) are registered through this
+	 * same API — anything a third-party module can do, they do too. The triggers app is a generic
+	 * front-end over `registeredTriggers` and never hard-codes a specific type.
+	 */
+	public registerTrigger(type: string, label: string, options: TriggerOptions): void {
+		this.triggers.set(type, { type, label, ...options });
+	}
+
+	/** All registered trigger types. */
+	public get registeredTriggers(): TriggerDefinition[] {
+		return Array.from(this.triggers.values());
+	}
+
+	public getTrigger(type: string): TriggerDefinition | undefined {
+		return this.triggers.get(type);
+	}
+
+	/** Every live binding (of any trigger type) that launches the given splash. */
+	public bindingsForSplash(splashUuid: string): TriggerBinding[] {
+		return this.registeredTriggers.flatMap(t => t.listBindings()).filter(b => b.splashUuid === splashUuid);
+	}
+
+	/**
 	 * Show a splash page (macro/module entry point). The caller must be a GM or page owner.
 	 * `global` (GM only) shows it to the whole table and persists across reloads;
 	 * `targetUser` shows it transiently to one player; otherwise it opens locally.
@@ -171,6 +197,30 @@ export class SplashAPI {
 		}
 		const { openSplashOverlay } = await import('../apps/overlay.ts');
 		await openSplashOverlay(page, { layer });
+	}
+
+	/**
+	 * Unified launch entry point. Reads the splash's stored `layer` and routes:
+	 * `handout` → windowed app; `scene`/`hud`/`full` → fullscreen overlay at that layer.
+	 * This supersedes passing a layer at call time — layer is intrinsic to the splash.
+	 */
+	public async launch(
+		uuid: string,
+		{ global = false, targetUser }: { global?: boolean; targetUser?: string } = {},
+	): Promise<void> {
+		const { isSplashPage } = await import('../utils/launch.ts');
+		const page = await fromUuid(uuid);
+		if (!isSplashPage(page)) {
+			ui.notifications?.warn(`Splash | ${uuid} is not a splash journal page.`);
+			return;
+		}
+		const layer = (page.system as SplashInitialized).layer;
+		if (layer === 'handout') {
+			await this.openHandout(uuid);
+			return;
+		}
+		// 'handout' excluded above, so the remainder is a valid fullscreen SplashLayer.
+		await this.show(uuid, { layer: layer as SplashLayer, global, targetUser });
 	}
 
 	/** Open a page as a handout window (player-closable). Caller only needs to be able to see it. */

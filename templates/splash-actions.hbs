@@ -1,0 +1,9 @@
+{{!-- Quick-access action bar to the splash data; rendered in both view and edit modes. --}}
+<nav class="splash-actions">
+	{{#each splashActions}}
+		<button type="button" class="splash-action" data-splash-action="{{this.action}}" {{#if this.disabled}}disabled{{/if}}>
+			<i class="{{this.icon}}"></i>
+			<span>{{localize this.label}}</span>
+		</button>
+	{{/each}}
+</nav>

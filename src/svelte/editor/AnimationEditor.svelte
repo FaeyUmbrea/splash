@@ -1,128 +1,114 @@
+<svelte:options runes={true} />
 <script lang='ts'>
-	import { createEventDispatcher } from 'svelte';
-	import { SplashAPI } from '../../api/api.ts';
+	import type { SelectItem } from '../ui';
+	import { CheckboxField, ColorField, Field, NumberField, Select, TextField } from '../ui';
 
-	/** Object holding the animation property (splash, state, or sprite) and which key to edit. */
-	export let owner: Record<string, any>;
-	export let key: 'animIn' | 'animOut';
-	export let label: string;
+	type Anim = Record<string, unknown> & { type?: string };
 
-	const dispatch = createEventDispatcher<{ change: void }>();
-	const change = () => dispatch('change');
-	const animations = SplashAPI.getInstance().registeredAnimations;
+	const {
+		value,
+		label,
+		onChange,
+	}: {
+		value: Anim | null | undefined;
+		label: string;
+		/** Replace the whole animation (or null to clear it). */
+		onChange: (animation: Anim | null) => void;
+	} = $props();
 
-	function setType(event: Event) {
-		const type = (event.target as HTMLSelectElement).value;
-		if (!type) {
-			owner[key] = null;
-		} else if (type === 'dissolve') {
-			owner[key] = {
-				type: 'dissolve',
-				delay: 0,
-				duration: 3000,
-				props: { type: 'randomOrigins', randomOrigins: true, numOrigins: 2 },
-			};
-		} else if (type === 'glitch') {
-			owner[key] = {
-				type: 'glitch',
-				delay: 0,
-				duration: 3000,
-				props: {
-					origins: { type: 'randomOrigins', randomOrigins: true, numOrigins: 2 },
-					bands: 20,
-					intensity: 0.05,
-					tint: '#0044ff',
-					invert: false,
-				},
-			};
-		}
-		change();
+	const typeOptions: SelectItem[] = [
+		{ value: '', label: 'None' },
+		{ value: 'dissolve', label: 'Dissolve' },
+		{ value: 'glitch', label: 'Glitch' },
+	];
+	const originTypeOptions: SelectItem[] = [
+		{ value: 'randomOrigins', label: 'Random' },
+		{ value: 'fixedOrigins', label: 'Fixed' },
+	];
+
+	const type = $derived(value?.type ?? '');
+	// Dissolve keeps the origin variant directly in `props`; glitch nests it under `props.origins`.
+	const props = $derived((value?.props ?? {}) as Record<string, unknown>);
+	const origins = $derived((value?.type === 'dissolve' ? props : (props.origins ?? {})) as Record<string, unknown>);
+	const originType = $derived((origins.type as string) ?? 'randomOrigins');
+
+	function randomOrigins(n = 5) {
+		return { type: 'randomOrigins', randomOrigins: true, numOrigins: n };
+	}
+	function dissolveDefault(): Anim {
+		return { type: 'dissolve', duration: 1000, delay: 0, props: randomOrigins() };
+	}
+	function glitchDefault(): Anim {
+		return { type: 'glitch', duration: 1000, delay: 0, props: { origins: randomOrigins(), bands: 20, intensity: 0.05, tint: '#0044ff', invert: false } };
 	}
 
-	function setOriginMode(event: Event) {
-		const mode = (event.target as HTMLSelectElement).value;
-		owner[key].props = mode === 'fixedOrigins'
-			? { type: 'fixedOrigins', origins: [0, 0] }
-			: { type: 'randomOrigins', randomOrigins: true, numOrigins: 2 };
-		change();
+	function setType(t: string | string[] | null) {
+		if (!t) onChange(null);
+		else onChange(t === 'dissolve' ? dissolveDefault() : glitchDefault());
 	}
-
-	function setOrigins(event: Event) {
-		const numbers = (event.target as HTMLInputElement).value.split(',').map(part => Number(part.trim())).filter(n => !Number.isNaN(n));
-		owner[key].props.origins = numbers;
-		change();
+	function patchAnim(p: Partial<Anim>) {
+		onChange({ ...value, ...p } as Anim);
+	}
+	function setOrigins(o: Record<string, unknown>) {
+		if (value?.type === 'dissolve') onChange({ ...value, props: o });
+		else onChange({ ...value, props: { ...props, origins: o } } as Anim);
+	}
+	function patchGlitch(p: Record<string, unknown>) {
+		onChange({ ...value, props: { ...props, ...p } } as Anim);
 	}
 </script>
 
-<fieldset class='animation-editor'>
-	<legend>{label}</legend>
-	<label>
-		Type
-		<select value={owner[key]?.type ?? ''} on:change={setType}>
-			<option value=''>None</option>
-			{#each animations as animation (animation.type)}
-				<option value={animation.type}>{animation.name}</option>
-			{/each}
-		</select>
-	</label>
-	{#if owner[key]}
-		<label>Delay (ms) <input type='number' bind:value={owner[key].delay} on:change={change} /></label>
-		<label>Duration (ms) <input type='number' bind:value={owner[key].duration} on:change={change} /></label>
-		{#if owner[key].type === 'glitch'}
-			<label>Bands <input type='number' min='1' bind:value={owner[key].props.bands} on:change={change} /></label>
-			<label>Intensity <input type='number' step='0.01' min='0' max='1' bind:value={owner[key].props.intensity} on:change={change} /></label>
-			<label>Tint <input type='color' bind:value={owner[key].props.tint} on:change={change} /></label>
-			<label class='check'>
-				<input type='checkbox' bind:checked={owner[key].props.invert} on:change={change} />
-				Invert (corrupt instead of reveal)
-			</label>
+<div class='animation-editor'>
+	<span class='sublabel'>{label}</span>
+	<Select options={typeOptions} value={type} searchable={false} onChange={setType} />
+
+	{#if value}
+		<div class='grid'>
+			<NumberField label='Duration' value={(value.duration as number) ?? 1000} onChange={v => patchAnim({ duration: v ?? 0 })} />
+			<NumberField label='Delay' value={(value.delay as number) ?? 0} onChange={v => patchAnim({ delay: v ?? 0 })} />
+		</div>
+
+		<Field label='Origins'>
+			<Select options={originTypeOptions} value={originType} searchable={false} onChange={t => setOrigins(t === 'randomOrigins' ? randomOrigins() : { type: 'fixedOrigins', origins: [] })} />
+		</Field>
+		{#if originType === 'randomOrigins'}
+			<NumberField label='Origin count' value={(origins.numOrigins as number) ?? 5} onChange={v => setOrigins(randomOrigins(v ?? 1))} />
+		{:else}
+			<TextField
+				label='Origin x-positions (comma-separated)'
+				value={((origins.origins as number[]) ?? []).join(', ')}
+				onChange={v => setOrigins({ type: 'fixedOrigins', origins: v.split(',').map(s => Number(s.trim())).filter(n => !Number.isNaN(n)) })}
+			/>
 		{/if}
-		{#if owner[key].type === 'dissolve'}
-			<label>
-				Origins
-				<select value={owner[key].props?.type ?? 'randomOrigins'} on:change={setOriginMode}>
-					<option value='randomOrigins'>Random</option>
-					<option value='fixedOrigins'>Fixed</option>
-				</select>
-			</label>
-			{#if owner[key].props?.type === 'randomOrigins'}
-				<label>Count <input type='number' min='1' max='16' bind:value={owner[key].props.numOrigins} on:change={change} /></label>
-			{:else}
-				<label>
-					Points (x,y,...)
-					<input type='text' value={(owner[key].props?.origins ?? []).join(', ')} on:change={setOrigins} />
-				</label>
-			{/if}
+
+		{#if value.type === 'glitch'}
+			<div class='grid'>
+				<NumberField label='Bands' value={(props.bands as number) ?? 20} onChange={v => patchGlitch({ bands: v ?? 1 })} />
+				<NumberField label='Intensity' step={0.01} value={(props.intensity as number) ?? 0.05} onChange={v => patchGlitch({ intensity: v ?? 0 })} />
+			</div>
+			<ColorField label='Tint' value={(props.tint as string) ?? '#0044ff'} onChange={v => patchGlitch({ tint: v })} />
+			<CheckboxField label='Invert' value={(props.invert as boolean) ?? false} onChange={v => patchGlitch({ invert: v })} />
 		{/if}
 	{/if}
-</fieldset>
+</div>
 
 <style lang='scss'>
 	.animation-editor {
-		border: 1px solid #444;
-		border-radius: 4px;
-		padding: 0.25rem 0.5rem;
-		margin: 0.25rem 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
 
-		legend {
-			font-size: 0.8em;
-			opacity: 0.8;
-		}
+	.sublabel {
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.4px;
+		opacity: 0.6;
+	}
 
-		label {
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-			margin-bottom: 0.25rem;
-			font-size: 0.85em;
-
-			input,
-			select {
-				flex: 1;
-				min-width: 0;
-				color: #fff;
-				background: #ffffff10;
-			}
-		}
+	.grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 6px;
 	}
 </style>

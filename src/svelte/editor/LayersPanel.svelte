@@ -1,176 +1,135 @@
+<svelte:options runes={true} />
 <script lang='ts'>
-	import type { SplashCreate, SpriteCreate } from '../../datamodel/SplashModel.ts';
-	import { nanoid } from 'nanoid';
-	import { createEventDispatcher } from 'svelte';
+	import type { SpriteCreate } from '../../datamodel/SplashModel.ts';
+	import type { ContextMenuItem } from '../ui';
+	import type { DocumentStore } from './documentStore.svelte.ts';
+	import type { SpriteType } from './spriteFactory.ts';
+	import { ContextMenu, IconButton, ListRow, Panel } from '../ui';
+	import { addSprite, removeSprite, setSpritePlacement } from './edit.ts';
+	import { createSprite } from './spriteFactory.ts';
 
-	export let working: SplashCreate;
-	export let activeState: string;
-	export let selectedId: string | null;
+	const {
+		store,
+		activeState,
+		selectedId,
+		onSelect,
+	}: {
+		store: DocumentStore;
+		activeState: string;
+		selectedId: string | null;
+		onSelect: (id: string | null) => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher<{ select: string; change: void }>();
+	const data = $derived(store.data);
+	const children = $derived(data.children ?? []);
 
-	const typeIcons: Record<string, string> = {
-		image: 'fa-image',
-		text: 'fa-font',
-		button: 'fa-hand-pointer',
+	const typeIcon: Record<string, string> = {
+		image: 'fa-solid fa-image',
+		text: 'fa-solid fa-font',
+		button: 'fa-solid fa-hand-pointer',
 	};
 
-	const defaultPlacement = () => ({ x: 100, y: 100 });
+	let addMenu = $state<{ x: number; y: number } | null>(null);
+	let rowMenu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
 
-	function addSprite(sprite: SpriteCreate) {
-		working.children = [...(working.children ?? []), sprite];
-		dispatch('change');
-		dispatch('select', sprite.id!);
+	function placedHere(sprite: SpriteCreate): boolean {
+		return !!sprite.states?.[activeState];
 	}
 
-	function addImage() {
-		new foundry.applications.apps.FilePicker({
-			type: 'image',
-			callback: (path: string) => {
-				addSprite({
-					type: 'image',
-					id: nanoid(),
-					name: 'New Image',
-					img: path,
-					states: { [activeState]: { ...defaultPlacement(), width: 400, height: 300 } },
-				});
-			},
-		}).render(true);
+	function add(type: SpriteType) {
+		const sprite = createSprite(type, activeState);
+		void addSprite(store.page, children, sprite);
+		onSelect(sprite.id ?? null);
+		addMenu = null;
 	}
 
-	function addText() {
-		addSprite({
-			type: 'text',
-			id: nanoid(),
-			name: 'New Text',
-			text: 'New Text',
-			size: 48,
-			fillColor: '#ffffff',
-			states: { [activeState]: defaultPlacement() },
-		});
+	function del(sprite: SpriteCreate) {
+		void removeSprite(store.page, children, sprite.id ?? '');
+		if (selectedId === sprite.id) onSelect(null);
 	}
 
-	function addButton() {
-		addSprite({
-			type: 'button',
-			id: nanoid(),
-			name: 'New Button',
-			label: { text: 'Button', fontSize: 32, strokeThickness: 0, stroke: '#000000', fill: '#ffffff' },
-			image: { url: 'modules/splash/assets/noise.png', leftWidth: 0, rightWidth: 0, topHeight: 0, bottomHeight: 0 },
-			onClick: { type: 'close' },
-			states: { [activeState]: { ...defaultPlacement(), width: 300, height: 100 } },
-		});
+	// Stop the click bubbling to the row's select handler (which would re-select the deleted sprite).
+	function delClick(event: MouseEvent, sprite: SpriteCreate) {
+		event.stopPropagation();
+		del(sprite);
 	}
 
-	function removeSprite(id: string | null | undefined) {
-		working.children = (working.children ?? []).filter(child => child?.id !== id);
-		dispatch('change');
+	function openRowMenu(event: MouseEvent, sprite: SpriteCreate) {
+		event.preventDefault();
+		const placed = placedHere(sprite);
+		rowMenu = {
+			x: event.clientX,
+			y: event.clientY,
+			items: [
+				placed
+					? { label: `Remove from "${activeState}"`, icon: 'fa-solid fa-eye-slash', action: () => void setSpritePlacement(store.page, children, sprite.id ?? '', activeState, null) }
+					: { label: `Place in "${activeState}"`, icon: 'fa-solid fa-plus', action: () => void setSpritePlacement(store.page, children, sprite.id ?? '', activeState, { x: 100, y: 100, zIndex: 0, priority: 0, name: '' }) },
+				{ separator: true },
+				{ label: 'Delete', icon: 'fa-solid fa-trash', danger: true, action: () => del(sprite) },
+			],
+		};
 	}
 
-	function placeInState(sprite: SpriteCreate) {
-		sprite.states = { ...sprite.states, [activeState]: defaultPlacement() };
-		dispatch('change');
-	}
+	const addItems: ContextMenuItem[] = [
+		{ label: 'Image', icon: 'fa-solid fa-image', action: () => add('image') },
+		{ label: 'Text', icon: 'fa-solid fa-font', action: () => add('text') },
+		{ label: 'Button', icon: 'fa-solid fa-hand-pointer', action: () => add('button') },
+	];
 </script>
 
-<aside class='layers-panel'>
-	<header>
-		<h2>Layers</h2>
-		<button type='button' title='Add image' on:click={addImage}><i class='fas fa-image'></i></button>
-		<button type='button' title='Add text' on:click={addText}><i class='fas fa-font'></i></button>
-		<button type='button' title='Add button' on:click={addButton}><i class='fas fa-hand-pointer'></i></button>
-	</header>
-	<ul>
-		{#each working.children ?? [] as child (child.id)}
-			<li class:selected={child.id === selectedId} class:absent={!child.states?.[activeState]}>
-				<button type='button' class='select' on:click={() => dispatch('select', child.id ?? '')}>
-					<i class='fas {typeIcons[child.type ?? ''] ?? 'fa-question'}'></i>
-					{child.name || child.id}
-				</button>
-				{#if !child.states?.[activeState]}
-					<button type='button' class='place' title='Place in this state' on:click={() => placeInState(child)}>
-						<i class='fas fa-location-plus'></i>
-					</button>
-				{/if}
-				<button type='button' class='remove' title='Delete sprite' on:click={() => removeSprite(child.id)}>
-					<i class='fas fa-trash'></i>
-				</button>
-			</li>
+<Panel title='Layers'>
+	{#snippet actions()}
+		<IconButton icon='fa-solid fa-plus' title='Add sprite' onclick={e => (addMenu = { x: e.clientX, y: e.clientY })} />
+	{/snippet}
+
+	<div class='layers'>
+		{#each children as sprite (sprite.id)}
+			<ListRow
+				columns='20px 1fr 30px'
+				active={sprite.id === selectedId}
+				onclick={() => onSelect(sprite.id ?? null)}
+				oncontextmenu={e => openRowMenu(e, sprite)}
+			>
+				<i class={typeIcon[sprite.type ?? ''] ?? 'fa-solid fa-shapes'} class:dim={!placedHere(sprite)}></i>
+				<span class='name' class:dim={!placedHere(sprite)}>{sprite.name || sprite.id}</span>
+				<IconButton icon='fa-solid fa-trash' title='Delete sprite' danger onclick={e => delClick(e, sprite)} />
+			</ListRow>
 		{/each}
-	</ul>
-</aside>
+		{#if children.length === 0}
+			<div class='empty'>No sprites yet — use + to add one.</div>
+		{/if}
+	</div>
+</Panel>
+
+{#if addMenu}
+	<ContextMenu x={addMenu.x} y={addMenu.y} items={addItems} onClose={() => (addMenu = null)} />
+{/if}
+{#if rowMenu}
+	<ContextMenu x={rowMenu.x} y={rowMenu.y} items={rowMenu.items} onClose={() => (rowMenu = null)} />
+{/if}
 
 <style lang='scss'>
-	.layers-panel {
-		position: absolute;
-		top: 4rem;
-		left: 1rem;
-		width: 240px;
-		max-height: 70vh;
-		overflow-y: auto;
-		background: #000000d0;
-		border: 1px solid #666;
-		border-radius: 6px;
-		padding: 0.5rem;
-		color: #fff;
-		z-index: 10;
+	.layers {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
 
-		header {
-			display: flex;
-			align-items: center;
-			gap: 0.25rem;
-
-			h2 {
-				flex: 1;
-				margin: 0;
-				font-size: 1rem;
-				border: none;
-			}
-
-			button {
-				background: none;
-				border: 1px solid #666;
-				border-radius: 4px;
-				color: #fff;
-				cursor: pointer;
-			}
+		.name {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			font-size: 12px;
 		}
 
-		ul {
-			margin: 0.5rem 0 0;
-			padding: 0;
-			list-style: none;
+		.dim {
+			opacity: 0.4;
 		}
 
-		li {
-			display: flex;
-			align-items: center;
-
-			&.selected .select {
-				color: #ff9800;
-			}
-
-			&.absent .select {
-				opacity: 0.5;
-			}
-
-			.select {
-				flex: 1;
-				text-align: left;
-				background: none;
-				border: none;
-				color: #fff;
-				cursor: pointer;
-			}
-
-			.place,
-			.remove {
-				background: none;
-				border: none;
-				color: #aaa;
-				cursor: pointer;
-				font-size: 0.8em;
-			}
+		.empty {
+			padding: 12px 4px;
+			text-align: center;
+			font-size: 11px;
+			opacity: 0.5;
 		}
 	}
 </style>

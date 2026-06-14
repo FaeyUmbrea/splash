@@ -346,13 +346,24 @@ export type StateDefinition = StateDefinitionCreate | StateDefinitionInitialized
 function SplashModelSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
-		schemaVersion: new fields.NumberField({ required: true, initial: 2 }),
 		// local: every client runs its own copy. synced: one shared state for the
 		// whole table, executed on the GM client (e.g. a communal puzzle).
 		mode: new fields.StringField({ required: true, choices: ['local', 'synced'], initial: 'local' }),
 		// 'all': vote tallies are written into shared values (players see pips);
 		// 'gm': tallies stay on the GM client (control surface only).
 		voteVisibility: new fields.StringField({ required: true, choices: ['all', 'gm'], initial: 'all' }),
+		// scene/hud/full = fullscreen splash (with its stacking layer); handout = windowed app.
+		// One enum selects both the kind (splash vs handout) and, for splashes, the layer.
+		layer: new fields.StringField({ required: true, choices: ['scene', 'hud', 'full', 'handout'], initial: 'full' }),
+		// Surfaces this splash in the scene-control "global" tab.
+		global: new fields.BooleanField({ required: true, initial: false }),
+		// Scene ids this splash is pinned to (scene-control "pinned" tab). World-local; missing ids ignored.
+		scenePins: new fields.SetField(new fields.StringField({ required: true, blank: false }), { required: true, initial: [] }),
+		// Locked window size for handout-layer splashes; null for fullscreen layers.
+		handoutSize: new fields.SchemaField({
+			width: new fields.NumberField({ required: true, initial: 800, positive: true, integer: true }),
+			height: new fields.NumberField({ required: true, initial: 600, positive: true, integer: true }),
+		}, { required: false, nullable: true, initial: null }),
 		children: new fields.ArrayField(
 			SpriteFieldCreator(),
 		),
@@ -401,18 +412,6 @@ export class SplashModel extends foundry.abstract.TypeDataModel<
 > {
 	static override defineSchema() {
 		return SplashModelSchemaCreator();
-	}
-
-	static override migrateData(source: Record<string, any>) {
-		// Schema v1 stored states as plain label strings.
-		if (source?.states) {
-			for (const [key, value] of Object.entries(source.states)) {
-				if (typeof value === 'string') {
-					source.states[key] = { label: value, onEnter: [] };
-				}
-			}
-		}
-		return super.migrateData(source);
 	}
 }
 

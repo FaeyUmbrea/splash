@@ -1,8 +1,13 @@
+import SplashManager from '../apps/SplashManager.ts';
 import { ID } from './const.js';
 
 export const SETTING_RENDERER = 'renderer';
 export const SETTING_ACTIVE_SPLASH = 'activeSplash';
 export const SETTING_SHARED_STATE = 'sharedState';
+export const SETTING_DATA_MODEL_VERSION = 'dataModelVersion';
+
+/** The current data-model version. Bump only when shipping a real post-release migration. */
+export const CURRENT_DATA_MODEL_VERSION = 1;
 
 /** Snapshot of a synced splash's runtime, persisted per page uuid. */
 export interface SharedSplashState {
@@ -20,6 +25,16 @@ export interface ActiveSplash {
 }
 
 export function registerSettings(): void {
+	// The Splash Manager is opened from a settings menu button (GM only).
+	game.settings?.registerMenu(ID, 'manager', {
+		name: 'splash.manager.menuName',
+		label: 'splash.manager.menuLabel',
+		hint: 'splash.manager.menuHint',
+		icon: 'fas fa-images',
+		type: SplashManager as unknown as typeof foundry.applications.api.ApplicationV2,
+		restricted: true,
+	});
+
 	game.settings?.register(ID, SETTING_RENDERER, {
 		name: 'splash.settings.renderer.name',
 		hint: 'splash.settings.renderer.hint',
@@ -60,6 +75,24 @@ export function registerSettings(): void {
 			onSharedStateChanged((value ?? {}) as Record<string, SharedSplashState>);
 		},
 	});
+
+	// Stored data-model version. The -1 sentinel means "never stamped" — the baseline
+	// stamp lifts it to CURRENT_DATA_MODEL_VERSION so future releases can tell a fresh
+	// install (stamped straight to current) from an existing one that must migrate forward.
+	game.settings?.register(ID, SETTING_DATA_MODEL_VERSION, {
+		scope: 'world',
+		config: false,
+		type: Number,
+		default: -1,
+	});
+}
+
+export function getDataModelVersion(): number {
+	return (game.settings?.get(ID, SETTING_DATA_MODEL_VERSION) ?? -1) as number;
+}
+
+export async function setDataModelVersion(version: number): Promise<void> {
+	await game.settings?.set(ID, SETTING_DATA_MODEL_VERSION, version);
 }
 
 export function getSharedStates(): Record<string, SharedSplashState> {

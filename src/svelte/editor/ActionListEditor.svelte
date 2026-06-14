@@ -1,73 +1,64 @@
+<svelte:options runes={true} />
 <script lang='ts'>
-	import { createEventDispatcher } from 'svelte';
+	import { IconButton } from '../ui';
 	import ActionEditor from './ActionEditor.svelte';
 
-	/** Edits an array of actions held at owner[key] (e.g. a state's onEnter list). */
-	export let owner: Record<string, any>;
-	export let key: string;
-	export let label: string;
-	export let states: string[];
+	type Action = Record<string, unknown> & { type?: string };
 
-	const dispatch = createEventDispatcher<{ change: void }>();
-	const change = () => dispatch('change');
+	const {
+		actions,
+		states,
+		onChange,
+	}: {
+		actions: Action[];
+		states: string[];
+		onChange: (actions: Action[]) => void;
+	} = $props();
 
 	function add() {
-		owner[key] = [...(owner[key] ?? []), { type: 'close' }];
-		change();
+		onChange([...actions, { type: 'close' }]);
 	}
-
 	function remove(index: number) {
-		owner[key] = (owner[key] ?? []).filter((_: unknown, i: number) => i !== index);
-		change();
+		onChange(actions.filter((_, i) => i !== index));
+	}
+	function setAt(index: number, action: Action) {
+		onChange(actions.map((a, i) => (i === index ? action : a)));
 	}
 </script>
 
-<fieldset class='action-list-editor'>
-	<legend>
-		{label}
-		<button type='button' title='Add action' on:click={add}><i class='fas fa-plus'></i></button>
-	</legend>
-	{#each owner[key] ?? [] as _action, index (index)}
-		<div class='entry'>
-			<ActionEditor owner={owner[key]} key={String(index)} {states} on:change={change} />
-			<button type='button' title='Remove action' on:click={() => remove(index)}>
-				<i class='fas fa-trash'></i>
-			</button>
+<div class='action-list'>
+	{#each actions as action, i (i)}
+		<div class='item'>
+			<div class='item-head'>
+				<span>Action {i + 1}</span>
+				<IconButton icon='fa-solid fa-trash' title='Remove action' danger onclick={() => remove(i)} />
+			</div>
+			<ActionEditor {action} {states} onChange={a => setAt(i, a)} />
 		</div>
 	{/each}
-</fieldset>
+	<IconButton icon='fa-solid fa-plus' title='Add action' onclick={add} />
+</div>
 
 <style lang='scss'>
-	.action-list-editor {
-		border: 1px solid #444;
-		border-radius: 4px;
-		padding: 0.25rem 0.5rem;
-		margin: 0.25rem 0;
+	.action-list {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
 
-		legend {
+	.item {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 6px;
+		border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+		border-radius: 4px;
+
+		.item-head {
 			display: flex;
 			align-items: center;
-			gap: 0.5rem;
-			font-size: 0.8em;
-			opacity: 0.8;
-		}
-
-		button {
-			background: none;
-			border: 1px solid #666;
-			border-radius: 4px;
-			color: #fff;
-			cursor: pointer;
-		}
-
-		.entry {
-			display: flex;
-			align-items: flex-start;
-			gap: 0.25rem;
-
-			:global(.action-editor) {
-				flex: 1;
-			}
+			justify-content: space-between;
+			font-size: 12px;
 		}
 	}
 </style>

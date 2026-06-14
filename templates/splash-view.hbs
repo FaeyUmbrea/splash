@@ -1,0 +1,14 @@
+{{!-- Reproduces the core text-page view (templates/journal/pages/text/view.hbs) + the action bar. --}}
+<div>
+	{{> "modules/splash/templates/splash-actions.hbs"}}
+
+	{{#if title.show}}
+		<header class="journal-page-header">
+			<h{{ title.level }}>{{ name }}</h{{ title.level }}>
+		</header>
+	{{/if}}
+
+	<section class="journal-page-content">
+		{{{ text.enriched }}}
+	</section>
+</div>

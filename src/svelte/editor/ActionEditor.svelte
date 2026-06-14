@@ -1,226 +1,151 @@
+<svelte:options runes={true} />
 <script lang='ts'>
-	import { createEventDispatcher } from 'svelte';
-	import { SplashAPI } from '../../api/api.ts';
+	import type { SelectItem } from '../ui';
+	import { CheckboxField, IconButton, NumberField, Select, TextField } from '../ui';
 
-	/** Object holding the action property (e.g. a button sprite) and which key to edit. */
-	export let owner: Record<string, any>;
-	export let key: string;
-	export let states: string[];
-	export let label: string = 'On Click';
+	type Action = Record<string, unknown> & { type?: string };
 
-	const dispatch = createEventDispatcher<{ change: void }>();
-	const change = () => dispatch('change');
-	const actions = SplashAPI.getInstance().registeredActions;
-	const macros = (game.macros?.contents ?? []).map(m => ({ id: m.id, name: m.name }));
+	const {
+		action,
+		states,
+		onChange,
+	}: {
+		action: Action | null | undefined;
+		/** State keys, for change-state load/unload pickers. */
+		states: string[];
+		onChange: (action: Action) => void;
+	} = $props();
 
-	const defaults: Record<string, () => object> = {
-		'close': () => ({ type: 'close' }),
-		'macro': () => ({ type: 'macro', macro: null }),
-		'change-state': () => ({ type: 'change-state', load: [], unload: [], conditions: null }),
-		'set-value': () => ({ type: 'set-value', key: '', value: '' }),
-		'increment-value': () => ({ type: 'increment-value', key: '', step: 1, min: null, max: null, wrap: false }),
-		'vote': () => ({ type: 'vote', optionId: '' }),
+	const typeOptions: SelectItem[] = [
+		{ value: 'macro', label: 'Run macro', icon: 'fa-solid fa-scroll' },
+		{ value: 'change-state', label: 'Change state', icon: 'fa-solid fa-right-left' },
+		{ value: 'set-value', label: 'Set value', icon: 'fa-solid fa-equals' },
+		{ value: 'increment-value', label: 'Increment value', icon: 'fa-solid fa-plus-minus' },
+		{ value: 'vote', label: 'Vote', icon: 'fa-solid fa-check-to-slot' },
+		{ value: 'close', label: 'Close splash', icon: 'fa-solid fa-xmark' },
+	];
+
+	const macroOptions = $derived(
+		(game.macros?.contents ?? []).map(m => ({ value: m.id as string, label: m.name as string })),
+	);
+	const stateOptions = $derived(states.map(s => ({ value: s, label: s })));
+
+	const type = $derived(action?.type ?? '');
+	const conditions = $derived((action?.conditions as Record<string, string> | null) ?? null);
+
+	const DEFAULTS: Record<string, Action> = {
+		'macro': { type: 'macro', macro: null },
+		'change-state': { type: 'change-state', load: [], unload: [], conditions: null },
+		'set-value': { type: 'set-value', key: '', value: '' },
+		'increment-value': { type: 'increment-value', key: '', step: 1, min: null, max: null, wrap: false },
+		'vote': { type: 'vote', optionId: '' },
+		'close': { type: 'close' },
 	};
 
-	function setType(event: Event) {
-		const type = (event.target as HTMLSelectElement).value;
-		owner[key] = defaults[type]?.() ?? { type: 'close' };
-		change();
+	function setType(value: string | string[] | null) {
+		onChange(DEFAULTS[value as string] ?? { type: value as string });
+	}
+	function patch(p: Partial<Action>) {
+		onChange({ ...action, ...p } as Action);
 	}
 
-	function toggle(list: 'load' | 'unload', stateId: string) {
-		const current: string[] = owner[key][list] ?? [];
-		owner[key][list] = current.includes(stateId)
-			? current.filter(s => s !== stateId)
-			: [...current, stateId];
-		change();
+	function setCondition(key: string, value: string) {
+		patch({ conditions: { ...(conditions ?? {}), [key]: value } });
 	}
-
-	let conditionKey = '';
-	let conditionValue = '';
-
+	function removeCondition(key: string) {
+		const next = { ...(conditions ?? {}) };
+		delete next[key];
+		patch({ conditions: Object.keys(next).length ? next : null });
+	}
+	let newConditionKey = $state('');
 	function addCondition() {
-		if (!conditionKey) return;
-		owner[key].conditions = { ...(owner[key].conditions ?? {}), [conditionKey]: conditionValue };
-		conditionKey = '';
-		conditionValue = '';
-		change();
-	}
-
-	function removeCondition(name: string) {
-		const conditions = { ...(owner[key].conditions ?? {}) };
-		delete conditions[name];
-		owner[key].conditions = Object.keys(conditions).length ? conditions : null;
-		change();
+		const key = newConditionKey.trim();
+		if (!key) return;
+		setCondition(key, '');
+		newConditionKey = '';
 	}
 </script>
 
-<fieldset class='action-editor'>
-	<legend>{label}</legend>
-	<label>
-		Action
-		<select value={owner[key]?.type ?? 'close'} on:change={setType}>
-			{#each actions as action (action.type)}
-				<option value={action.type}>{action.name}</option>
-			{/each}
-		</select>
-	</label>
-	{#if owner[key]?.type === 'macro'}
-		<label>
-			Macro
-			<select bind:value={owner[key].macro} on:change={change}>
-				<option value={null}>None</option>
-				{#each macros as macro (macro.id)}
-					<option value={macro.id}>{macro.name}</option>
-				{/each}
-			</select>
-		</label>
-	{:else if owner[key]?.type === 'change-state'}
-		<div class='state-lists'>
-			<div>
-				<span>Load</span>
-				{#each states as stateId (stateId)}
-					<label class='check'>
-						<input
-							type='checkbox'
-							checked={(owner[key].load ?? []).includes(stateId)}
-							on:change={() => toggle('load', stateId)}
-						/>
-						{stateId}
-					</label>
-				{/each}
-			</div>
-			<div>
-				<span>Unload</span>
-				{#each states as stateId (stateId)}
-					<label class='check'>
-						<input
-							type='checkbox'
-							checked={(owner[key].unload ?? []).includes(stateId)}
-							on:change={() => toggle('unload', stateId)}
-						/>
-						{stateId}
-					</label>
-				{/each}
-			</div>
-		</div>
+<div class='action-editor'>
+	<Select options={typeOptions} value={type} searchable={false} placeholder='No action' onChange={setType} />
+
+	{#if type === 'macro'}
+		<Select options={macroOptions} value={(action?.macro as string) ?? null} placeholder='Pick a macro' onChange={v => patch({ macro: v })} />
+	{:else if type === 'change-state'}
+		<Select options={stateOptions} value={[...((action?.load as string[]) ?? [])]} multiple placeholder='Load states…' onChange={v => patch({ load: v })} />
+		<Select options={stateOptions} value={[...((action?.unload as string[]) ?? [])]} multiple placeholder='Unload states…' onChange={v => patch({ unload: v })} />
+
 		<div class='conditions'>
-			<span>Only when</span>
-			{#each Object.entries(owner[key].conditions ?? {}) as [name, expected] (name)}
-				<div class='condition'>
-					<code>{name} = {expected}</code>
-					<button type='button' title='Remove condition' on:click={() => removeCondition(name)}>
-						<i class='fas fa-x'></i>
-					</button>
+			<span class='sublabel'>Conditions (value gate)</span>
+			{#each Object.entries(conditions ?? {}) as [key, value] (key)}
+				<div class='cond-row'>
+					<span class='cond-key'>{key}</span>
+					<TextField value={value} onChange={v => setCondition(key, v)} />
+					<IconButton icon='fa-solid fa-trash' title='Remove condition' danger onclick={() => removeCondition(key)} />
 				</div>
 			{/each}
-			<div class='condition new'>
-				<input type='text' placeholder='value key' bind:value={conditionKey} />
-				<input type='text' placeholder='equals' bind:value={conditionValue} />
-				<button type='button' title='Add condition' on:click={addCondition}>
-					<i class='fas fa-plus'></i>
-				</button>
+			<div class='cond-add'>
+				<TextField bind:value={newConditionKey} placeholder='value key' />
+				<IconButton icon='fa-solid fa-plus' title='Add condition' onclick={addCondition} />
 			</div>
 		</div>
-	{:else if owner[key]?.type === 'set-value'}
-		<label>Key <input type='text' bind:value={owner[key].key} on:change={change} /></label>
-		<label>Value <input type='text' bind:value={owner[key].value} on:change={change} /></label>
-	{:else if owner[key]?.type === 'increment-value'}
-		<label>Key <input type='text' bind:value={owner[key].key} on:change={change} /></label>
-		<label>Step <input type='number' bind:value={owner[key].step} on:change={change} /></label>
-		<label>Min <input type='number' bind:value={owner[key].min} on:change={change} /></label>
-		<label>Max <input type='number' bind:value={owner[key].max} on:change={change} /></label>
-		<label class='check'>
-			<input type='checkbox' bind:checked={owner[key].wrap} on:change={change} />
-			Wrap around
-		</label>
-	{:else if owner[key]?.type === 'vote'}
-		<label>Option <input type='text' bind:value={owner[key].optionId} on:change={change} /></label>
-		<p class='hint'>Tally is readable as &#123;vote:option&#125; in text sprites.</p>
+	{:else if type === 'set-value'}
+		<TextField label='Key' value={(action?.key as string) ?? ''} onChange={v => patch({ key: v })} />
+		<TextField label='Value' value={(action?.value as string) ?? ''} onChange={v => patch({ value: v })} />
+	{:else if type === 'increment-value'}
+		<TextField label='Key' value={(action?.key as string) ?? ''} onChange={v => patch({ key: v })} />
+		<div class='grid'>
+			<NumberField label='Step' value={(action?.step as number) ?? 1} onChange={v => patch({ step: v })} />
+			<NumberField label='Min' value={(action?.min as number) ?? null} onChange={v => patch({ min: v })} />
+			<NumberField label='Max' value={(action?.max as number) ?? null} onChange={v => patch({ max: v })} />
+		</div>
+		<CheckboxField label='Wrap min↔max (tumbler digit)' value={(action?.wrap as boolean) ?? false} onChange={v => patch({ wrap: v })} />
+	{:else if type === 'vote'}
+		<TextField label='Vote option id' value={(action?.optionId as string) ?? ''} onChange={v => patch({ optionId: v })} />
 	{/if}
-</fieldset>
+</div>
 
 <style lang='scss'>
 	.action-editor {
-		border: 1px solid #444;
-		border-radius: 4px;
-		padding: 0.25rem 0.5rem;
-		margin: 0.25rem 0;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
 
-		legend {
-			font-size: 0.8em;
+	.grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		gap: 6px;
+	}
+
+	.conditions {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+
+		.sublabel {
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: 0.4px;
+			opacity: 0.6;
+		}
+
+		.cond-row {
+			display: grid;
+			grid-template-columns: auto 1fr 30px;
+			align-items: center;
+			gap: 6px;
+		}
+
+		.cond-key {
+			font-size: 12px;
 			opacity: 0.8;
 		}
 
-		label {
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-			margin-bottom: 0.25rem;
-			font-size: 0.85em;
-
-			select {
-				flex: 1;
-				min-width: 0;
-				color: #fff;
-				background: #ffffff10;
-			}
-		}
-
-		.state-lists {
+		.cond-add {
 			display: grid;
-			grid-template-columns: 1fr 1fr;
-			gap: 0.5rem;
-			font-size: 0.85em;
-
-			span {
-				font-weight: bold;
-			}
-
-			.check {
-				display: flex;
-				gap: 0.25rem;
-				margin: 0;
-			}
-		}
-
-		.check {
-			display: flex;
-			gap: 0.25rem;
-		}
-
-		.conditions {
-			font-size: 0.85em;
-
-			span {
-				font-weight: bold;
-			}
-
-			.condition {
-				display: flex;
-				align-items: center;
-				gap: 0.5rem;
-
-				code {
-					flex: 1;
-				}
-
-				input {
-					flex: 1;
-					min-width: 0;
-					color: #fff;
-					background: #ffffff10;
-				}
-
-				button {
-					background: none;
-					border: 1px solid #666;
-					border-radius: 4px;
-					color: #fff;
-					cursor: pointer;
-					font-size: 0.8em;
-				}
-			}
+			grid-template-columns: 1fr 30px;
+			gap: 6px;
 		}
 	}
 </style>

@@ -18,6 +18,25 @@
 		},
 		"quickAccess": {
 			"title": "Splashes"
+		},
+		"manager": {
+			"title": "Splash Manager",
+			"menuName": "Splash Manager",
+			"menuLabel": "Open Splash Manager",
+			"menuHint": "Browse, create, edit, and launch every splash and handout."
+		},
+		"actions": {
+			"launch": "Launch for players",
+			"preview": "Preview",
+			"openHandout": "Open handout",
+			"edit": "Open editor",
+			"triggers": "Triggers"
+		},
+		"triggers": {
+			"title": "Splash Triggers",
+			"region": {
+				"label": "Splash: Launch on Region Entry"
+			}
 		}
 	}
 }

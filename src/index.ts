@@ -3,6 +3,7 @@ import { registerControllerHooks } from './apps/controller.ts';
 
 import { SplashModel } from './datamodel/SplashModel.js';
 import { SplashSheet } from './sheet/SplashSheet.ts';
+import { setupTriggers } from './triggers/setup.ts';
 import { registerKeybindings } from './utils/keyboard.js';
 import { listTriggerableSplashPages } from './utils/launch.ts';
 import { registerPresenceSocket } from './utils/presence.ts';
@@ -12,16 +13,13 @@ import { registerSocket } from './utils/socket.ts';
 import { registerSyncSocket } from './utils/sync.ts';
 import './css/splash.scss';
 
-export const img: string
-	= 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Golden_Delicious_apples.jpg/500px-Golden_Delicious_apples.jpg';
-
-export const img2: string
-	= 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Scan_of_an_orange.png';
-
 Hooks.once('init', () => {
 	Object.assign(CONFIG.JournalEntryPage.dataModels, {
 		'splash.splash': SplashModel,
 	});
+
+	// The page-sheet action bar is a shared partial included by both view and edit templates.
+	foundry.applications.handlebars.loadTemplates(['modules/splash/templates/splash-actions.hbs']);
 
 	foundry.applications.apps.DocumentSheetConfig.registerSheet(JournalEntryPage, 'splash', SplashSheet, {
 		types: ['splash.splash'],
@@ -43,22 +41,28 @@ Hooks.once('init', () => {
 	}
 
 	setupAPI(api);
+	setupTriggers();
 
 	Hooks.call('splash.init');
+});
+
+Hooks.once('ready', async () => {
+	const { runDataModelMigrations } = await import('./utils/migration.ts');
+	await runDataModelMigrations();
 });
 
 Hooks.on('getSceneControlButtons', (controls) => {
 	if (!game.user?.isGM && listTriggerableSplashPages().length === 0) return;
 	const tool = {
-		name: 'splashQuickAccess',
+		name: 'splashLauncher',
 		icon: 'fa-solid fa-images',
 		title: 'splash.quickAccess.title',
 		toggle: true,
 		onChange: async (_event: unknown, active: boolean) => {
-			const { toggleQuickAccess } = await import('./apps/QuickAccessApplication.ts');
-			await toggleQuickAccess(active, tool);
+			const { toggleSceneLauncher } = await import('./apps/SceneLauncherApplication.ts');
+			await toggleSceneLauncher(active, tool);
 		},
 	};
 	// @ts-expect-error tool shape is narrower than SceneControls.Tool
-	controls.tokens.tools.splashQuickAccess = tool;
+	controls.tokens.tools.splashLauncher = tool;
 });
