@@ -2,7 +2,6 @@ import type { SplashPage } from '../utils/launch.ts';
 import { SvelteApplicationMixin } from '../mixins/SvelteApplicationMixin.svelte.ts';
 import TriggersPanel from '../svelte/TriggersPanel.svelte';
 
-/** Per-splash trigger management window. */
 export default class SplashTriggersApplication extends SvelteApplicationMixin(foundry.applications.api.ApplicationV2) {
 	protected override root = TriggersPanel;
 
@@ -32,7 +31,6 @@ export default class SplashTriggersApplication extends SvelteApplicationMixin(fo
 	}
 }
 
-/** Open the triggers window for a splash. */
 export function openSplashTriggersApp(page: SplashPage): void {
 	new SplashTriggersApplication(page.uuid, page.name ?? '', { id: `splash-triggers-${page.id}` }).render(true);
 }

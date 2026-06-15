@@ -23,7 +23,7 @@
 		placement: Placement;
 		fallback: { width?: number; height?: number };
 		selected: boolean;
-		/** Live gesture offsets applied by the canvas during a drag/resize (stage pixels). */
+		/** Live gesture offsets applied during a drag/resize, in stage pixels. */
 		dx?: number;
 		dy?: number;
 		dw?: number;

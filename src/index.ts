@@ -23,7 +23,7 @@ Hooks.once('init', () => {
 		'splash.preset': PresetModel,
 	});
 
-	// The page-sheet action bar is a shared partial included by both view and edit templates.
+	// Shared action-bar partial used by both view and edit templates.
 	foundry.applications.handlebars.loadTemplates(['modules/splash/templates/splash-actions.hbs']);
 
 	foundry.applications.apps.DocumentSheetConfig.registerSheet(JournalEntryPage, 'splash', SplashSheet, {

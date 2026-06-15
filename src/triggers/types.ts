@@ -1,4 +1,4 @@
-/** A live trigger binding — one source (region/door/…) wired to launch a splash. */
+/** A live trigger binding. One source (region/door/…) wired to launch a splash. */
 export interface TriggerBinding {
 	/** Stable id for removal (the behavior uuid, the wall uuid, …). */
 	id: string;

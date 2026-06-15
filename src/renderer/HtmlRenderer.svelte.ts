@@ -48,10 +48,10 @@ class HtmlRenderedSprite implements RenderedSprite {
 	}
 }
 
-/** Plain HTML splash renderer for weak machines: DOM sprites, full interactivity, no GL effects. */
+/** DOM-based renderer fallback with no GL effects. */
 export class HtmlRenderer implements SplashRenderer {
 	#target: HTMLElement;
-	// Plain Set on purpose: teardown bookkeeping only, never rendered.
+	// Teardown bookkeeping only, never rendered, so reactivity is unneeded.
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	#sprites: Set<HtmlRenderedSprite> = new Set();
 

@@ -90,9 +90,7 @@ describe('splashRuntime', () => {
 		await runtime.initialize();
 		await runtime.loadState('second');
 
-		// img-1 already exists: transitioned to its priority-5 'second' state, not re-added.
 		expect(handles[0].transition).toHaveBeenCalledWith({ priority: 5, x: 10, y: 10 });
-		// txt-1 is new in 'second': added.
 		expect(renderer.addSprite).toHaveBeenCalledTimes(2);
 	});
 
@@ -113,7 +111,6 @@ describe('splashRuntime', () => {
 		await runtime.loadState('second');
 		await runtime.unloadState('second');
 
-		// img-1 still has 'initial' loaded: transitioned back, not destroyed.
 		expect(handles[0].destroy).not.toHaveBeenCalled();
 		expect(handles[0].transition).toHaveBeenLastCalledWith({ priority: 1, x: 0, y: 0 });
 	});
@@ -125,7 +122,6 @@ describe('splashRuntime', () => {
 		await runtime.loadState('second');
 
 		const timeout = await runtime.unloadState('second');
-		// txt-1 leaves via its dissolve: delay 100 + duration 400.
 		expect(timeout).toBe(500);
 		expect(renderer.animate).toHaveBeenCalledOnce();
 		const textHandle = handles[1];
@@ -149,7 +145,6 @@ describe('splashRuntime', () => {
 			'splash.changed-states',
 		]);
 
-		// txt-1's out-animation is pending after unloading 'second': re-entry is ignored until it ends.
 		await runtime.changeStates({ unload: ['second'] });
 		const callsBefore = events.mock.calls.length;
 		await runtime.changeStates({ load: ['third'] });
@@ -180,8 +175,6 @@ describe('splashRuntime', () => {
 		await runtime.initialize();
 		await runtime.changeStates({ load: ['second'] });
 
-		// txt-1 has an out-animation in the data, but the renderer reports zero duration:
-		// the sprite is destroyed immediately and the next change is not swallowed.
 		await runtime.changeStates({ unload: ['second'] });
 		expect(handles[1].destroy).toHaveBeenCalledOnce();
 		await runtime.changeStates({ unload: ['initial'] });
@@ -196,9 +189,7 @@ describe('splashRuntime', () => {
 		const runtime = new SplashRuntime(splash, renderer);
 		await runtime.initialize({ skipAnimations: true });
 
-		// Restored sprite appears with no animation...
 		expect(renderer.addSprite.mock.calls[0][2]).toBeNull();
-		// ...but later state changes animate normally again.
 		await runtime.loadState('second');
 		expect(renderer.addSprite.mock.calls[1][2]).toEqual({ type: 'dissolve', delay: 0, duration: 100 });
 	});
@@ -304,7 +295,6 @@ describe('splashRuntime', () => {
 		await runtime.applyShared({ loadedStates: ['initial', 'second'], values: { d: 5 }, overrides: {} });
 
 		expect(runtime.snapshot).toEqual({ loadedStates: ['initial', 'second'], values: { d: 5 }, overrides: {} });
-		// Mirrors never execute side effects or echo authoritative state back.
 		expect(external).not.toHaveBeenCalled();
 		expect(changed).not.toHaveBeenCalled();
 	});
@@ -323,7 +313,7 @@ describe('splashRuntime', () => {
 		const { renderer, handles } = fakeRenderer();
 		const changed = vi.fn();
 		const runtime = new SplashRuntime(fixture(), renderer, () => {}, { onChanged: changed });
-		await runtime.initialize(); // renders img-1 (initial state)
+		await runtime.initialize();
 		changed.mockClear();
 
 		runtime.setOverride('img-1', 'text', 'Z');
@@ -333,7 +323,7 @@ describe('splashRuntime', () => {
 
 		runtime.setOverride('img-1', 'text', undefined);
 		expect(handles[0].applyOverrides).toHaveBeenLastCalledWith({});
-		expect(runtime.snapshot.overrides).toEqual({}); // empty bag is dropped
+		expect(runtime.snapshot.overrides).toEqual({});
 	});
 
 	it('applyShared adopts overrides from an authoritative snapshot without echoing back', async () => {
@@ -351,11 +341,10 @@ describe('splashRuntime', () => {
 	it('applyShared reconciles REMOVED overrides — a follower clears what the authority dropped', async () => {
 		const { renderer, handles } = fakeRenderer();
 		const runtime = new SplashRuntime(fixture(), renderer);
-		await runtime.initialize(); // renders img-1
+		await runtime.initialize();
 		await runtime.applyShared({ loadedStates: ['initial'], values: {}, overrides: { 'img-1': { text: 'A' } } });
 		expect(runtime.snapshot.overrides).toEqual({ 'img-1': { text: 'A' } });
 
-		// the authority later resets/clears the override — the follower must revert, not keep the stale letter
 		handles[0].applyOverrides.mockClear();
 		await runtime.applyShared({ loadedStates: ['initial'], values: {}, overrides: {} });
 		expect(runtime.snapshot.overrides).toEqual({});

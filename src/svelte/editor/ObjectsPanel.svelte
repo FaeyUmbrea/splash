@@ -24,7 +24,7 @@
 		if (sprites.length) promptAndSavePreset({ type: 'spriteGroup', value: sprites } as PresetPayload, game.i18n.localize('splash.editor.objectsPanel.prefabDefaultName'));
 	}
 	function applyPrefab(payload: PresetPayload, summary: PresetSummary) {
-		// Behavior-backed prefabs (e.g. tumbler lock) run their config dialog + build on apply instead of stamping baked sprites.
+		// Behavior-backed prefabs run their config dialog and build instead of stamping baked sprites.
 		if (summary.behavior && getBehavior(summary.behavior)) {
 			void placeBehavior(summary.behavior);
 			return;
@@ -107,11 +107,9 @@
 		else model.placeInState(obj.id);
 	}
 
-	// --- groups in the tree --------------------------------------------------
-
 	const collapsed = $state<Record<string, boolean>>({});
 
-	/** The entered group stays expanded so its members are always reachable for editing. */
+	// The entered group is always expanded, regardless of its collapsed flag.
 	function isExpanded(node: EditorGroupNode): boolean {
 		return model.activeGroup === node.groupId || !collapsed[node.groupId];
 	}

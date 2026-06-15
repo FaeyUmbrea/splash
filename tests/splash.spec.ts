@@ -2,18 +2,16 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.ts';
 
 /**
- * Splash E2E. Each test restores the seeded baseline so runs don't poison one another. Renderer is forced
- * to `html` where a sprite must be clicked — DOM sprites are clickable, the WebGL canvas is not.
+ * Splash E2E. Each test restores the seeded baseline. Sprite clicks force the `html` renderer because the
+ * WebGL canvas is not clickable, only DOM sprites are.
  */
 
 test.describe.configure({ mode: 'serial' });
 
-/** Force this client to the given renderer (client-scoped, ephemeral to the test context). */
 async function useRenderer(page: Page, kind: 'html' | 'webgl'): Promise<void> {
 	await page.evaluate(k => (globalThis as any).game.settings.set('splash', 'renderer', k), kind);
 }
 
-/** Page uuid of a seeded splash, looked up by name. */
 async function uuidOf(page: Page, name: string): Promise<string> {
 	return page.evaluate((n) => {
 		const g = globalThis as any;
@@ -22,7 +20,6 @@ async function uuidOf(page: Page, name: string): Promise<string> {
 	}, name);
 }
 
-/** Reset the lock's synced runtime flag to a clean state and close any open handout (GM only). */
 async function resetLock(gmPage: Page, lockUuid: string): Promise<void> {
 	await gmPage.evaluate(async (uuid) => {
 		const g = globalThis as any;
@@ -58,7 +55,6 @@ test('a fullscreen splash renders and its button is interactive', async ({ pages
 	const closeBtn = overlay.getByText('Close', { exact: true });
 	await expect(closeBtn).toBeVisible();
 
-	// Clicking the splash's Close button tears the overlay down.
 	await closeBtn.click();
 	await expect(gmPage.locator('#splash-application')).toHaveCount(0);
 });
@@ -79,7 +75,7 @@ test('a synced lock edit on the GM updates a player who never touched it', async
 	try {
 		await openLockBoth(gmPage, playerPage, uuid);
 		await gmPage.locator('.splash-handout').getByText('Set', { exact: true }).click();
-		// The player only updates via the runtime mirror — asserts the visible text, not just the flag.
+		// Assert the visible text, not just the flag, to prove the player updated via the runtime mirror.
 		await expect(playerPage.locator('.splash-handout').getByText('Code: 1')).toBeVisible();
 	} finally {
 		await resetLock(gmPage, uuid);

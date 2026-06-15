@@ -12,7 +12,7 @@ interface DoorControlLike {
 	__splashBadge?: { destroy: () => void } | undefined;
 }
 
-/** GM-only: badge door controls whose wall is splash-bound. Rebuilt every draw(); nudged on flag edits. */
+/** GM-only: badge door controls whose wall is splash-bound. */
 export function registerDoorIndicator(): void {
 	const libWrapper = (globalThis as { libWrapper?: LibWrapper }).libWrapper;
 	if (!game.modules?.get('lib-wrapper')?.active || !libWrapper) return;
@@ -40,13 +40,13 @@ export function registerDoorIndicator(): void {
 		console.error('Splash | Failed to wrap DoorControl for the splash indicator:', error);
 	}
 
-	// A flag change alone may not force the control to redraw — nudge it so the badge updates at once.
+	// A flag change alone may not force the control to redraw.
 	Hooks.on('updateWall', (doc: { object?: { doorControl?: { draw: () => unknown } } }, changed: object) => {
 		if (foundry.utils.hasProperty(changed, `flags.${ID}`)) doc.object?.doorControl?.draw();
 	});
 }
 
-/** Clicking a locked, bound door launches its splash and still runs default behaviour (so the locked sound plays). */
+/** Clicking a locked, bound door launches its splash. Default behaviour still runs to keep the locked sound. */
 export function registerDoorWrap(): void {
 	const libWrapper = (globalThis as { libWrapper?: LibWrapper }).libWrapper;
 	if (!game.modules?.get('lib-wrapper')?.active || !libWrapper) {
@@ -58,7 +58,7 @@ export function registerDoorWrap(): void {
 			const doc = this.wall?.document;
 			const uuid = doc?.getFlag(ID, 'launchSplash') as string | undefined;
 			if (doc?.ds === CONST.WALL_DOOR_STATES.LOCKED && uuid) {
-				// Hand the door's uuid to the splash so a "solved" macro can unlock it (GMs trigger it too).
+				// Pass the door uuid so a "solved" macro can unlock it.
 				setPendingTrigger({ door: (this.wall as { document?: { uuid?: string } })?.document?.uuid });
 				void SplashAPI.getInstance().launch(uuid);
 			}

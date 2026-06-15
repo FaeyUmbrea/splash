@@ -31,8 +31,7 @@ export function setupAPI(api: SplashAPI) {
 	api.registerAction('close', 'Close Splash', () => {
 		Hooks.call('splash.close-splash');
 	});
-	// Value actions run inside each runtime instance; these registrations only let editors list them.
-	// Reaching this warning means the action was dispatched outside a splash.
+	// Real handlers live per-runtime; this stub only registers the action so editors can list it.
 	const valueActionWarning = () => console.warn('Splash | Value actions only work inside a running splash.');
 	api.registerAction('set-value', 'Set Value', valueActionWarning);
 	api.registerAction('increment-value', 'Increment Value', valueActionWarning);
@@ -119,7 +118,7 @@ async function instantiateButton(button: ButtonSpriteInitialized, state: State, 
 
 	const buttonConfig = foundry.utils.mergeObject(button, {
 		onTap: async () => {
-			// Routed through the owning runtime so actions stay instance-scoped.
+			// Routed through the owning runtime to stay instance-scoped.
 			await context.onAction(button.onClick);
 		},
 	});

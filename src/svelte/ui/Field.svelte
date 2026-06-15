@@ -10,7 +10,6 @@
 	}: {
 		label?: string;
 		hint?: string;
-		/** Span both columns inside a 2-column field grid. */
 		span2?: boolean;
 		children: Snippet;
 	} = $props();
@@ -47,7 +46,7 @@
 		opacity: 0.5;
 	}
 
-	// Shared control look, applied by the typed field components.
+	// Shared control look applied by the typed field components.
 	:global(.splash-field-input) {
 		height: 30px;
 		padding: 0 6px;

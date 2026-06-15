@@ -6,7 +6,7 @@
 		onChange,
 	}: {
 		origins: number[];
-		/** Stage width — origins are x-positions across it. */
+		/** Stage width. Origins are x-positions across it. */
 		width: number;
 		onChange: (origins: number[]) => void;
 	} = $props();

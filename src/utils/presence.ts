@@ -1,7 +1,7 @@
 import type { RuntimeSnapshot } from '../renderer/SplashRuntime.ts';
 import { ID } from './const.js';
 
-/** Players on local-mode splashes report their current state; the GM collects these and can spectate. */
+/** Players on local-mode splashes report state to the GM, who collects it to spectate. */
 
 interface PresenceEvent {
 	eventType: 'splashPresence';

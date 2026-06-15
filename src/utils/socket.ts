@@ -20,7 +20,6 @@ async function unlockWall(doorUuid?: string): Promise<void> {
 
 export function registerSocket(): void {
 	game.socket?.on(`module.${ID}`, handleEvent);
-	// A solved in-splash lock asks its door to open; the GM (here or via the socket below) does the write.
 	Hooks.on('splash.unlock-door', (doorUuid?: string) => {
 		if (game.user?.isGM) void unlockWall(doorUuid);
 		else broadcastUnlockDoor(doorUuid);
@@ -34,14 +33,12 @@ async function handleEvent({ eventType, targetUser, senderId, payload }: SplashS
 
 	if (eventType === 'showSplash') {
 		const page = await fromUuid(payload.uuid ?? '');
-		// Only honor senders that are actually allowed to trigger this splash.
 		if (!isSplashPage(page) || !canTriggerSplash(page, sender)) return;
 		await openSplashOverlay(page, { layer: payload.layer ?? 'full' });
 	} else if (eventType === 'closeSplash') {
 		if (!sender.isGM) return;
 		Hooks.call('splash.close-splash', { skipOutro: payload.skipOutro });
 	} else if (eventType === 'unlockDoor') {
-		// Any player who solved the lock may request it; only the GM actually writes the wall.
 		await unlockWall(payload.doorUuid);
 	}
 }
@@ -64,7 +61,7 @@ export function broadcastCloseSplash(targetUser?: string, skipOutro = false): vo
 	} satisfies SplashSocketEvent);
 }
 
-/** Ask the GM to open a door (a player solved its lock). */
+/** Ask the GM to open a door, since players can't write wall documents. */
 export function broadcastUnlockDoor(doorUuid?: string): void {
 	game.socket?.emit(`module.${ID}`, {
 		eventType: 'unlockDoor',

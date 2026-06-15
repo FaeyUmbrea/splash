@@ -34,7 +34,6 @@ class PixiRenderedSprite implements RenderedSprite {
 		this.#refresh();
 	}
 
-	/** Override-then-data: an inline macro's `text` override wins; otherwise interpolate the stored text. */
 	#refresh(): void {
 		if (this.sprite.type === 'text') {
 			const override = this.#overrides.text;
@@ -48,14 +47,12 @@ class PixiRenderedSprite implements RenderedSprite {
 	}
 }
 
-/** WebGL splash renderer: draws sprites on a PIXI stage, supports shader animations. */
 export class PixiRenderer implements SplashRenderer {
 	#app: PIXI.Application;
 	#api = SplashAPI.getInstance();
 	#resizeObserver: ResizeObserver | undefined;
 
 	constructor(view: HTMLCanvasElement) {
-		// Sized to the host container; the observer covers not-yet-laid-out mounts and handout-window resizes.
 		const container = view.parentElement;
 		this.#app = new PIXI.Application({
 			view,
@@ -96,7 +93,6 @@ export class PixiRenderer implements SplashRenderer {
 		if (animIn) {
 			await this.#api.buildAnimation(animIn, object, this.#app);
 		}
-		// Persistent effects live for the sprite's whole life; destroyed with it.
 		for (const effect of sprite.effects ?? []) {
 			if (!effect) continue;
 			const filter = await this.#api.buildEffect(this.#app, effect);
@@ -118,7 +114,7 @@ export class PixiRenderer implements SplashRenderer {
 
 	destroy(): void {
 		this.#resizeObserver?.disconnect();
-		// Destroy the whole Application to release the WebGL context (browsers cap ~16); removeView:false leaves the canvas for Svelte.
+		// Destroy the whole Application to release the WebGL context (browsers cap ~16). removeView:false leaves the canvas for Svelte.
 		this.#app.destroy(false, { children: true });
 	}
 }

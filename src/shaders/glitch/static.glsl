@@ -22,7 +22,7 @@ void main() {
     vec2 tornCoord = bandBasedDisplace(size, vTextureCoord, bands, numBands, horizontal);
     vec4 color = chromaticAberration(uSampler, tornCoord, size, 0.0, 0.0, 180.0, aberrationPx, 0.0, aberrationPx);
 
-    // Subtle constant energy tint. rgb only — alpha is coverage.
+    // Subtle constant energy tint. rgb only; alpha is coverage.
     color.rgb += tint * 0.15 * color.a;
 
     fragColor = color;

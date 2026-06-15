@@ -8,13 +8,12 @@ export interface BehaviorField {
 	default?: string | number;
 }
 
-/** A code-registered prefab that prompts for config, then generates a self-contained sprite group; the result keeps no dependency back to the behavior. */
+/** A prefab that prompts for config, then generates a self-contained sprite group with no link back to the behavior. */
 export interface PrefabBehavior {
 	key: string;
 	label: string;
 	icon: string;
 	fields: BehaviorField[];
-	/** Build the sprites to drop into the splash, placed in `stateKey`. */
 	build: (config: Record<string, unknown>, ctx: { stateKey: string }) => SpriteCreate[];
 }
 
@@ -32,7 +31,6 @@ export function getBehavior(key: string): PrefabBehavior | undefined {
 	return behaviors.get(key);
 }
 
-/** Register the first-party behaviors. Called once at init. */
 export async function registerBuiltinBehaviors(): Promise<void> {
 	const { tumblerLock } = await import('./tumblerLock.ts');
 	registerBehavior(tumblerLock);

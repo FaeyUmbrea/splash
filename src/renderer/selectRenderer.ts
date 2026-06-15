@@ -3,10 +3,6 @@ import { SETTING_RENDERER } from '../utils/settings.ts';
 
 export type RendererKind = 'webgl' | 'html';
 
-/**
- * Pick the splash renderer: the user's explicit client setting wins, otherwise
- * Foundry's canvas performance mode decides (LOW/MED machines get plain HTML).
- */
 export function selectRenderer(): RendererKind {
 	const choice = game.settings?.get(ID, SETTING_RENDERER);
 	if (choice === 'webgl' || choice === 'html') return choice;

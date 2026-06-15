@@ -18,7 +18,6 @@ export interface ActiveSplash {
 }
 
 export function registerSettings(): void {
-	// The Splash Manager is opened from a settings menu button (GM only).
 	game.settings?.registerMenu(ID, 'manager', {
 		name: 'splash.manager.menuName',
 		label: 'splash.manager.menuLabel',
@@ -42,8 +41,7 @@ export function registerSettings(): void {
 		default: 'auto',
 	});
 
-	// Hidden lifecycle setting: GM-written; every client opens/closes in onChange,
-	// and reloading clients restore from it so a splash survives world reboots.
+	// GM-written; every client opens/closes in onChange, so a splash survives world reboots.
 	game.settings?.register(ID, SETTING_ACTIVE_SPLASH, {
 		scope: 'world',
 		config: false,
@@ -55,11 +53,9 @@ export function registerSettings(): void {
 		},
 	});
 
-	// Synced-splash runtime state lives per-page in `flags.splash.runtime` (see utils/sync.ts), not here, so
-	// it stays scoped per splash and never balloons with the number of locks.
+	// Synced-splash runtime state lives per-page in `flags.splash.runtime` (see utils/sync.ts), not here.
 
-	// Data-model version. -1 means "never stamped"; the baseline stamp lifts it to current so future releases
-	// can distinguish a fresh install from one that must migrate forward.
+	// -1 means never stamped, which lets a fresh install be told apart from one that must migrate forward.
 	game.settings?.register(ID, SETTING_DATA_MODEL_VERSION, {
 		scope: 'world',
 		config: false,

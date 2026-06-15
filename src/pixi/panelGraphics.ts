@@ -5,7 +5,7 @@ interface PanelSettings {
 	radius?: number;
 }
 
-/** Parse any CSS color (#rgb, #rrggbb, named, rgb()) to a PIXI hex number; empty/invalid → 0. */
+/** CSS color to PIXI hex number; empty or invalid yields 0. */
 function toHex(color?: string): number {
 	if (!color) return 0;
 	try {
@@ -15,10 +15,7 @@ function toHex(color?: string): number {
 	}
 }
 
-/**
- * A flat fill/border/radius rectangle for the WebGL renderer — the asset-free analog of the HTML
- * `Panel` div. Redraws on resize rather than scaling, which would distort the border and corners.
- */
+/** Redraws on resize rather than scaling, which would distort the border and corners. */
 export default class PanelGraphics extends PIXI.Graphics {
 	#settings: PanelSettings;
 	#w = 100;

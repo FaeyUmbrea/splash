@@ -8,7 +8,6 @@ import { closeSplashOverlay, getSplashOverlay, openSplashOverlay } from './overl
 
 let peeking = false;
 
-/** React to the activeSplash world setting: open, switch, or close the local overlay. */
 export async function applyActiveSplash(value: ActiveSplash | null, { restore = false }: { restore?: boolean } = {}): Promise<void> {
 	peeking = false;
 	document.body.classList.remove('splash-peeking');
@@ -20,28 +19,26 @@ export async function applyActiveSplash(value: ActiveSplash | null, { restore = 
 	} else {
 		await closeSplashOverlay();
 	}
-	// Lets UI (e.g. the control surface) react to lifecycle changes.
 	Hooks.callAll('splash.active-changed', value);
 }
 
-/** GM: show a splash to the whole table (persists across reloads until killed). */
+/** Persists across reloads until killed. */
 export async function launchGlobalSplash(page: SplashPage, layer: SplashLayer): Promise<void> {
 	await game.settings?.set(ID, SETTING_ACTIVE_SPLASH, { uuid: page.uuid, layer } satisfies ActiveSplash);
 }
 
-/** GM: close the global splash for everyone. */
 export async function killGlobalSplash(): Promise<void> {
 	await game.settings?.set(ID, SETTING_ACTIVE_SPLASH, null);
 }
 
-/** GM emergency stop: tear down every splash on every client (including rogue local ones), not just the global. */
+/** Tears down every splash on every client, including local ones, not just the global. */
 export async function forceCloseAllSplashes(): Promise<void> {
 	broadcastCloseSplash(undefined, true);
 	Hooks.call('splash.close-splash', { skipOutro: true });
 	await killGlobalSplash();
 }
 
-/** GM: locally hide/show the splash to work behind it; nobody else is affected. */
+/** Hides/shows the splash on this client only. */
 export function togglePeek(): boolean {
 	const element = getSplashOverlay()?.element;
 	if (!element) {
@@ -50,7 +47,7 @@ export function togglePeek(): boolean {
 	}
 	peeking = !peeking;
 	element.style.visibility = peeking ? 'hidden' : 'visible';
-	// Peeking also needs the scene chrome back that hud mode hides.
+	// Restores the scene chrome that hud mode hides.
 	document.body.classList.toggle('splash-peeking', peeking);
 	Hooks.callAll('splash.peek-changed', peeking);
 	return peeking;
@@ -60,7 +57,7 @@ export function isPeeking(): boolean {
 	return peeking;
 }
 
-/** Restore a persisted splash when the world loads, before entry animations could leak the canvas. */
+/** Restores a persisted splash on load with animations skipped, so the canvas never shows through. */
 export function registerControllerHooks(): void {
 	Hooks.once('ready', () => {
 		const active = getActiveSplash();

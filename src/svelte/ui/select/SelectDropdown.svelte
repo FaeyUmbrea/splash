@@ -34,7 +34,7 @@
 		onBlur: () => void;
 	} = $props();
 
-	// Cumulative offset per group, so a group item's flat index matches the parent's highlightedIdx.
+	// Per-group offset aligning a group item's flat index with the parent's highlightedIdx.
 	const groupOffsets = $derived.by(() => {
 		const offsets: number[] = [];
 		let acc = 0;

@@ -19,7 +19,7 @@ export type DissolveFilterProps
 	= | FixedOriginsDissolveFilterProps
 		| RandomOriginDissolveFilterProps;
 
-/** Resolve an origins prop variant into flat x,y pairs (shared with dissolve-derived effects). */
+/** Resolves an origins prop variant into a flat array of x,y pairs. */
 export function originsFromProps(app: PIXI.Application, props: DissolveFilterProps): number[] {
 	const origins: number[] = [];
 	if ('randomOrigins' in props) {

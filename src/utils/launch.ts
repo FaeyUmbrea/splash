@@ -27,7 +27,7 @@ export function listTriggerableSplashPages(user = game.user): SplashPage[] {
 /**
  * Raise a trigger-bound splash to OBSERVER so players can read it; Foundry delivers a blank shell otherwise.
  * Both the page AND its parent journal need it. Levels only rise, never clobbering a higher hand-tuned one.
- * Gotcha: raising the journal exposes sibling pages that inherit its default ownership — keep
+ * Gotcha: raising the journal exposes sibling pages that inherit its default ownership, so keep
  * trigger-launched splashes in their own journal if siblings must stay hidden.
  */
 export async function grantTriggerVisibility(page: SplashPage): Promise<void> {

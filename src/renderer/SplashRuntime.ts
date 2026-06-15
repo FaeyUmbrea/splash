@@ -55,12 +55,11 @@ export class SplashRuntime {
 	#changingBlocked = false;
 	#suppressAnimIn = false;
 	#mirroring = false;
-	// Silences `#emitChanged` during teardown: broadcasting the close would persist `loadedStates: []` and blank the next synced open.
+	// Without this, teardown broadcasts `loadedStates: []` and blanks the next synced open.
 	#tearingDown = false;
 	#values: SplashValues = {};
 	#overrides: Record<string, SpriteOverrides> = {};
 	#trigger: Record<string, unknown>;
-	// Built lazily for the current loaded-state composition, invalidated on load/unload.
 	#treeCache: SpriteTree | null = null;
 
 	constructor(
@@ -89,7 +88,6 @@ export class SplashRuntime {
 		return { loadedStates: [...this.#loadedStates], values: { ...this.#values }, overrides };
 	}
 
-	/** Broadcast the current snapshot, unless we're mirroring a remote one or tearing the splash down. */
 	#emitChanged(): void {
 		if (!this.#mirroring && !this.#tearingDown) this.#onChanged(this.snapshot);
 	}
@@ -99,14 +97,14 @@ export class SplashRuntime {
 		const current = this.#overrides[spriteId] ?? {};
 		if (value === undefined || value === null) delete current[property];
 		else current[property] = value;
-		// Drop empty bags so a cleared override leaves no trace in the synced snapshot.
+		// Drop empty bags so a cleared override leaves no trace in the snapshot.
 		if (Object.keys(current).length === 0) delete this.#overrides[spriteId];
 		else this.#overrides[spriteId] = current;
 		this.#rendered.get(spriteId)?.applyOverrides({ ...(this.#overrides[spriteId] ?? {}) });
 		this.#emitChanged();
 	}
 
-	/** Mirror an authoritative shared snapshot. onEnter actions are suppressed — only the executing (GM) client runs side effects. */
+	/** Mirror an authoritative shared snapshot. onEnter actions are suppressed; only the executing (GM) client runs side effects. */
 	async applyShared(snapshot: RuntimeSnapshot): Promise<void> {
 		this.#mirroring = true;
 		try {
@@ -119,7 +117,7 @@ export class SplashRuntime {
 			for (const stateId of [...this.#loadedStates]) {
 				if (!snapshot.loadedStates.includes(stateId)) await this.unloadState(stateId);
 			}
-			// Reconcile overrides exactly (adopt present, clear absent); runs after states load so target sprites exist.
+			// Runs after states load so the target sprites exist.
 			const incomingAll = (snapshot.overrides ?? {}) as Record<string, Record<string, unknown>>;
 			for (const spriteId of Object.keys({ ...this.#overrides, ...incomingAll })) {
 				const incoming = incomingAll[spriteId] ?? {};
@@ -285,7 +283,7 @@ export class SplashRuntime {
 		if (!state) return 0;
 		const animation = this.#suppressAnimIn ? null : (state.animIn ?? child.animIn ?? this.#splash.animIn);
 		const sprite = await this.#renderer.addSprite(child, state, animation, {
-			// child.id is closed over so a script action knows which sprite fired it (its `scope`).
+			// child.id identifies the firing sprite to a script action (its `scope`).
 			onAction: action => this.handleAction(action, child.id),
 		});
 		if (!sprite) return 0;
@@ -293,7 +291,7 @@ export class SplashRuntime {
 		// A sprite added while an override already exists (e.g. a restoring/synced client) adopts it.
 		if (this.#overrides[child.id]) sprite.applyOverrides({ ...this.#overrides[child.id] });
 		this.#rendered.set(child.id, sprite);
-		this.#treeCache = null; // the rendered set changed
+		this.#treeCache = null;
 		return this.#renderer.animationDuration(animation);
 	}
 
@@ -336,7 +334,7 @@ export class SplashRuntime {
 				const animation = child.animOut ?? state.animOut ?? this.#splash.animOut;
 				if (animation && this.#renderer.animationDuration(animation) > 0) {
 					const timeout = this.#renderer.animationDuration(animation);
-					// Best-effort: a failed out-animation must still destroy this sprite and not abort the others.
+					// A failed out-animation must still destroy this sprite and not abort the others.
 					try {
 						await this.#renderer.animate(animation, rendered);
 					} catch (error) {

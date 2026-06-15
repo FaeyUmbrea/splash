@@ -7,7 +7,7 @@ function build(codeword: string) {
 
 describe('tumblerLock.build', () => {
 	it('generates one wheel per letter (6 sprites each) plus an unlock button', () => {
-		const sprites = build('OPEN'); // 4 letters
+		const sprites = build('OPEN');
 		expect(sprites).toHaveLength(4 * 6 + 1);
 		expect(sprites.filter(s => s.name === 'Unlock')).toHaveLength(1);
 	});
@@ -15,7 +15,7 @@ describe('tumblerLock.build', () => {
 	it('groups each wheel under its own groupId and leaves the unlock button ungrouped', () => {
 		const sprites = build('AB');
 		const groups = new Set(sprites.filter(s => s.groupId).map(s => s.groupId));
-		expect(groups.size).toBe(2); // two wheels
+		expect(groups.size).toBe(2);
 		const unlock = sprites.find(s => s.name === 'Unlock')!;
 		expect(unlock.groupId).toBeNull();
 	});
@@ -42,7 +42,6 @@ describe('tumblerLock.build', () => {
 		const unlock = sprites.find(s => s.name === 'Unlock')!;
 		expect(unlock.context.Keyword).toBe('OPEN');
 		expect(unlock.context.Wheels).toHaveLength(4);
-		// the wheel ids in context match the actual wheel groups, in order
 		const wheelGroupsInOrder = sprites.filter(s => s.name === 'Body').map(s => s.groupId);
 		expect(unlock.context.Wheels).toEqual(wheelGroupsInOrder);
 	});
@@ -51,8 +50,8 @@ describe('tumblerLock.build', () => {
 		expect(build('o p3n!')[0]).toBeTruthy();
 		const wheels = (w: string) => build(w).filter(s => s.name === 'Body').length;
 		expect(wheels('cat')).toBe(3);
-		expect(wheels('a1b2c3')).toBe(3); // digits stripped
-		expect(wheels('')).toBe(4); // default OPEN
+		expect(wheels('a1b2c3')).toBe(3);
+		expect(wheels('')).toBe(4);
 	});
 
 	it('places every sprite in the target state', () => {

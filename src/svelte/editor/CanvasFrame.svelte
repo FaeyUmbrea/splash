@@ -9,10 +9,9 @@
 
 	const { model }: { model: EditorModel } = $props();
 
-	const SNAP = 8; // stage-pixel snap threshold
-	const MAX_SNAP_SPEED = 1.6; // screen px/ms — drag faster than this and snapping stays off
+	const SNAP = 8; // stage pixels
+	const MAX_SNAP_SPEED = 1.6; // screen px/ms
 
-	// Pointer-velocity tracking, to suppress snapping during fast drags.
 	let lastPX = 0;
 	let lastPY = 0;
 	let lastPT = 0;
@@ -44,7 +43,6 @@
 		return { x: p.x ?? 0, y: p.y ?? 0, w: p.width ?? fb.width ?? 100, h: p.height ?? fb.height ?? 40 };
 	}
 
-	/** The union bounding box of the given in-state objects — what a group move snaps by. */
 	function boundingBox(ids: string[]) {
 		let minX = Infinity;
 		let minY = Infinity;
@@ -68,9 +66,8 @@
 
 	// --- snapping ------------------------------------------------------------
 
-	const RELEASE = 14; // sticky release threshold — wider than SNAP to stop snap/unsnap chatter
+	const RELEASE = 14; // wider than SNAP so a locked snap doesn't chatter on/off
 
-	/** Snap lines for an axis: stage edges/center plus every OTHER in-state object's edges/center. */
 	function snapLines(axis: 'x' | 'y'): number[] {
 		const lines = axis === 'x' ? [0, stageW / 2, stageW] : [0, stageH / 2, stageH];
 		for (const o of model.objectsInState) {
@@ -82,10 +79,7 @@
 		return lines;
 	}
 
-	/**
-	 * Snap one of an object's reference points (left/center/right) to a line. Locks onto a (point, line) pair
-	 * and holds it until it drifts past RELEASE, so it never flips which point aligns mid-drag (stutter).
-	 */
+	/** Holds a locked (point, line) pair until it drifts past RELEASE, so it never flips which point aligns mid-drag. */
 	function snap1D(refs: number[], lines: number[], current: Snap | null): { snap: Snap | null; offset: number } {
 		if (current && Math.abs(current.line - refs[current.pi]) <= RELEASE) {
 			return { snap: current, offset: current.line - refs[current.pi] };
@@ -193,8 +187,7 @@
 		}
 		let snapX: Snap | null = null;
 		let snapY: Snap | null = null;
-		// Snap the WHOLE selection's bounding box, not just the grabbed object — so a group aligns by its
-		// outer edges/centre. For a single object the box equals its own rect, so behaviour is unchanged.
+		// Snap the whole selection's bounding box, so a group aligns by its outer edges. For a single object the box equals its own rect.
 		const box = boundingBox(gesture.ids) ?? r;
 		if (snapping && axis !== 'y') {
 			const sx = snap1D([box.x + dx, box.x + dx + box.w / 2, box.x + dx + box.w], snapLines('x'), gesture.snapX);
@@ -228,19 +221,19 @@
 
 	// --- lasso marquee -------------------------------------------------------
 
-	/** Double-click a grouped object to "enter" its group and edit members individually. */
+	/** Double-click a grouped object to enter its group and edit members individually. */
 	function onSpriteDblClick(obj: EditorObject) {
 		const groupId = (obj.raw as { groupId?: string | null }).groupId ?? null;
 		if (!groupId) return;
 		model.enterGroup(groupId);
-		model.select(obj.id); // now isolated → selects just this member
+		model.select(obj.id);
 	}
 
 	function onRegionPointerDown(event: PointerEvent) {
 		if (event.button !== 0) return;
 		if (!event.shiftKey) {
 			model.clearSelection();
-			model.exitGroup(); // clicking empty space pops back to the top level
+			model.exitGroup();
 		}
 		const p = toStage(event.clientX, event.clientY);
 		marquee = { x0: p.x, y0: p.y, x1: p.x, y1: p.y };
@@ -328,10 +321,7 @@
 		return o ? rectOf(o) : null;
 	});
 
-	/**
-	 * When a whole group is selected it reads as one object: draw a single bounding box instead of a box per
-	 * member (and the members below drop their individual outlines). Null for a single or loose selection.
-	 */
+	/** When a whole group is selected, draw one bounding box instead of a box per member. Null for a single or loose selection. */
 	const groupSelectionBox = $derived.by(() => {
 		const ids = model.selectedIds;
 		if (ids.length < 2) return null;

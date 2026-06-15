@@ -6,11 +6,11 @@ import { materializeSprite } from '../../utils/presets.ts';
 import { DocumentStore } from './documentStore.svelte.ts';
 import { createSprite } from './spriteFactory.ts';
 
-/** An object as the editor (and a human) thinks of it — not the raw sprite schema. */
+/** An object as the editor (and a human) thinks of it, not the raw sprite schema. */
 export interface EditorObject {
 	id: string;
 	type: string;
-	/** Display name — a sensible default ("Text 1") when the sprite has no name; never the raw id. */
+	/** Display name; a sensible default ("Text 1") when the sprite has no name, never the raw id. */
 	name: string;
 	raw: SpriteCreate;
 	/** Whether this object is placed in the active state. */
@@ -123,7 +123,7 @@ export class EditorModel {
 
 	readonly objectsInState = $derived(this.objects.filter(o => o.inState));
 	readonly selectedObjects = $derived(this.objects.filter(o => this.selectedIds.includes(o.id)));
-	/** The single selected object for the inspector — null when zero or multiple are selected. */
+	/** The single selected object for the inspector, null when zero or multiple are selected. */
 	readonly selected = $derived(this.selectedIds.length === 1 ? (this.objects.find(o => o.id === this.selectedIds[0]) ?? null) : null);
 	/** The last-clicked selection, used to drive the inspector tab focus. */
 	readonly selectedId = $derived(this.selectedIds.at(-1) ?? null);
@@ -316,7 +316,7 @@ export class EditorModel {
 
 	// --- object operations ---------------------------------------------------
 
-	/** Select one object — group-aware: at top level a grouped object selects its whole group. */
+	/** Select one object. Group-aware: at top level a grouped object selects its whole group. */
 	select(id: string | null, additive = false) {
 		if (id === null) {
 			this.selectedIds = [];
@@ -333,7 +333,7 @@ export class EditorModel {
 		}
 	}
 
-	/** Replace (or extend) the selection with a set of ids — used by the lasso. Group-aware like select(). */
+	/** Replace (or extend) the selection with a set of ids, used by the lasso. Group-aware like select(). */
 	selectMany(ids: string[], additive = false) {
 		const expanded = ids.flatMap(id => this.#selectionFor(id));
 		const unique = expanded.filter((id, i) => expanded.indexOf(id) === i);
@@ -439,7 +439,7 @@ export class EditorModel {
 			if (!Array.isArray(copy.effects)) copy.effects = [];
 			const gid = copy.groupId as string | null | undefined;
 			copy.groupId = gid ? (remap[gid] ??= nanoid()) : wrapper;
-			// Re-key onto the active state: the prefab's own state id means nothing here, so it would land under a key this splash never reads.
+			// Re-key onto the active state; the prefab's own state id means nothing in this splash.
 			const states = (copy.states ?? {}) as Record<string, unknown>;
 			const placement = Object.values(states)[0];
 			copy.states = placement ? { [this.activeState]: placement } : {};

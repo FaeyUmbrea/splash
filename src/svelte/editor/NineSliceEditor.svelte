@@ -28,7 +28,7 @@
 	const r = $derived(value.rightWidth ?? 0);
 	const b = $derived(value.bottomHeight ?? 0);
 
-	// Fit the source image into the preview box; the cut lines are drawn in this scaled space.
+	// Cut lines are drawn in this scaled preview space.
 	const MAX = 360;
 	const scale = $derived(natW && natH ? Math.min(MAX / natW, MAX / natH, 1) : 1);
 	const dispW = $derived(natW * scale);

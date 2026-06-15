@@ -1,7 +1,7 @@
 import type { PresetPayload } from '../presets.ts';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-// The pure transforms lean on foundry.utils.deepClone; stub it for the Node test env.
+// Stub foundry.utils.deepClone for the Node test env.
 beforeAll(() => {
 	(globalThis as Record<string, unknown>).foundry ??= {
 		utils: { deepClone: (v: unknown) => structuredClone(v) },
@@ -46,13 +46,11 @@ describe('preset pure transforms', () => {
 	it('buttonSpriteToPreset keeps style, drops base/placement, strips the action', () => {
 		const preset = buttonSpriteToPreset(button() as never) as Record<string, unknown>;
 		expect(preset.type).toBe('button');
-		// style kept
 		expect((preset.label as { text: string }).text).toBe('Open');
 		expect((preset.image as { url: string }).url).toBe('door.png');
 		expect((preset.hoverImage as { url: string }).url).toBe('hover.png');
 		expect(preset.clickImage).toBeNull();
 		expect(preset.tint).toBe('#abcdef');
-		// action stripped to close, base/placement gone
 		expect(preset.onClick).toEqual({ type: 'close' });
 		expect(preset.id).toBeUndefined();
 		expect(preset.states).toBeUndefined();
@@ -93,22 +91,19 @@ describe('preset pure transforms', () => {
 		expect(presetThumb({ type: 'button', image: { url: 'b.png' } } as unknown as PresetPayload)).toBe('b.png');
 		expect(presetThumb({ type: 'sprite', value: { type: 'image', img: 'sp.png' } } as unknown as PresetPayload)).toBe('sp.png');
 		expect(presetThumb({ type: 'spriteGroup', value: [{ type: 'text' }, { type: 'button', image: { url: 'g.png' } }] } as unknown as PresetPayload)).toBe('g.png');
-		// no image in the group → a kind glyph, not empty
 		expect(presetThumb({ type: 'spriteGroup', value: [{ type: 'text' }] } as unknown as PresetPayload)).toContain('icons/svg/');
 		expect(presetThumb({ type: 'animation', value: { type: 'glitch' } } as unknown as PresetPayload)).toContain('icons/svg/');
 	});
 
 	it('normalizePresetPayload strips a single sprite to style but keeps a group prefab\'s layout', () => {
-		// a single sprite preset is content/style → placement stripped, id regenerated
 		const sprite = normalizePresetPayload({ type: 'sprite', value: { type: 'image', id: 'a', img: 'x.png', states: { initial: {} } } as never });
 		expect((sprite as { value: Record<string, unknown> }).value.states).toEqual({});
 		expect((sprite as { value: Record<string, unknown> }).value.id).not.toBe('a');
 
-		// a group prefab is an assembled thing → keep placement (arrangement); ids/groups are remapped on apply
 		const group = normalizePresetPayload({ type: 'spriteGroup', value: [{ type: 'image', id: 'a', img: 'x.png', states: { initial: { x: 5 } } } as never] });
 		expect((group as { value: Record<string, unknown>[] }).value[0].states).toEqual({ initial: { x: 5 } });
 
 		const anim = { type: 'animation', value: { type: 'dissolve', duration: 1, delay: 0, props: {} } } as unknown as PresetPayload;
-		expect(normalizePresetPayload(anim)).toBe(anim); // passthrough (same reference)
+		expect(normalizePresetPayload(anim)).toBe(anim);
 	});
 });

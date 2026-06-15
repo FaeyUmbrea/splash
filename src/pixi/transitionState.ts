@@ -12,14 +12,14 @@ export function transitionState(child: PIXI.DisplayObject, state: State) {
 	} else if (child instanceof PanelGraphics) {
 		child.resize(state.width ?? 200, state.height ?? 200);
 	} else if (child instanceof PIXI.Text) {
-		// Left natural: text auto-sizes to its glyphs and the HTML renderer sizes the wrapper, not the glyph.
+		// Left natural: text auto-sizes to its glyphs.
 	} else if (child instanceof PIXI.Container) {
 		child.width = state.width ?? child.width;
 		child.height = state.height ?? child.height;
 	}
 	child.position.set(state.x ?? undefined, state.y ?? undefined);
 	child.zIndex = state.zIndex ?? 0;
-	// Skew is stored in degrees (CSS-friendly); PIXI expects radians.
+	// Skew is stored in degrees, PIXI expects radians.
 	const deg2rad = Math.PI / 180;
 	child.skew.set((state.skewX ?? 0) * deg2rad, (state.skewY ?? 0) * deg2rad);
 }

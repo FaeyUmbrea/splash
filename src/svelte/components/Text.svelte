@@ -7,7 +7,6 @@
 	export let values: SplashValues = {};
 	export let overrides: Record<string, unknown> = {};
 
-	// Override-then-data: an inline macro's `text` override wins; otherwise interpolate the stored text.
 	$: display = overrides.text != null ? String(overrides.text) : interpolate(sprite.text ?? '', values);
 </script>
 

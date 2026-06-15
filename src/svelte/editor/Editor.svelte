@@ -17,7 +17,6 @@
 	const model = new EditorModel(page);
 	onDestroy(() => model.destroy());
 
-	// Keep the active state valid, and clear a selection pointing at a deleted object.
 	$effect(() => {
 		if (!model.data.states?.[model.activeState]) {
 			model.activeState = Object.keys(model.data.states ?? {})[0] ?? 'initial';
@@ -29,7 +28,6 @@
 	});
 
 	async function preview() {
-		// Preview replaces whatever overlay is on screen — drop it instantly rather than playing its outro.
 		await closeSplashOverlay({ skipOutro: true });
 		const splash = new SplashModel(foundry.utils.deepClone(model.data));
 		new SvelteRenderer(
@@ -90,7 +88,7 @@
 </div>
 
 <style lang='scss'>
-	// No z-index hack: the editor is a normal Foundry window, so pop-outs (file pickers, dialogs) stack above it.
+	// No z-index hack: a normal Foundry window lets pop-outs like file pickers stack above it.
 	:global(.splash-editor-content) {
 		padding: 0 !important;
 		overflow: hidden;
@@ -105,7 +103,7 @@
 		height: 100%;
 		display: flex;
 		flex-direction: column;
-		// Opaque so the scene behind never bleeds through and renders the UI illegible.
+		// Opaque so the scene behind never bleeds through.
 		background: #1b1b1e;
 		color: #e6e6e6;
 

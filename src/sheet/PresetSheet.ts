@@ -17,11 +17,11 @@ const SPRITE_GLYPH: Record<string, string> = {
 	button: 'fa-solid fa-hand-pointer',
 };
 
-/** CSS border-image declaration for a nine-slice image (HTML-only frame preview; no canvas). */
+/** CSS border-image declaration for a nine-slice image, rendered in HTML with no canvas. */
 function borderImageCss(img: ButtonImageCreate | undefined | null): string | null {
 	const url = (img as { url?: string } | null)?.url;
 	if (!url) return null;
-	const safe = url.replace(/["\\]/g, ''); // keep the url() declaration intact
+	const safe = url.replace(/["\\]/g, '');
 	const i = img as Record<string, number>;
 	const l = i.leftWidth ?? 0;
 	const t = i.topHeight ?? 0;
@@ -39,15 +39,15 @@ interface PresetView {
 	kindLabel: string;
 	icon: string;
 	rows: { label: string; value: string }[];
-	demo: boolean; // a nine-slice frame
+	demo: boolean; // nine-slice frame preview
 	demoLabel: string;
-	text: string | null; // a text-sprite preview
-	image: string | null; // a plain image preview
-	swatch: boolean; // a colour swatch (animation tint)
+	text: string | null;
+	image: string | null;
+	swatch: boolean; // animation tint swatch
 	members: { name: string; glyph: string; image: string | null }[];
 }
 
-/** Preview sheet for `splash.preset` pages: an HTML/CSS summary (never a canvas). Presets are authored from the editor, so edit mode only carries the header (rename) + a note. */
+/** Preview sheet for `splash.preset` pages. Edit mode carries only the header and a note, since presets are authored from the editor. */
 export class PresetSheet extends HandlebarsSheet {
 	static VIEW_PARTS = {
 		content: { template: 'modules/splash/templates/preset-view.hbs', root: true },
@@ -113,7 +113,6 @@ export class PresetSheet extends HandlebarsSheet {
 		return view;
 	}
 
-	/** Describe a single sprite into the view (shared by the `sprite` kind). */
 	#describeSpriteInto(view: PresetView, sprite: SpriteCreate): void {
 		const s = sprite as Record<string, unknown>;
 		view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowSprite'), value: KIND_META[String(s.type)] ? game.i18n.localize(KIND_META[String(s.type)].label) : String(s.type) });
@@ -133,13 +132,12 @@ export class PresetSheet extends HandlebarsSheet {
 		return context;
 	}
 
-	/** Apply the dynamic CSS that can't live safely in an HTML attribute (border-image, fonts, colours). */
+	/** Applies dynamic CSS (border-image, fonts, colours) that can't live safely in an HTML attribute. */
 	async _onRender(context, options) {
 		await super._onRender(context, options);
 		const payload = this.#payload();
 		if (!payload) return;
 
-		// Nine-slice frame demo (nineslice / button / sprite-button).
 		const demo = this.element.querySelector<HTMLElement>('[data-preset-demo]');
 		if (demo) {
 			const img = payload.type === 'nineslice'
@@ -151,12 +149,10 @@ export class PresetSheet extends HandlebarsSheet {
 						: null;
 			const css = borderImageCss(img);
 			if (css) demo.style.cssText += css;
-			// Colour the demo label with the button's label fill, if any.
 			const fill = (payload.type === 'button' ? (payload as Record<string, unknown>).label : payload.type === 'sprite' ? (payload.value as Record<string, unknown>).label : null) as { fill?: string } | null;
 			if (fill?.fill) demo.style.color = fill.fill;
 		}
 
-		// Text-sprite preview styled with its own font/size/colour.
 		const textEl = this.element.querySelector<HTMLElement>('[data-preset-text]');
 		if (textEl && payload.type === 'sprite' && (payload.value as Record<string, unknown>).type === 'text') {
 			const t = payload.value as Record<string, unknown>;
@@ -165,7 +161,6 @@ export class PresetSheet extends HandlebarsSheet {
 			textEl.style.color = String(t.fillColor ?? '#fff');
 		}
 
-		// Animation tint swatch.
 		const swatch = this.element.querySelector<HTMLElement>('[data-preset-swatch]');
 		if (swatch && payload.type === 'animation') {
 			const tint = ((payload.value as Record<string, unknown>).props as Record<string, unknown>)?.tint;

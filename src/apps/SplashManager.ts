@@ -1,7 +1,6 @@
 import { SvelteApplicationMixin } from '../mixins/SvelteApplicationMixin.svelte.ts';
 import Manager from '../svelte/manager/Manager.svelte';
 
-/** The central management UI: browse/create/launch every splash across all journals. Opened from settings. */
 export default class SplashManager extends SvelteApplicationMixin(foundry.applications.api.ApplicationV2) {
 	protected override root = Manager;
 
@@ -26,7 +25,6 @@ export default class SplashManager extends SvelteApplicationMixin(foundry.applic
 
 let manager: SplashManager | undefined;
 
-/** Open (or focus) the singleton manager window. */
 export function openSplashManager(): void {
 	manager ??= new SplashManager();
 	void manager.render(true);

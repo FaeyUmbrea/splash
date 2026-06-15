@@ -4,7 +4,7 @@
 
 	export let sprite: ButtonSpriteInitialized;
 	export let context: SpriteContext = { onAction: () => {} };
-	// Accepted (unused) so BaseSprite passes the same prop set to every sprite component.
+	// Unused, but accepted so BaseSprite can pass the same prop set to every sprite component.
 	export const overrides: Record<string, unknown> = {};
 
 	let hover = false;
@@ -14,7 +14,7 @@
 	$: label = (active ? sprite.clickLabel : hover ? sprite.hoverLabel : undefined) ?? sprite.label;
 </script>
 
-<!-- border-image is the DOM analog of a PIXI NineSlicePlane: slice values carve the same corners/edges/center. -->
+<!-- border-image is the DOM analog of a PIXI NineSlicePlane. -->
 <button
 	type='button'
 	style:border-image-source={image.url ? `url(${image.url})` : undefined}

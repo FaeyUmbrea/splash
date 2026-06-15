@@ -15,7 +15,7 @@ function applyLayerClasses(layer: SplashLayer | null): void {
 	document.body.classList.toggle('splash-hud-covered', layer === 'hud');
 }
 
-/** The fullscreen splash-mode application; cleans up its layer classes however it gets closed. */
+/** The fullscreen splash-mode application. */
 class SplashOverlayApplication extends SvelteRenderer {
 	protected override _onClose(options: foundry.applications.api.ApplicationV2.ClosingOptions): void {
 		super._onClose(options);
@@ -25,7 +25,7 @@ class SplashOverlayApplication extends SvelteRenderer {
 
 /** Open the splash-mode overlay for a page, replacing any active one. */
 export async function openSplashOverlay(page: SplashPage, { layer = 'full', skipAnimations = false }: SplashOptions = {}): Promise<void> {
-	// Switching splashes: drop the outgoing one instantly so its outro doesn't delay the incoming splash.
+	// skipOutro: the outgoing outro would otherwise delay the incoming splash.
 	await closeSplashOverlay({ skipOutro: true });
 	applyLayerClasses(layer);
 	new SplashOverlayApplication(

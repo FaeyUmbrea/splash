@@ -28,7 +28,7 @@
 	}
 </script>
 
-<!-- role is 'button' exactly when tabindex is set; can't be a real <button> as the row contains action buttons. -->
+<!-- Can't be a real <button>: the row contains action buttons. -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
 	class='splash-list-row'

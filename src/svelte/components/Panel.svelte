@@ -2,7 +2,7 @@
 	import type { PanelSpriteInitialized } from '../../datamodel/SplashModel.ts';
 
 	export let sprite: PanelSpriteInitialized;
-	// Accepted (unused) so BaseSprite passes the same prop set to every sprite component.
+	// Unused, but every sprite component accepts the same prop set from BaseSprite.
 	export const overrides: Record<string, unknown> = {};
 </script>
 

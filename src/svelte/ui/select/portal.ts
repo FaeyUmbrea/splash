@@ -1,4 +1,4 @@
-/** Move a node to a target (default document.body) so portalled UI escapes overflow/stacking contexts. */
+/** Moves a node into a target so portalled UI escapes overflow and stacking contexts. */
 export function portal(node: HTMLElement, target: HTMLElement = document.body) {
 	target.appendChild(node);
 	return {

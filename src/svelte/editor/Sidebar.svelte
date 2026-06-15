@@ -16,7 +16,7 @@
 		{ id: 'splash', label: game.i18n.localize('splash.editor.sidebar.tabSplash'), icon: 'fa-solid fa-image' },
 	];
 
-	// Selecting an object jumps to the Object tab (but manual tab switches stick).
+	// Selecting an object jumps to the Object tab.
 	$effect(() => {
 		if (model.selectedId) tab = 'object';
 	});

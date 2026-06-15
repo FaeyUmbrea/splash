@@ -34,20 +34,19 @@
 	let menu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
 
 	const api = SplashAPI.getInstance();
-	// Bumped on wall/region changes so the trigger list below re-derives (listBindings reads game data).
 	let bindingRev = $state(0);
 
-	/** Uuids a trigger (door/region) fires in the CURRENT scene — surfaced in Pinned even if not pinned. */
+	/** Splash uuids a trigger fires in the current scene; surfaced in Pinned even if not pinned. */
 	const triggeredUuids = $derived.by<string[]>(() => {
 		void bindingRev;
 		if (!sceneId) return [];
 		return api.registeredTriggers.flatMap(t => t.listBindings()).filter(b => b.sceneId === sceneId).map(b => b.splashUuid);
 	});
 
-	// Scene control only imposes FULLSCREEN splashes on the table — handouts are excluded from the toggle list.
+	// Handouts are excluded; scene control only imposes fullscreen splashes on the table.
 	const fullscreen = $derived(pages.filter(p => p.system.layer !== 'handout'));
 	const pinnedByFlag = $derived(sceneId ? fullscreen.filter(p => Array.from(p.system.scenePins ?? []).includes(sceneId!)) : []);
-	// Pinned tab = explicitly pinned + anything wired to a trigger in this scene (any layer), deduped.
+	// Pinned = explicitly pinned plus anything trigger-wired in this scene, deduped.
 	const pinned = $derived.by<SplashPage[]>(() => {
 		const out = [...pinnedByFlag];
 		const seen = pinnedByFlag.map(p => p.uuid);

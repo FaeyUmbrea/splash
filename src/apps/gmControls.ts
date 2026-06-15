@@ -3,7 +3,7 @@ import { SvelteRenderer } from './SvelteRenderer.ts';
 
 const GM_CONTROLS_ID = 'splash-gm-controls';
 
-/** Click-through host (pointer-events: none) above the overlay; only the active-splash chip is interactive. */
+/** Host has pointer-events: none; only the active-splash chip is interactive. */
 export function registerGmControls(): void {
 	Hooks.once('ready', () => {
 		if (!game.user?.isGM) return;

@@ -36,7 +36,6 @@
 
 	const baseGroups = $derived(normalizeGroups(options));
 
-	// Filter visible groups by current search text.
 	const filteredGroups = $derived.by(() => {
 		const q = searchText.trim().toLowerCase();
 		if (!q) return baseGroups;
@@ -103,7 +102,7 @@
 			if (idx >= 0) arr.splice(idx, 1);
 			else arr.push(item.value);
 			value = arr;
-			// Keep dropdown open in multi mode; reset highlight to top of filtered list.
+			// Multi mode keeps the dropdown open.
 			searchText = '';
 			highlightedIdx = 0;
 		} else {

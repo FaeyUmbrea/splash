@@ -11,7 +11,6 @@
 		tabs: Tab[];
 		value: string;
 		onChange?: (id: string) => void;
-		/** Right-click on a tab (for a context menu). */
 		onContext?: (id: string, event: MouseEvent) => void;
 	} = $props();
 

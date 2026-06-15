@@ -3,8 +3,7 @@ import { SvelteApplicationMixin } from '../mixins/SvelteApplicationMixin.svelte.
 import Editor from '../svelte/editor/Editor.svelte';
 
 /**
- * A normal z-managed Foundry window, not a frameless overlay, so Foundry stacks pop-outs
- * (file pickers, dialogs) above it naturally.
+ * A z-managed window, not a frameless overlay, so Foundry stacks pop-outs (file pickers, dialogs) above it.
  */
 export default class SplashEditorApplication extends SvelteApplicationMixin(foundry.applications.api.ApplicationV2) {
 	protected override root = Editor;
@@ -39,12 +38,10 @@ export default class SplashEditorApplication extends SvelteApplicationMixin(foun
 	protected override _onFirstRender(context: object, options: object) {
 		// @ts-expect-error base signature is loose in fvtt-types
 		super._onFirstRender?.(context, options);
-		// Open large but not edge-to-edge — 100px margin each side reads as a window, not fullscreen.
 		this.setPosition({ left: 100, top: 0, width: globalThis.innerWidth - 200, height: globalThis.innerHeight });
 	}
 }
 
-/** Open the editor window for a splash. */
 export function openSplashEditorApp(page: SplashPage): void {
 	new SplashEditorApplication(page, { id: 'splash-editor' }).render(true);
 }

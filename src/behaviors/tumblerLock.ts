@@ -3,18 +3,15 @@ import type { PrefabBehavior } from './index.ts';
 import { nanoid } from 'nanoid';
 
 /**
- * Given a code word, generates N letter wheels (grouped panel + Top/Middle/Bottom text + Up/Down arrows)
- * plus an Unlock button. Interactivity is two shared inline macros parameterized by per-button context, so
- * the output is a plain portable splash with no reference back to this behavior.
+ * The output is a plain portable splash; interactivity rides in two inline macros parameterized by
+ * per-button context, so nothing references this behavior at runtime.
  */
 
-// Per-wheel rotate: read this wheel's Middle, write prev/current/next. context.Direction is +1 (up) / -1 (down).
 const ROTATE
 	= `const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;`
 		+ `const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;`
 		+ `w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];`;
 
-// Unlock: assemble the dialed word from every wheel's Middle (in order) and compare to the keyword.
 const UNLOCK
 	= `const root=scope.parent;`
 		+ `const word=context.Wheels.map(id=>String(root.child.get(id)?.child.get('Middle').text||'').toUpperCase()).join('');`
@@ -29,8 +26,7 @@ const Y0 = 200;
 
 export const tumblerLock: PrefabBehavior = {
 	key: 'tumbler-lock',
-	// Getters, not eager calls: the literal is evaluated at import, before game.i18n exists (and in Node when
-	// buildPresets bundles this file). `.label` is only read at dialog time, when i18n is ready.
+	// Getters, not eager calls: this is imported before game.i18n exists, and in Node when buildPresets bundles it.
 	get label() { return game.i18n.localize('splash.behavior.tumblerLock.label'); },
 	icon: 'fa-solid fa-lock',
 	fields: [{ key: 'codeword', get label() { return game.i18n.localize('splash.behavior.tumblerLock.codeword'); }, type: 'text', default: 'OPEN' }],
@@ -65,7 +61,7 @@ export const tumblerLock: PrefabBehavior = {
 		});
 
 		const fullWidth = word.length * (WHEEL_W + GAP) - GAP;
-		// Ungrouped → its `scope.parent` is the tree root, so it reaches every wheel by id.
+		// Ungrouped, so its `scope.parent` is the tree root and it reaches every wheel by id.
 		sprites.push(button(null, 'Unlock', 'UNLOCK', UNLOCK, { Keyword: word, Wheels: wheelIds }, X0, Y0 + WHEEL_H + 16, fullWidth, 44));
 
 		return sprites;

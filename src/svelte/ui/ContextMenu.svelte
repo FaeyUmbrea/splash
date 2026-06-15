@@ -17,10 +17,9 @@
 	} = $props();
 
 	let menuEl = $state<HTMLElement | null>(null);
-	// Hidden until measured, so the clamp runs before the first visible paint.
+	// Starts hidden so the clamp can run before the first visible paint.
 	let style = $state('visibility:hidden;top:0;left:0;');
 
-	// Clamp into the viewport once measured.
 	$effect(() => {
 		if (!menuEl) return;
 		const r = menuEl.getBoundingClientRect();
@@ -49,7 +48,6 @@
 
 <svelte:window onkeydown={onWindowKeyDown} onresize={onClose} onscroll={onClose} />
 
-<!-- Backdrop: any outside click dismisses. -->
 <div class='splash-context-backdrop' use:portal role='presentation' onclick={onClose} oncontextmenu={onBackdropContext}></div>
 
 <div class='splash-context-menu' bind:this={menuEl} use:portal {style} role='menu'>

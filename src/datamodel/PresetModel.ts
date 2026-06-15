@@ -6,16 +6,9 @@ import {
 	SpriteFieldCreator,
 } from './SplashModel.ts';
 
-/**
- * A reusable styled artifact (`splash.preset` JournalEntryPage subtype) reusing SplashModel's field
- * factories so a preset validates identically to live splash data. `payload` is a discriminated union
- * keyed by `payload.type`, which IS the preset kind, so no separate `kind` field exists.
- */
-
 /** Preset kinds, equal to `payload.type`. */
 export type PresetKind = 'nineslice' | 'button' | 'animation' | 'sprite' | 'spriteGroup';
 
-/** A button's style + label + image set + onClick only, with the runtime/placement base dropped. */
 function presetButtonRecord() {
 	const fields = foundry.data.fields;
 	return {
@@ -37,14 +30,11 @@ function PresetModelSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
 		notes: new fields.StringField({ required: false }),
-		// Registered PrefabBehavior key: applying re-runs the behavior's dialog + build instead of stamping the
-		// payload (which is then a preview). Null for plain style/content presets.
+		// A PrefabBehavior key; applying re-runs that behavior's dialog and build rather than stamping the payload.
 		behavior: new fields.StringField({ required: false, nullable: true, initial: null }),
 		payload: new fields.TypedSchemaField({
-			// Multi-field records get a discriminator `type` + the reused factory fields.
 			nineslice: { type: new fields.StringField({ required: true, choices: ['nineslice'] }), ...ButtonImageSchemaCreator() },
 			button: presetButtonRecord(),
-			// Single-field payloads ride under `value` next to the discriminator.
 			animation: { type: new fields.StringField({ required: true, choices: ['animation'] }), value: AnimationFieldCreator() },
 			sprite: { type: new fields.StringField({ required: true, choices: ['sprite'] }), value: SpriteFieldCreator() },
 			spriteGroup: { type: new fields.StringField({ required: true, choices: ['spriteGroup'] }), value: new fields.ArrayField(SpriteFieldCreator(), { required: true, initial: [] }) },

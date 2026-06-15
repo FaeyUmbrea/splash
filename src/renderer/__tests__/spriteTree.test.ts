@@ -49,7 +49,6 @@ describe('buildSpriteTree', () => {
 			sprite({ id: 'u2', name: 'Up', type: 'button', groupId: 'wheel-2' }),
 			sprite({ id: 'm2', name: 'Middle', groupId: 'wheel-2' }),
 		]);
-		// the wheel-1 button resolves wheel-1's Middle, not wheel-2's
 		expect(byId.get('u1')!.parent!.child.get('Middle')!.id).toBe('m1');
 		expect(byId.get('u2')!.parent!.child.get('Middle')!.id).toBe('m2');
 	});

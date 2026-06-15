@@ -5,7 +5,6 @@ import { openSplashEditorApp } from '../apps/SplashEditorApplication.ts';
 import { openSplashTriggersApp } from '../apps/SplashTriggersApplication.ts';
 import { canTriggerSplash, canViewSplash } from '../utils/launch.ts';
 
-/** One quick-access action descriptor for the page-sheet bar. */
 export interface SplashActionDef {
 	action: string;
 	icon: string;
@@ -14,7 +13,6 @@ export interface SplashActionDef {
 	disabled: boolean;
 }
 
-/** The actions valid for a splash given its `layer` and the current user's permissions. */
 export function availableActions(page: SplashPage): SplashActionDef[] {
 	const system = page.system as SplashInitialized;
 	const canTrigger = canTriggerSplash(page);
@@ -32,32 +30,27 @@ export function availableActions(page: SplashPage): SplashActionDef[] {
 	return defs;
 }
 
-/** Launch a fullscreen splash for the whole table. */
 export async function launchSplash(page: SplashPage): Promise<void> {
 	await SplashAPI.getInstance().launch(page.uuid, { global: true });
 }
 
-/** Show a fullscreen splash locally (GM preview only — not broadcast). */
+/** Show a fullscreen splash locally, not broadcast. */
 export async function previewSplash(page: SplashPage): Promise<void> {
 	await SplashAPI.getInstance().launch(page.uuid);
 }
 
-/** Open a handout window locally. */
 export async function openHandoutSplash(page: SplashPage): Promise<void> {
 	await SplashAPI.getInstance().openHandout(page.uuid);
 }
 
-/** Open the visual content editor for a splash. */
 export function openSplashEditor(page: SplashPage): void {
 	openSplashEditorApp(page);
 }
 
-/** Open the triggers window for a splash. */
 export function openSplashTriggers(page: SplashPage): void {
 	openSplashTriggersApp(page);
 }
 
-/** Dispatch a page-sheet action by its id. */
 export function runSplashAction(action: string, page: SplashPage): void {
 	switch (action) {
 		case 'launch':

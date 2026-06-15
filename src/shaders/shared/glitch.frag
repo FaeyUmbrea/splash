@@ -1,4 +1,4 @@
-// Shared glitch building blocks. Pure functions only — no uniforms, no main();
+// Shared glitch building blocks. Pure functions only; no uniforms, no main();
 // the including shader owns those. All distances are in pixels; callers resolve
 // the texture size once (vec2(textureSize(sampler, 0))) and pass it down.
 
@@ -6,7 +6,7 @@
 // dir is in degrees, 0°/360° = right, 90° = down (y grows downward in PIXI).
 vec2 shiftCoord(vec2 vTextureCoord, float dir, float strength, vec2 size) {
     // Unit vector from the angle, scaled to `strength` px, converted to UV space
-    // by the component-wise divide (x/width, y/height — UV space is anisotropic).
+    // by the component-wise divide (x/width, y/height; UV space is anisotropic).
     return vTextureCoord + ((vec2(cos(radians(dir)),sin(radians(dir))) * strength) / size);
 }
 

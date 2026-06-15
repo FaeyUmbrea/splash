@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Guards the committed `Splash Presets` compendium source that `yarn build:packs` compiles to a shipped
- * LevelDB. Derived from `tumblerLock.build()`, so these checks catch a stale regeneration.
+ * Guards the committed `Splash Presets` source that `yarn build:packs` compiles. It is generated from
+ * `tumblerLock.build()`, so these assertions catch a stale regeneration.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -27,7 +27,7 @@ describe('splash-presets compendium source', () => {
 		expect(page._key).toBe(`!journal.pages!${journal._id}.${page._id}`);
 		expect(page.type).toBe('splash.preset');
 		expect(page.system.payload.type).toBe('spriteGroup');
-		// Behavior-backed so applying it prompts for the code word instead of stamping the baked sprites.
+		// Behavior-backed: applying it prompts for the code word instead of stamping the baked sprites.
 		expect(page.system.behavior).toBe('tumbler-lock');
 	});
 

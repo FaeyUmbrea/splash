@@ -4,7 +4,6 @@ import * as svelte from 'svelte';
 interface SvelteApplicationRenderContext extends foundry.applications.api.ApplicationV2.RenderContext {
 	/** State data tracked by the root component: objects herein must be plain object. */
 	state: object;
-	/** This application instance */
 	foundryApp?: SvelteApplication;
 }
 
@@ -22,19 +21,17 @@ function SvelteApplicationMixin<
 
 		protected abstract root: svelte.Component<any>;
 
-		/** State data tracked by the root component */
 		protected $state: object = $state({});
 
-		/** The mounted root component, saved to be unmounted on application close */
 		#mount: object = {};
 
-		/** Hook the mounted component sets to run work (e.g. an outro) while the DOM is still live; awaited in `_preClose` unless `skipOutro`. */
+		/** Awaited in `_preClose` (unless `skipOutro`) so the component can run an outro while the DOM is still live. */
 		onPreClose?: (options: foundry.applications.api.ApplicationV2.ClosingOptions & { skipOutro?: boolean }) => Promise<void> | void;
 
 		protected override async _preClose(
 			options: foundry.applications.api.ApplicationV2.ClosingOptions & { skipOutro?: boolean },
 		): Promise<void> {
-			// Best-effort: a thrown outro must not abort the close, or the app zombies on screen.
+			// A thrown outro must not abort the close, or the app zombies on screen.
 			if (!options?.skipOutro) {
 				try {
 					await this.onPreClose?.(options);

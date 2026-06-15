@@ -30,7 +30,7 @@
 		if (!def) return;
 		const ok = await def.createBinding(splashUuid);
 		if (!ok) return;
-		// Players can now fire this splash, so raise ownership enough that they can read it.
+		// Firing a splash needs read ownership on its page.
 		const page = await fromUuid(splashUuid);
 		if (isSplashPage(page)) await grantTriggerVisibility(page);
 		refresh();

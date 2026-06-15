@@ -1,25 +1,20 @@
-/**
- * What launched the current splash, handed to its inline macros as `api.trigger` (e.g. `{ door }`).
- * A trigger sets it immediately before calling `launch`; SplashUI consumes it once at runtime creation,
- * so a later launch can't make it stale.
- */
+/** What launched the current splash, exposed to its inline macros as `api.trigger`. */
 export interface TriggerContext {
-	/** The wall/door uuid that launched this splash, if a door trigger. */
+	/** Door/wall uuid. */
 	door?: string;
-	/** The region uuid, if a region trigger. */
+	/** Region uuid. */
 	region?: string;
-	/** The token uuid that entered, if applicable. */
+	/** Token uuid. */
 	token?: string;
 }
 
 let pending: TriggerContext | null = null;
 
-/** A trigger calls this right before `launch(uuid)`. */
 export function setPendingTrigger(context: TriggerContext): void {
 	pending = context;
 }
 
-/** SplashUI calls this once at runtime creation; clears it so it can't leak to a later splash. */
+/** Reads and clears the pending context; clearing prevents leaking it to a later splash. */
 export function consumePendingTrigger(): TriggerContext | null {
 	const context = pending;
 	pending = null;

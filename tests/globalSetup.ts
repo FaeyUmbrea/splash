@@ -3,8 +3,7 @@ import { chromium } from '@playwright/test';
 import { login } from './fixtures.ts';
 
 /**
- * Seeds the world's baseline fixtures idempotently (by name, so re-runs are no-ops); tests must leave
- * the world in this state. Turns any fresh world into a runnable one once splash + lib-wrapper are on.
+ * Seeds the world's baseline fixtures idempotently by name. Requires splash + lib-wrapper to be active.
  */
 export default async function globalSetup(): Promise<void> {
 	const baseURL = process.env.TEST_URL ?? 'http://localhost:30001';
@@ -21,7 +20,7 @@ export default async function globalSetup(): Promise<void> {
 	}
 }
 
-/** Runs in the browser as the GM. Pure globals (game/User/Scene/foundry/CONST) — no closures. */
+/** Runs in the browser as the GM via page.evaluate, so it may only touch globals, no closures. */
 async function seed(): Promise<Record<string, unknown>> {
 	const g = globalThis as any;
 	const { game, User, JournalEntry, Scene, CONST } = g;
@@ -42,7 +41,7 @@ async function seed(): Promise<Record<string, unknown>> {
 		effects: [],
 		states: { initial: { x: 200, y: 200, width: 240, height: 64 } },
 	});
-	// A text sprite that interpolates a synced value, so the runtime mirror is visually assertable.
+	// A text sprite interpolating a synced value, making the runtime mirror visually assertable.
 	const valueText = (label: string, value: string) => ({
 		type: 'text',
 		name: label,

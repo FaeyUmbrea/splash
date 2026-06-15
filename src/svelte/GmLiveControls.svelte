@@ -8,10 +8,8 @@
 
 	let active = $state<ActiveSplash | null>(getActiveSplash());
 	let peeking = $state(isPeeking());
-	// Bumped on page edits so the name re-resolves when the active splash is renamed mid-show.
 	let rev = $state(0);
 
-	// The active setting stores only uuid/layer; resolve the page synchronously for its name.
 	const name = $derived.by(() => {
 		void rev;
 		if (!active) return '';
@@ -49,7 +47,7 @@
 {/if}
 
 <style lang='scss'>
-	// Above the 'full' overlay so the GM can always minimize or close a splash that covers the whole UI.
+	// Must sit above the 'full' overlay.
 	:global(#splash-gm-controls) {
 		position: fixed;
 		inset: 0;

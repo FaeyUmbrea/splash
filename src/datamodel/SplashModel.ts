@@ -5,7 +5,7 @@ function GlitchEffectSchemaCreator() {
 	return {
 		type: new fields.StringField({ required: true, choices: ['glitch'] }),
 		bands: new fields.NumberField({ required: true, initial: 8 }),
-		// Tear distance as a fraction of the sprite's width; static effects read subtler than transitions.
+		// Tear distance as a fraction of the sprite's width.
 		intensity: new fields.NumberField({ required: true, initial: 0.01 }),
 		tint: new fields.ColorField({ required: true, initial: '#0044ff' }),
 	};
@@ -15,7 +15,7 @@ export type GlitchEffectCreate = foundry.data.fields.SchemaField.CreateData<Retu
 export type GlitchEffectInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof GlitchEffectSchemaCreator>>;
 export type GlitchEffect = GlitchEffectCreate | GlitchEffectInitialized;
 
-// Persistent sprite effects (no transition timing); distinct from animations.
+// Persistent effects with no transition timing, distinct from animIn/animOut.
 function EffectFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
@@ -31,23 +31,20 @@ function BaseSpriteSchemaCreator(choice: string) {
 	const fields = foundry.data.fields;
 	return {
 		type: new fields.StringField({ required: true, choices: [choice] }),
-		// Sprites need distinct ids: the runtime tracks rendered sprites by this key.
 		id: new fields.StringField({ required: true, blank: false, initial: () => nanoid() }),
 		name: new fields.StringField({ required: true }),
-		// Grouping tag: sprites sharing a groupId move/select as a unit and form a node in the runtime
-		// tree. null = ungrouped. Purely a tag — no nested container type.
+		// Flat grouping tag, not a container; null means ungrouped.
 		groupId: new fields.StringField({ required: false, nullable: true, initial: null }),
-		// Free-form per-element data handed to inline macros as `scope.context` (e.g. {Keyword, Position}).
-		// ObjectField = arbitrary JSON, since context shape is behavior-specific.
+		// Free-form per-element data handed to inline macros as `scope.context`.
 		context: new fields.ObjectField({ required: false }),
 		animIn: AnimationFieldCreator(),
 		animOut: AnimationFieldCreator(),
-		// Persistent (non-transition) effects, applied for the sprite's whole life. GL-only.
+		// GL-only; ignored by the HTML renderer.
 		effects: new fields.ArrayField(EffectFieldCreator(), { required: true, initial: [] }),
 		states: new fields.TypedObjectField(new fields.SchemaField(StateSchemaCreator()), { required: true }),
 		x: new fields.NumberField({ required: true, initial: 0 }),
 		y: new fields.NumberField({ required: true, initial: 0 }),
-		// null means "natural size" — 0 would collapse the sprite.
+		// null means natural size. 0 would collapse the sprite.
 		height: new fields.NumberField({ nullable: true, initial: null }),
 		width: new fields.NumberField({ nullable: true, initial: null }),
 	};
@@ -112,8 +109,7 @@ function ChangeStateActionSchemaCreator() {
 		...base,
 		load: new fields.ArrayField(new fields.StringField(), { required: true }),
 		unload: new fields.ArrayField(new fields.StringField(), { required: true }),
-		// Optional value gate: the transition only fires when every entry matches
-		// the runtime's current values (e.g. a combination lock).
+		// Gate: the transition only fires when every entry matches the runtime's current values.
 		conditions: new fields.TypedObjectField(new fields.StringField({ required: true }), { required: false, nullable: true, initial: null }),
 	};
 }
@@ -156,7 +152,6 @@ function IncrementValueActionSchemaCreator() {
 		step: new fields.NumberField({ required: true, initial: 1 }),
 		min: new fields.NumberField({ nullable: true, initial: null }),
 		max: new fields.NumberField({ nullable: true, initial: null }),
-		// Wrapping min..max makes a single button cycle a tumbler digit.
 		wrap: new fields.BooleanField({ required: true, initial: false }),
 	};
 }
@@ -170,16 +165,15 @@ function VoteActionSchemaCreator() {
 	const base = BaseActionSchemaCreator('vote');
 	return {
 		...base,
-		// One vote per player; revoting switches it. Tallies surface as
-		// `vote:<optionId>` values for {token} display when visibility allows.
+		// One vote per player; revoting switches it. Tallies surface as `vote:<optionId>` runtime values.
 		optionId: new fields.StringField({ required: true }),
 	};
 }
 
 /**
- * Inline macro carried on the action itself (vs the `macro` action's reference to a world-local Macro).
- * The source runs with `scope` = the firing sprite's node in the materialized tree, navigating relatively
- * (`scope.parent.child.get("Top").text = "A"`) and reading `scope.context`.
+ * Inline macro carried on the action itself, unlike the `macro` action which references a world Macro.
+ * The source runs with `scope` bound to the firing sprite's node in the materialized tree, so it can
+ * navigate relatively (`scope.parent.child.get("Top").text = "A"`) and read `scope.context`.
  */
 function ScriptActionSchemaCreator() {
 	const fields = foundry.data.fields;
@@ -222,8 +216,7 @@ export function ButtonSpriteSchemaCreator() {
 		...base,
 		label: new fields.SchemaField(ButtonLabelSchemaCreator(), { required: true }),
 		image: new fields.SchemaField(ButtonImageSchemaCreator(), { required: true }),
-		// Optional variants must initialize to null, not an empty object — the
-		// renderers treat any truthy value as "use this label/image".
+		// Must init to null, not {}: renderers treat any truthy value as "use this label/image".
 		clickLabel: new fields.SchemaField(ButtonLabelSchemaCreator(), { nullable: true, initial: null }),
 		clickImage: new fields.SchemaField(ButtonImageSchemaCreator(), { nullable: true, initial: null }),
 		hoverLabel: new fields.SchemaField(ButtonLabelSchemaCreator(), { nullable: true, initial: null }),
@@ -269,13 +262,12 @@ export type TextSpriteCreate = foundry.data.fields.SchemaField.CreateData<Return
 export type TextSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof TextSpriteSchemaCreator>>;
 export type TextSprite = TextSpriteCreate | TextSpriteInitialized;
 
-/** A flat fill/border/radius surface — the asset-free building block (tumbler bodies, backing plates). */
 export function PanelSpriteSchemaCreator() {
 	const fields = foundry.data.fields;
 	const base = BaseSpriteSchemaCreator('panel');
 	return {
 		...base,
-		// Empty string = transparent (no fill / no border).
+		// Empty string means transparent.
 		fill: new fields.StringField({ required: true, initial: '#222831' }),
 		borderColor: new fields.StringField({ required: true, initial: '#000000' }),
 		borderWidth: new fields.NumberField({ required: true, initial: 0 }),
@@ -348,7 +340,6 @@ function OriginVariantsFieldCreator() {
 function GlitchAnimationSchemaCreator() {
 	const fields = foundry.data.fields;
 	return BaseAnimationModelSchemaCreator('glitch', new fields.SchemaField({
-		// Same origin-driven reveal as the dissolve; the border treatment differs.
 		origins: OriginVariantsFieldCreator(),
 		bands: new fields.NumberField({ required: true, initial: 20 }),
 		// Horizontal tear distance as a fraction of the screen.
@@ -378,7 +369,7 @@ function StateDefinitionSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
 		label: new fields.StringField({ required: true, initial: '' }),
-		// Actions executed when the state finishes loading (e.g. a door-unlock macro).
+		// Runs when the state finishes loading.
 		onEnter: new fields.ArrayField(ActionFieldCreator(), { required: true, initial: [] }),
 	};
 }
@@ -390,20 +381,16 @@ export type StateDefinition = StateDefinitionCreate | StateDefinitionInitialized
 function SplashModelSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
-		// local: every client runs its own copy. synced: one shared state for the
-		// whole table, executed on the GM client (e.g. a communal puzzle).
+		// local: each client runs its own copy. synced: one shared state, executed on the GM client.
 		mode: new fields.StringField({ required: true, choices: ['local', 'synced'], initial: 'local' }),
-		// 'all': vote tallies are written into shared values (players see pips);
-		// 'gm': tallies stay on the GM client (control surface only).
+		// all: tallies written into shared values, visible to players. gm: tallies stay on the GM client.
 		voteVisibility: new fields.StringField({ required: true, choices: ['all', 'gm'], initial: 'all' }),
-		// scene/hud/full = fullscreen splash (with its stacking layer); handout = windowed app.
-		// One enum selects both the kind (splash vs handout) and, for splashes, the layer.
+		// One enum picks the kind: scene/hud/full are fullscreen splash layers, handout is a windowed app.
 		layer: new fields.StringField({ required: true, choices: ['scene', 'hud', 'full', 'handout'], initial: 'full' }),
-		// Surfaces this splash in the scene-control "global" tab.
 		global: new fields.BooleanField({ required: true, initial: false }),
-		// Scene ids this splash is pinned to (scene-control "pinned" tab). World-local; missing ids ignored.
+		// Scene ids this splash is pinned to; missing ids are ignored.
 		scenePins: new fields.SetField(new fields.StringField({ required: true, blank: false }), { required: true, initial: [] }),
-		// Locked window size for handout-layer splashes; null for fullscreen layers.
+		// Window size for handout layer; null for fullscreen layers.
 		handoutSize: new fields.SchemaField({
 			width: new fields.NumberField({ required: true, initial: 800, positive: true, integer: true }),
 			height: new fields.NumberField({ required: true, initial: 600, positive: true, integer: true }),
@@ -411,8 +398,7 @@ function SplashModelSchemaCreator() {
 		children: new fields.ArrayField(
 			SpriteFieldCreator(),
 		),
-		// Optional display names for object groups, keyed by the shared `groupId` the members carry.
-		// Editor-only metadata; a group with no entry falls back to a positional label.
+		// Editor-only display names keyed by `groupId`; a missing entry falls back to a positional label.
 		groups: new fields.TypedObjectField(new fields.SchemaField({
 			name: new fields.StringField({ required: true, initial: '' }),
 		}), { required: false, initial: {} }),
@@ -426,8 +412,7 @@ function SplashModelSchemaCreator() {
 			required: true,
 			initial: { initial: { label: 'Initial State', onEnter: [] } },
 		}),
-		// Named runtime values with their initial (string) contents; the runtime's
-		// interactivity (tumblers, counters, conditions) lives on these.
+		// Named runtime values, all stored as strings; counters and conditions key off these.
 		values: new fields.TypedObjectField(new fields.StringField({ required: true, initial: '' }), {
 			required: true,
 			initial: {},
@@ -443,10 +428,10 @@ function StateSchemaCreator() {
 		x: new fields.NumberField({ initial: 0 }),
 		y: new fields.NumberField({ initial: 0 }),
 		zIndex: new fields.NumberField({ initial: 0 }),
-		// null means "keep the sprite's current/natural size" — 0 would collapse it.
+		// null keeps the sprite's current size. 0 would collapse it.
 		width: new fields.NumberField({ nullable: true, initial: null }),
 		height: new fields.NumberField({ nullable: true, initial: null }),
-		// Faux-3D tilt, in degrees (CSS uses deg directly; the Pixi path converts to radians).
+		// Degrees. CSS uses them directly; the Pixi path converts to radians.
 		skewX: new fields.NumberField({ required: true, initial: 0 }),
 		skewY: new fields.NumberField({ required: true, initial: 0 }),
 		animIn: AnimationFieldCreator(),

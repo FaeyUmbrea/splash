@@ -7,7 +7,7 @@ function basePlacement(): Record<string, unknown> {
 	return { x: 100, y: 100, zIndex: 0, priority: 0, name: '' };
 }
 
-/** A minimal valid sprite of the given type, placed in `stateKey`. Content is edited afterwards. */
+/** A minimal valid sprite of the given type, placed in `stateKey`. */
 export function createSprite(type: SpriteType, stateKey: string): SpriteCreate {
 	const id = nanoid();
 	const states = { [stateKey]: basePlacement() };

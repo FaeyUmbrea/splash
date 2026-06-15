@@ -26,7 +26,6 @@ export type ActionProcessor<A extends Action> = (
 	action: A,
 ) => Promise<void> | void;
 
-/** Builds the persistent filter for a static (non-transition) sprite effect. */
 export type EffectBuilder<E extends Effect> = (
 	app: PIXI.Application,
 	effect: E,
@@ -122,27 +121,23 @@ export class SplashAPI {
 		return undefined;
 	}
 
-	/** Registered animation types with display names (for editors and pickers). */
 	public get registeredAnimations(): { type: string; name: string }[] {
 		return Array.from(this.animationNames.entries()).map(([type, name]) => ({ type, name }));
 	}
 
-	/** Registered static effect types with display names (for editors and pickers). */
 	public get registeredEffects(): { type: string; name: string }[] {
 		return Array.from(this.effectNames.entries()).map(([type, name]) => ({ type, name }));
 	}
 
-	/** Registered action types with display names (for editors and pickers). */
 	public get registeredActions(): { type: string; name: string }[] {
 		return Array.from(this.actionNames.entries()).map(([type, name]) => ({ type, name }));
 	}
 
-	/** Register a trigger type. First-party triggers (door, region) go through this same API. */
+	/** First-party triggers (door, region) register through this same API. */
 	public registerTrigger(type: string, label: string, options: TriggerOptions): void {
 		this.triggers.set(type, { type, label, ...options });
 	}
 
-	/** All registered trigger types. */
 	public get registeredTriggers(): TriggerDefinition[] {
 		return Array.from(this.triggers.values());
 	}
@@ -151,15 +146,11 @@ export class SplashAPI {
 		return this.triggers.get(type);
 	}
 
-	/** Every live binding (of any trigger type) that launches the given splash. */
 	public bindingsForSplash(splashUuid: string): TriggerBinding[] {
 		return this.registeredTriggers.flatMap(t => t.listBindings()).filter(b => b.splashUuid === splashUuid);
 	}
 
-	/**
-	 * Show a splash page at a given layer. `global` (GM only) shows it table-wide and persists across
-	 * reloads; `targetUser` shows it transiently to one player; otherwise it opens locally.
-	 */
+	/** Show a splash at a layer. `global` (GM) shows it table-wide and persists; `targetUser` shows it transiently to one player; otherwise local. */
 	public async show(
 		uuid: string,
 		{ layer = 'full', global = false, targetUser }: { layer?: SplashLayer; global?: boolean; targetUser?: string } = {},
@@ -188,10 +179,7 @@ export class SplashAPI {
 		await openSplashOverlay(page, { layer });
 	}
 
-	/**
-	 * Launch using the splash's stored `layer`: `handout` → windowed app;
-	 * `scene`/`hud`/`full` → fullscreen overlay at that layer.
-	 */
+	/** Launch using the splash's stored `layer`. `handout` opens a windowed app; `scene`/`hud`/`full` open a fullscreen overlay. */
 	public async launch(
 		uuid: string,
 		{ global = false, targetUser }: { global?: boolean; targetUser?: string } = {},
@@ -207,11 +195,10 @@ export class SplashAPI {
 			await this.openHandout(uuid);
 			return;
 		}
-		// 'handout' excluded above, so the remainder is a valid fullscreen SplashLayer.
+		// 'handout' handled above; remainder is a fullscreen SplashLayer.
 		await this.show(uuid, { layer: layer as SplashLayer, global, targetUser });
 	}
 
-	/** Open a page as a handout window (player-closable). Caller only needs to be able to see it. */
 	public async openHandout(uuid: string): Promise<void> {
 		const { canViewSplash, isSplashPage } = await import('../utils/launch.ts');
 		const page = await fromUuid(uuid);

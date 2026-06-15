@@ -4,11 +4,7 @@ import { availableActions, runSplashAction } from './splashActions.ts';
 const PAGE_FORMATS = CONST.JOURNAL_ENTRY_PAGE_FORMATS;
 const HandlebarsSheet = foundry.applications.sheets.journal.JournalEntryPageHandlebarsSheet;
 
-/**
- * Splash page sheet. Foundry doesn't allow inheriting the core text-page sheet, so this reproduces it
- * (notes in `text.content`, edited via `<prose-mirror>`) in our own Handlebars parts, adding a splash
- * action bar in both view and edit modes.
- */
+/** Foundry doesn't allow inheriting the core text-page sheet, so this reproduces it with a splash action bar. */
 export class SplashSheet extends HandlebarsSheet {
 	static VIEW_PARTS = {
 		content: { template: 'modules/splash/templates/splash-view.hbs', root: true },
@@ -20,7 +16,6 @@ export class SplashSheet extends HandlebarsSheet {
 		footer: HandlebarsSheet.EDIT_PARTS.footer,
 	};
 
-	/** Text content is edited as HTML (ProseMirror), like the core text page. */
 	static format = PAGE_FORMATS.HTML;
 
 	get splashPage(): SplashPage {
@@ -44,7 +39,7 @@ export class SplashSheet extends HandlebarsSheet {
 		}
 	}
 
-	/** Don't re-render over an in-progress edit — it would discard unsaved ProseMirror changes. */
+	/** Re-rendering over an in-progress edit would discard unsaved ProseMirror changes. */
 	_canRender(options) {
 		if (options.resync || !this.rendered || !this.options.window.frame) return true;
 		return !this._isEditorDirty();
@@ -57,7 +52,7 @@ export class SplashSheet extends HandlebarsSheet {
 
 	_prepareSubmitData(event, form, formData, updateData) {
 		const submitData = super._prepareSubmitData(event, form, formData, updateData);
-		// Clear stored markdown so HTML edits re-convert cleanly (mirrors the core text sheet).
+		// Clear stored markdown so HTML edits re-convert cleanly, mirroring the core text sheet.
 		if (SplashSheet.format === PAGE_FORMATS.HTML && this._isEditorDirty()) {
 			foundry.utils.mergeObject(submitData, { text: { format: PAGE_FORMATS.HTML, markdown: '' } });
 		}

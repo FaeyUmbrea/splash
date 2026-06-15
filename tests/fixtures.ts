@@ -3,7 +3,7 @@ import process from 'node:process';
 import { test as base, expect } from '@playwright/test';
 
 /**
- * Two-client fixtures: GM and Player in separate browser contexts so they're genuinely different Foundry sessions (for synced GM↔player flows).
+ * GM and Player in separate browser contexts so they're genuinely different Foundry sessions (for synced GM↔player flows).
  * The world is seeded once in globalSetup; tests that change world state must restore it.
  */
 

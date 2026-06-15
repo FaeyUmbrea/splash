@@ -8,7 +8,6 @@
 	const { splashConfig, foundryApp }: { splashConfig: SplashInitialized; foundryApp?: SvelteApplication } = $props();
 
 	function exit() {
-		// Preview exit is instant — skip the outro the live splash would otherwise play.
 		void foundryApp?.close({ animate: false, skipOutro: true });
 	}
 

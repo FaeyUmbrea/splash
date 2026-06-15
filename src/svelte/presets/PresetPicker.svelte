@@ -19,9 +19,7 @@
 	} = $props();
 
 	let search = $state('');
-	// Bumped on library edits so the list reflects saves/deletes/renames without reopening.
 	let rev = $state(0);
-	// Compendium-hosted presets (shipped, no import needed) — loaded async once on open.
 	let compendium = $state<PresetSummary[]>([]);
 
 	const presets = $derived.by<PresetSummary[]>(() => {

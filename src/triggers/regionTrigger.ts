@@ -2,12 +2,12 @@ import type { TriggerBinding, TriggerOptions } from './types.ts';
 import { SplashAPI } from '../api/api.ts';
 import { setPendingTrigger } from './context.ts';
 
-/** Region-behaviour subtype id. The trigger-definition type (registered with the API) is 'region'. */
+/** Region-behaviour subtype id; the API trigger type is 'region'. */
 const BEHAVIOR_TYPE = 'splash.launchSplash';
 
 const RegionBehaviorTypeBase = (foundry.data as { regionBehaviors: { RegionBehaviorType: new (...args: never[]) => object } }).regionBehaviors.RegionBehaviorType;
 
-/** A Scene Region behaviour: when a token enters the region, the entering player launches a splash. */
+/** Region behaviour: the entering player launches a splash on token enter. */
 export class LaunchSplashBehavior extends RegionBehaviorTypeBase {
 	static defineSchema() {
 		const fields = foundry.data.fields;
@@ -16,10 +16,10 @@ export class LaunchSplashBehavior extends RegionBehaviorTypeBase {
 
 	static events = {
 		async [CONST.REGION_EVENTS.TOKEN_ENTER](this: { splashUuid?: string; region?: { uuid?: string } }, event: { user?: { isSelf?: boolean }; data?: { token?: { uuid?: string } } }) {
-			// Fire on the entering client only, so the splash opens locally for that player.
+			// Entering client only: the splash opens locally for that player.
 			if (!event.user?.isSelf) return;
 			if (this.splashUuid) {
-				// Hand the region + entering token to the splash's macros via `api.trigger`.
+				// Hand region + entering token to the splash's macros via `api.trigger`.
 				setPendingTrigger({ region: this.region?.uuid, token: event.data?.token?.uuid });
 				await SplashAPI.getInstance().launch(this.splashUuid);
 			}
@@ -27,7 +27,6 @@ export class LaunchSplashBehavior extends RegionBehaviorTypeBase {
 	};
 }
 
-/** Register the region-behaviour subtype into CONFIG (called at init). */
 export function registerRegionBehavior(): void {
 	const config = CONFIG.RegionBehavior as unknown as {
 		dataModels: Record<string, unknown>;

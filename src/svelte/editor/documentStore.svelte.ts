@@ -1,11 +1,7 @@
 import type { SplashCreate } from '../../datamodel/SplashModel.ts';
 import type { SplashPage } from '../../utils/launch.ts';
 
-/**
- * A reactive store over a splash page's `system` data. `data` is a mirror that `write()` mutates
- * optimistically before firing an atomic `document.update()`; the update hook re-syncs the mirror only on
- * external edits, so our own writes never flicker. Undo history replays the same optimistic-then-atomic way.
- */
+/** Reactive store over a page's `system` data. `write()` mutates a mirror optimistically then fires an atomic `update()`; the hook re-syncs the mirror only on external edits. */
 export class DocumentStore {
 	readonly page: SplashPage;
 	data = $state<SplashCreate>({} as SplashCreate);
@@ -26,17 +22,14 @@ export class DocumentStore {
 		this.#hookId = Hooks.on('updateJournalEntryPage', (doc: JournalEntryPage) => {
 			if (doc.id !== this.page.id) return;
 			const server = this.page.system.toObject() as SplashCreate;
-			// Ignore the echo of our own writes. Compare against a schema-cleaned mirror, not the raw one: the
-			// optimistic mirror holds partial-shaped data (defaults the server fills in), so a raw compare is
-			// always unequal and would re-adopt the echo as a phantom undo step.
+			// Compare against a schema-cleaned mirror so the server's filled-in defaults don't make our own echo look like an external edit.
 			if (foundry.utils.objectsEqual(server, this.#cleanedMirror())) return;
-			// A genuine external edit (another client, or a non-optimistic path): adopt and record it.
 			this.data = server;
 			this.#record();
 		});
 	}
 
-	/** The optimistic mirror normalized to the schema's stored shape, matching what `toObject()` echoes. */
+	/** The mirror cleaned to the schema's stored shape, matching what `toObject()` echoes. */
 	#cleanedMirror(): SplashCreate {
 		try {
 			return this.page.system.schema.clean(foundry.utils.deepClone(this.data)) as unknown as SplashCreate;
@@ -45,7 +38,6 @@ export class DocumentStore {
 		}
 	}
 
-	/** Optimistically mutate the local mirror, record undo history, then persist atomically. */
 	write(mutate: (draft: SplashCreate) => void, persist: () => Promise<unknown>): void {
 		mutate(this.data);
 		this.#record();

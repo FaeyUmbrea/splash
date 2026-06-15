@@ -8,7 +8,7 @@
 		children,
 	}: {
 		title?: string;
-		/** Optional header-right content (e.g. an add button). */
+		/** Header-right content. */
 		actions?: Snippet;
 		children: Snippet;
 	} = $props();

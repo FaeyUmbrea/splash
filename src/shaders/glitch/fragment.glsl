@@ -52,7 +52,7 @@ void main() {
     float px = aberrationPx * strength;
     vec4 color = chromaticAberration(uSampler, tornCoord, size, 0.0, 0.0, 180.0, px, 0.0, px);
 
-    // Tint: additive energy glow, strongest at the front. rgb only — alpha is coverage.
+    // Tint: additive energy glow, strongest at the front. rgb only; alpha is coverage.
     color.rgb += tint * strength * 0.35 * color.a;
 
     // Premultiplied transparency outside the wave, exactly like the dissolve.

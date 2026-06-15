@@ -5,10 +5,7 @@
 	padding-top: 50px;
 }
 
-/* Splash overlays slot into Foundry's own interface stacking (the --z-index-* scale). scene/hud sit above
- * the board but BELOW the UI chrome (#ui-*, --z-index-app: 30), so the sidebar/hotbar/nav stay visible and
- * usable — their whole point. full covers the chrome. The board keeps receiving every click not landing on a
- * splash sprite, so we never fight the input system. */
+/* scene/hud sit below Foundry's UI chrome (--z-index-app) so the sidebar/hotbar/nav stay usable; full covers it. */
 #splash-application.splash-layer-scene,
 #splash-application.splash-layer-hud {
 	z-index: calc(var(--z-index-app) - 1);
@@ -34,7 +31,6 @@ body.splash-hud-covered:not(.splash-peeking) {
 	overflow: hidden;
 }
 
-/* Page-sheet quick-access action bar — a compact horizontal row in both view and edit modes. */
 .splash-actions {
 	display: flex;
 	flex-wrap: wrap;

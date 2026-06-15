@@ -34,7 +34,7 @@
 	];
 
 	const type = $derived(value?.type ?? '');
-	// Dissolve keeps the origin variant directly in `props`; glitch nests it under `props.origins`.
+	// Dissolve keeps the origin variant directly in `props`, glitch nests it under `props.origins`.
 	const props = $derived((value?.props ?? {}) as Record<string, unknown>);
 	const origins = $derived((value?.type === 'dissolve' ? props : (props.origins ?? {})) as Record<string, unknown>);
 	const originType = $derived((origins.type as string) ?? 'randomOrigins');

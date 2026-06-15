@@ -1,35 +1,27 @@
 import type { SpriteInitialized } from '../datamodel/SplashModel.ts';
 
-/**
- * A node in the materialized sprite tree handed to inline macros. The flat sprite list + `groupId` tags
- * become a hierarchy: root → (top-level sprites + one synthetic group node per groupId) → grouped members.
- * The triggering element's node is the macro's `scope`; navigation is by `name` (survives prefab re-ids).
- */
+/** A node in the sprite tree handed to inline macros. Navigation is by `name`, which survives prefab re-ids. */
 export interface SpriteNode {
 	/** Sprite id, or null for the synthetic root/group nodes. */
 	id: string | null;
-	/** The sprite's `name` (the addressable role within a group), or the groupId for a group node. */
+	/** The sprite's `name`, or the groupId for a group node. */
 	name: string;
 	type: string;
 	/** The underlying sprite, or null for root/group nodes. */
 	sprite: SpriteInitialized | null;
 	parent: SpriteNode | null;
 	children: SpriteNode[];
-	/** Lookup a direct child by name: `scope.parent.child.get("Top")`. */
 	child: { get: (name: string) => SpriteNode | undefined };
-	/** Free-form per-element context data (`{Keyword, Position, ...}`). */
 	context: Record<string, unknown>;
-	/** Live read of a property (override-then-data). Bound by the runtime at execution time. */
+	/** Read a property, override-then-data. Bound by the runtime. */
 	get?: (property: string) => unknown;
-	/** Live write of a property → an ephemeral synced override. Bound by the runtime. No-op for group/root. */
+	/** Write a property as an ephemeral synced override. Bound by the runtime; no-op for group/root. */
 	set?: (property: string, value: unknown) => void;
-	/** Sugar for get/set('text'), defined by the runtime so macros can do `node.text = "A"`. */
 	text?: unknown;
 }
 
 export interface SpriteTree {
 	root: SpriteNode;
-	/** id → node, for O(1) location of the triggering element's `scope`. */
 	byId: Map<string, SpriteNode>;
 }
 
@@ -44,7 +36,6 @@ function makeNode(init: Partial<SpriteNode> & Pick<SpriteNode, 'id' | 'name' | '
 	return node;
 }
 
-/** Build the navigable tree for a set of in-state sprites. Pure; structure is fixed within a loaded state. */
 export function buildSpriteTree(sprites: SpriteInitialized[]): SpriteTree {
 	const byId = new Map<string, SpriteNode>();
 	const root = makeNode({ id: null, name: 'root', type: 'root', sprite: null, parent: null });
