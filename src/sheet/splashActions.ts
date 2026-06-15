@@ -5,7 +5,7 @@ import { openSplashEditorApp } from '../apps/SplashEditorApplication.ts';
 import { openSplashTriggersApp } from '../apps/SplashTriggersApplication.ts';
 import { canTriggerSplash, canViewSplash } from '../utils/launch.ts';
 
-/** One quick-access action descriptor for the page-sheet bar (shared with the manager later). */
+/** One quick-access action descriptor for the page-sheet bar. */
 export interface SplashActionDef {
 	action: string;
 	icon: string;

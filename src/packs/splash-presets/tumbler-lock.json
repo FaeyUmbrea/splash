@@ -652,7 +652,7 @@
 							"tint": "#3a6ea5",
 							"onClick": {
 								"type": "script",
-								"source": "const root=scope.parent;const word=context.Wheels.map(id=>String(root.child.get(id)?.child.get('Middle').text||'').toUpperCase()).join('');if(word===String(context.Keyword).toUpperCase()){ui.notifications?.info('Unlocked!');api.unlockDoor();api.close();}else{ui.notifications?.warn('Wrong combination.');}"
+								"source": "const root=scope.parent;const word=context.Wheels.map(id=>String(root.child.get(id)?.child.get('Middle').text||'').toUpperCase()).join('');if(word===String(context.Keyword).toUpperCase()){ui.notifications?.info(game.i18n.localize('splash.behavior.tumblerLock.unlocked'));api.unlockDoor();api.close();}else{ui.notifications?.warn(game.i18n.localize('splash.behavior.tumblerLock.wrongCombination'));}"
 							},
 							"context": {
 								"Keyword": "OPEN",

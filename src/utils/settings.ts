@@ -55,12 +55,11 @@ export function registerSettings(): void {
 		},
 	});
 
-	// Synced-splash runtime state now lives per-page in `flags.splash.runtime` (see utils/sync.ts), not a
-	// world setting — so it stays scoped to each splash and never balloons with the number of locks.
+	// Synced-splash runtime state lives per-page in `flags.splash.runtime` (see utils/sync.ts), not here, so
+	// it stays scoped per splash and never balloons with the number of locks.
 
-	// Stored data-model version. The -1 sentinel means "never stamped" — the baseline
-	// stamp lifts it to CURRENT_DATA_MODEL_VERSION so future releases can tell a fresh
-	// install (stamped straight to current) from an existing one that must migrate forward.
+	// Data-model version. -1 means "never stamped"; the baseline stamp lifts it to current so future releases
+	// can distinguish a fresh install from one that must migrate forward.
 	game.settings?.register(ID, SETTING_DATA_MODEL_VERSION, {
 		scope: 'world',
 		config: false,

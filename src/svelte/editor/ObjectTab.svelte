@@ -18,10 +18,10 @@
 	const states = $derived(model.states.map(s => s.key));
 
 	const alignOptions: SelectItem[] = [
-		{ value: 'left', label: 'Left' },
-		{ value: 'center', label: 'Center' },
-		{ value: 'right', label: 'Right' },
-		{ value: 'justify', label: 'Justify' },
+		{ value: 'left', label: game.i18n.localize('splash.editor.objectTab.alignLeft') },
+		{ value: 'center', label: game.i18n.localize('splash.editor.objectTab.alignCenter') },
+		{ value: 'right', label: game.i18n.localize('splash.editor.objectTab.alignRight') },
+		{ value: 'justify', label: game.i18n.localize('splash.editor.objectTab.alignJustify') },
 	];
 
 	let nineSlice = $state<{ key: 'image' | 'hoverImage' | 'clickImage'; title: string } | null>(null);
@@ -79,55 +79,55 @@
 </script>
 
 {#if model.selectedIds.length > 1}
-	<div class='empty'>{model.selectedIds.length} objects selected — pick one to edit its properties.</div>
+	<div class='empty'>{game.i18n.format('splash.editor.objectTab.multiSelected', { count: model.selectedIds.length })}</div>
 {:else if !obj}
-	<div class='empty'>Select an object to edit it.</div>
+	<div class='empty'>{game.i18n.localize('splash.editor.objectTab.noSelection')}</div>
 {:else}
 	{@const raw = obj.raw}
 	<div class='object-tab'>
-		<TextField label='Name' value={raw.name ?? ''} placeholder={obj.name} onChange={v => setContent({ name: v })} />
+		<TextField label={game.i18n.localize('splash.editor.objectTab.name')} value={raw.name ?? ''} placeholder={obj.name} onChange={v => setContent({ name: v })} />
 
 		<div class='preset-bar'>
-			<button type='button' class='preset-btn' onclick={() => (spritePicking = true)}><i class='fa-solid fa-folder-open'></i> Apply sprite preset</button>
+			<button type='button' class='preset-btn' onclick={() => (spritePicking = true)}><i class='fa-solid fa-folder-open'></i> {game.i18n.localize('splash.editor.objectTab.applySpritePreset')}</button>
 			{#if isGM}
-				<button type='button' class='preset-btn' onclick={() => promptAndSavePreset({ type: 'sprite', value: raw as SpriteCreate }, raw.name || obj.name)}><i class='fa-solid fa-floppy-disk'></i> Save sprite preset</button>
+				<button type='button' class='preset-btn' onclick={() => promptAndSavePreset({ type: 'sprite', value: raw as SpriteCreate }, raw.name || obj.name)}><i class='fa-solid fa-floppy-disk'></i> {game.i18n.localize('splash.editor.objectTab.saveSpritePreset')}</button>
 			{/if}
 		</div>
 
 		{#if obj.type === 'image'}
 			{@const img = raw as ImageSpriteCreate}
-			<ImageField label='Image' value={img.img ?? ''} onChange={v => setContent({ img: v })} />
+			<ImageField label={game.i18n.localize('splash.editor.objectTab.image')} value={img.img ?? ''} onChange={v => setContent({ img: v })} />
 		{:else if obj.type === 'text'}
 			{@const text = raw as TextSpriteCreate}
-			<TextField label='Text' value={text.text ?? ''} onChange={v => setContent({ text: v })} />
-			<TextField label='Font' value={text.font ?? 'Arial'} onChange={v => setContent({ font: v })} />
-			<NumberField label='Size' value={text.size ?? 34} onChange={v => setContent({ size: v })} />
-			<ColorField label='Color' value={text.fillColor ?? '#ffffff'} onChange={v => setContent({ fillColor: v })} />
-			<Field label='Align'>
+			<TextField label={game.i18n.localize('splash.editor.objectTab.text')} value={text.text ?? ''} onChange={v => setContent({ text: v })} />
+			<TextField label={game.i18n.localize('splash.editor.objectTab.font')} value={text.font ?? 'Arial'} onChange={v => setContent({ font: v })} />
+			<NumberField label={game.i18n.localize('splash.editor.objectTab.size')} value={text.size ?? 34} onChange={v => setContent({ size: v })} />
+			<ColorField label={game.i18n.localize('splash.editor.objectTab.color')} value={text.fillColor ?? '#ffffff'} onChange={v => setContent({ fillColor: v })} />
+			<Field label={game.i18n.localize('splash.editor.objectTab.align')}>
 				<Select options={alignOptions} value={text.align ?? 'center'} searchable={false} onChange={v => setContent({ align: v })} />
 			</Field>
 		{:else if obj.type === 'button'}
 			{@const btn = raw as ButtonSpriteCreate}
-			<TextField label='Label' value={btn.label?.text ?? ''} onChange={v => setContent({ label: { text: v } })} />
-			<NumberField label='Label size' value={btn.label?.fontSize ?? 20} onChange={v => setContent({ label: { fontSize: v } })} />
-			<ColorField label='Label color' value={btn.label?.fill ?? '#ffffff'} onChange={v => setContent({ label: { fill: v } })} />
+			<TextField label={game.i18n.localize('splash.editor.objectTab.label')} value={btn.label?.text ?? ''} onChange={v => setContent({ label: { text: v } })} />
+			<NumberField label={game.i18n.localize('splash.editor.objectTab.labelSize')} value={btn.label?.fontSize ?? 20} onChange={v => setContent({ label: { fontSize: v } })} />
+			<ColorField label={game.i18n.localize('splash.editor.objectTab.labelColor')} value={btn.label?.fill ?? '#ffffff'} onChange={v => setContent({ label: { fill: v } })} />
 
 			<div class='images'>
-				<span class='sublabel'>Button images (nine-slice)</span>
-				<button type='button' class='slice-btn' onclick={() => (nineSlice = { key: 'image', title: 'Image' })}>
-					<i class='fa-solid fa-table-cells-large'></i> Edit image
+				<span class='sublabel'>{game.i18n.localize('splash.editor.objectTab.buttonImages')}</span>
+				<button type='button' class='slice-btn' onclick={() => (nineSlice = { key: 'image', title: game.i18n.localize('splash.editor.objectTab.image') })}>
+					<i class='fa-solid fa-table-cells-large'></i> {game.i18n.localize('splash.editor.objectTab.editImage')}
 				</button>
-				{#each [['hoverImage', 'Hover'], ['clickImage', 'Click']] as [key, label] (key)}
+				{#each [['hoverImage', game.i18n.localize('splash.editor.objectTab.hover'), game.i18n.localize('splash.editor.objectTab.editHoverImage'), game.i18n.localize('splash.editor.objectTab.addHoverImage')], ['clickImage', game.i18n.localize('splash.editor.objectTab.click'), game.i18n.localize('splash.editor.objectTab.editClickImage'), game.i18n.localize('splash.editor.objectTab.addClickImage')]] as [key, title, editLabel, addLabel] (key)}
 					{@const present = !!(btn as Record<string, unknown>)[key]}
 					<div class='variant'>
 						{#if present}
-							<button type='button' class='slice-btn' onclick={() => (nineSlice = { key: key as 'hoverImage', title: label })}>
-								<i class='fa-solid fa-table-cells-large'></i> Edit {label.toLowerCase()} image
+							<button type='button' class='slice-btn' onclick={() => (nineSlice = { key: key as 'hoverImage', title })}>
+								<i class='fa-solid fa-table-cells-large'></i> {editLabel}
 							</button>
-							<button type='button' class='x' title='Remove' aria-label='Remove' onclick={() => model.replaceObjectField(obj.id, key, null)}><i class='fa-solid fa-trash'></i></button>
+							<button type='button' class='x' title={game.i18n.localize('splash.editor.objectTab.remove')} aria-label={game.i18n.localize('splash.editor.objectTab.remove')} onclick={() => model.replaceObjectField(obj.id, key, null)}><i class='fa-solid fa-trash'></i></button>
 						{:else}
 							<button type='button' class='slice-btn ghost' onclick={() => model.replaceObjectField(obj.id, key, blankImage())}>
-								<i class='fa-solid fa-plus'></i> Add {label.toLowerCase()} image
+								<i class='fa-solid fa-plus'></i> {addLabel}
 							</button>
 						{/if}
 					</div>
@@ -135,44 +135,44 @@
 			</div>
 
 			<div class='subsection'>
-				<span class='sublabel'>On click</span>
+				<span class='sublabel'>{game.i18n.localize('splash.editor.objectTab.onClick')}</span>
 				<ActionEditor action={btn.onClick} {states} onChange={a => model.replaceObjectField(obj.id, 'onClick', a)} />
 			</div>
 
 			<div class='subsection'>
-				<span class='sublabel'>Macro context</span>
+				<span class='sublabel'>{game.i18n.localize('splash.editor.objectTab.macroContext')}</span>
 				{#each Object.entries(ctxData) as [key, value] (key)}
 					<div class='ctx-row'>
 						<span class='ctx-key' title={key}>{key}</span>
 						<TextField value={displayContext(value)} onChange={v => setContext(key, parseContext(v))} />
-						<button type='button' class='x' title='Remove' aria-label='Remove' onclick={() => removeContext(key)}><i class='fa-solid fa-trash'></i></button>
+						<button type='button' class='x' title={game.i18n.localize('splash.editor.objectTab.remove')} aria-label={game.i18n.localize('splash.editor.objectTab.remove')} onclick={() => removeContext(key)}><i class='fa-solid fa-trash'></i></button>
 					</div>
 				{/each}
 				<div class='ctx-add'>
-					<TextField bind:value={newContextKey} placeholder='context key' />
-					<button type='button' class='x' title='Add' aria-label='Add' onclick={addContext}><i class='fa-solid fa-plus'></i></button>
+					<TextField bind:value={newContextKey} placeholder={game.i18n.localize('splash.editor.objectTab.contextKey')} />
+					<button type='button' class='x' title={game.i18n.localize('splash.editor.objectTab.add')} aria-label={game.i18n.localize('splash.editor.objectTab.add')} onclick={addContext}><i class='fa-solid fa-plus'></i></button>
 				</div>
 			</div>
 
 			<div class='preset-bar'>
-				<button type='button' class='preset-btn' onclick={() => (buttonPicking = true)}><i class='fa-solid fa-folder-open'></i> Apply button preset</button>
+				<button type='button' class='preset-btn' onclick={() => (buttonPicking = true)}><i class='fa-solid fa-folder-open'></i> {game.i18n.localize('splash.editor.objectTab.applyButtonPreset')}</button>
 				{#if isGM}
-					<button type='button' class='preset-btn' onclick={() => promptAndSavePreset(buttonSpriteToPreset(btn), btn.label?.text || 'Button')}><i class='fa-solid fa-floppy-disk'></i> Save as preset</button>
+					<button type='button' class='preset-btn' onclick={() => promptAndSavePreset(buttonSpriteToPreset(btn), btn.label?.text || game.i18n.localize('splash.editor.objectTab.buttonDefaultName'))}><i class='fa-solid fa-floppy-disk'></i> {game.i18n.localize('splash.editor.objectTab.saveAsPreset')}</button>
 				{/if}
 			</div>
 		{:else if obj.type === 'panel'}
 			{@const panel = raw as PanelSpriteCreate}
-			<ColorField label='Fill' value={panel.fill ?? '#222831'} onChange={v => setContent({ fill: v })} />
+			<ColorField label={game.i18n.localize('splash.editor.objectTab.fill')} value={panel.fill ?? '#222831'} onChange={v => setContent({ fill: v })} />
 			<div class='grid'>
-				<ColorField label='Border color' value={panel.borderColor ?? '#000000'} onChange={v => setContent({ borderColor: v })} />
-				<NumberField label='Border width' value={panel.borderWidth ?? 0} min={0} onChange={v => setContent({ borderWidth: v })} />
+				<ColorField label={game.i18n.localize('splash.editor.objectTab.borderColor')} value={panel.borderColor ?? '#000000'} onChange={v => setContent({ borderColor: v })} />
+				<NumberField label={game.i18n.localize('splash.editor.objectTab.borderWidth')} value={panel.borderWidth ?? 0} min={0} onChange={v => setContent({ borderWidth: v })} />
 			</div>
-			<NumberField label='Corner radius' value={panel.radius ?? 0} min={0} onChange={v => setContent({ radius: v })} />
+			<NumberField label={game.i18n.localize('splash.editor.objectTab.cornerRadius')} value={panel.radius ?? 0} min={0} onChange={v => setContent({ radius: v })} />
 		{/if}
 
 		<div class='subsection'>
-			<AnimationEditor label='Animation in' width={model.stageW} value={raw.animIn} onChange={a => model.replaceObjectField(obj.id, 'animIn', a)} />
-			<AnimationEditor label='Animation out' width={model.stageW} value={raw.animOut} onChange={a => model.replaceObjectField(obj.id, 'animOut', a)} />
+			<AnimationEditor label={game.i18n.localize('splash.editor.objectTab.animationIn')} width={model.stageW} value={raw.animIn} onChange={a => model.replaceObjectField(obj.id, 'animIn', a)} />
+			<AnimationEditor label={game.i18n.localize('splash.editor.objectTab.animationOut')} width={model.stageW} value={raw.animOut} onChange={a => model.replaceObjectField(obj.id, 'animOut', a)} />
 		</div>
 
 		<div class='subsection'>
@@ -181,20 +181,20 @@
 
 		{#if obj.inState && obj.placement}
 			<div class='subsection'>
-				<span class='sublabel'>Placement in "{model.activeState}"</span>
+				<span class='sublabel'>{game.i18n.format('splash.editor.objectTab.placementIn', { state: model.activeState })}</span>
 				<div class='grid'>
-					<NumberField label='X' value={obj.placement.x ?? 0} onChange={v => setPlace({ x: v })} />
-					<NumberField label='Y' value={obj.placement.y ?? 0} onChange={v => setPlace({ y: v })} />
-					<NumberField label='W' value={obj.placement.width ?? null} onChange={v => setPlace({ width: v })} />
-					<NumberField label='H' value={obj.placement.height ?? null} onChange={v => setPlace({ height: v })} />
-					<NumberField label='Z' value={obj.placement.zIndex ?? 0} onChange={v => setPlace({ zIndex: v })} />
+					<NumberField label={game.i18n.localize('splash.editor.objectTab.x')} value={obj.placement.x ?? 0} onChange={v => setPlace({ x: v })} />
+					<NumberField label={game.i18n.localize('splash.editor.objectTab.y')} value={obj.placement.y ?? 0} onChange={v => setPlace({ y: v })} />
+					<NumberField label={game.i18n.localize('splash.editor.objectTab.w')} value={obj.placement.width ?? null} onChange={v => setPlace({ width: v })} />
+					<NumberField label={game.i18n.localize('splash.editor.objectTab.h')} value={obj.placement.height ?? null} onChange={v => setPlace({ height: v })} />
+					<NumberField label={game.i18n.localize('splash.editor.objectTab.z')} value={obj.placement.zIndex ?? 0} onChange={v => setPlace({ zIndex: v })} />
 				</div>
-				<AnimationEditor label='State animation in' width={model.stageW} value={obj.placement.animIn} onChange={a => model.replacePlacementField(obj.id, 'animIn', a)} />
-				<AnimationEditor label='State animation out' width={model.stageW} value={obj.placement.animOut} onChange={a => model.replacePlacementField(obj.id, 'animOut', a)} />
+				<AnimationEditor label={game.i18n.localize('splash.editor.objectTab.stateAnimationIn')} width={model.stageW} value={obj.placement.animIn} onChange={a => model.replacePlacementField(obj.id, 'animIn', a)} />
+				<AnimationEditor label={game.i18n.localize('splash.editor.objectTab.stateAnimationOut')} width={model.stageW} value={obj.placement.animOut} onChange={a => model.replacePlacementField(obj.id, 'animOut', a)} />
 			</div>
 		{:else}
 			<button type='button' class='place' onclick={() => model.placeInState(obj.id)}>
-				<i class='fa-solid fa-plus'></i> Place in "{model.activeState}"
+				<i class='fa-solid fa-plus'></i> {game.i18n.format('splash.editor.objectTab.placeInState', { state: model.activeState })}
 			</button>
 		{/if}
 	</div>
@@ -210,10 +210,10 @@
 	{/if}
 
 	{#if buttonPicking}
-		<PresetPicker kind='button' title='Apply button preset' onPick={applyButtonPreset} onClose={() => (buttonPicking = false)} />
+		<PresetPicker kind='button' title={game.i18n.localize('splash.editor.objectTab.applyButtonPreset')} onPick={applyButtonPreset} onClose={() => (buttonPicking = false)} />
 	{/if}
 	{#if spritePicking}
-		<PresetPicker kind='sprite' title='Apply sprite preset' onPick={applySpritePreset} onClose={() => (spritePicking = false)} />
+		<PresetPicker kind='sprite' title={game.i18n.localize('splash.editor.objectTab.applySpritePreset')} onPick={applySpritePreset} onClose={() => (spritePicking = false)} />
 	{/if}
 {/if}
 

@@ -2,10 +2,9 @@ import type { SplashCreate } from '../../datamodel/SplashModel.ts';
 import type { SplashPage } from '../../utils/launch.ts';
 
 /**
- * A reactive store over a splash page's `system` data. `data` is a reactive mirror; `write()` mutates it
- * optimistically (synchronous UI, no round-trip snap-back) then fires an atomic `document.update()`. The
- * update hook re-syncs the mirror only on external edits, so our own writes never flicker. Keeps an undo
- * history replayed the same optimistic-then-atomic way.
+ * A reactive store over a splash page's `system` data. `data` is a mirror that `write()` mutates
+ * optimistically before firing an atomic `document.update()`; the update hook re-syncs the mirror only on
+ * external edits, so our own writes never flicker. Undo history replays the same optimistic-then-atomic way.
  */
 export class DocumentStore {
 	readonly page: SplashPage;

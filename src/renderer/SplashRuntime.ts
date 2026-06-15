@@ -55,13 +55,12 @@ export class SplashRuntime {
 	#changingBlocked = false;
 	#suppressAnimIn = false;
 	#mirroring = false;
-	// Set during play-out/teardown so `#emitChanged` stays silent: unloading every state on close is local
-	// cleanup, and broadcasting it would persist `loadedStates: []` and blank the splash on the next synced open.
+	// Silences `#emitChanged` during teardown: broadcasting the close would persist `loadedStates: []` and blank the next synced open.
 	#tearingDown = false;
 	#values: SplashValues = {};
 	#overrides: Record<string, SpriteOverrides> = {};
 	#trigger: Record<string, unknown>;
-	// The materialized tree for the current loaded-state composition. Built lazily, invalidated on load/unload.
+	// Built lazily for the current loaded-state composition, invalidated on load/unload.
 	#treeCache: SpriteTree | null = null;
 
 	constructor(
@@ -95,13 +94,9 @@ export class SplashRuntime {
 		if (!this.#mirroring && !this.#tearingDown) this.#onChanged(this.snapshot);
 	}
 
-	/**
-	 * Set an ephemeral property override on a sprite (e.g. a dialed letter's `text`): applied over stored
-	 * data, synced to the table, never persisted. `value` null/undefined clears the one property.
-	 */
+	/** Set an ephemeral property override on a sprite (synced, never persisted); null/undefined clears the property. */
 	setOverride(spriteId: string, property: string, value: unknown): void {
 		const current = this.#overrides[spriteId] ?? {};
-		// null and undefined both mean "clear" (the renderers already treat null as no-override).
 		if (value === undefined || value === null) delete current[property];
 		else current[property] = value;
 		// Drop empty bags so a cleared override leaves no trace in the synced snapshot.
@@ -111,11 +106,7 @@ export class SplashRuntime {
 		this.#emitChanged();
 	}
 
-	/**
-	 * Mirror an authoritative shared snapshot: load/unload to match its states and
-	 * adopt its values. onEnter actions are suppressed — only the executing
-	 * (GM) client may cause side effects like macros.
-	 */
+	/** Mirror an authoritative shared snapshot. onEnter actions are suppressed — only the executing (GM) client runs side effects. */
 	async applyShared(snapshot: RuntimeSnapshot): Promise<void> {
 		this.#mirroring = true;
 		try {
@@ -128,8 +119,7 @@ export class SplashRuntime {
 			for (const stateId of [...this.#loadedStates]) {
 				if (!snapshot.loadedStates.includes(stateId)) await this.unloadState(stateId);
 			}
-			// Reconcile overrides to the snapshot exactly — adopt present, clear absent — so a cleared dial on
-			// the executor reverts on followers. Runs after states load so the target sprites exist.
+			// Reconcile overrides exactly (adopt present, clear absent); runs after states load so target sprites exist.
 			const incomingAll = (snapshot.overrides ?? {}) as Record<string, Record<string, unknown>>;
 			for (const spriteId of Object.keys({ ...this.#overrides, ...incomingAll })) {
 				const incoming = incomingAll[spriteId] ?? {};
@@ -144,11 +134,7 @@ export class SplashRuntime {
 		}
 	}
 
-	/**
-	 * Preload assets and bring up the splash's initial states.
-	 * skipAnimations suppresses entrance animations: restoring clients must show
-	 * the splash instantly so nothing behind it is ever glimpsed.
-	 */
+	/** Preload assets and bring up the initial states. skipAnimations is for restoring clients, which must show the splash instantly. */
 	async initialize({ skipAnimations = false }: { skipAnimations?: boolean } = {}): Promise<void> {
 		this.#suppressAnimIn = skipAnimations;
 		try {
@@ -161,11 +147,7 @@ export class SplashRuntime {
 		}
 	}
 
-	/**
-	 * Apply a sprite-triggered action. Value and state actions are handled
-	 * in-instance (so multiple open splashes never cross-talk); everything else
-	 * is delegated to the external executor.
-	 */
+	/** Apply a sprite-triggered action. Value/state actions stay in-instance (so open splashes don't cross-talk); the rest goes to the external executor. */
 	async handleAction(action: ActionInitialized, sourceId?: string): Promise<void> {
 		if (await this.#interceptAction(action, sourceId)) return;
 		switch (action.type) {
@@ -246,8 +228,7 @@ export class SplashRuntime {
 		if (!source.trim()) return;
 		const tree = this.#tree();
 		const scope = (sourceId ? tree.byId.get(sourceId) : undefined) ?? tree.root;
-		// Runtime hooks a macro needs beyond the tree: change this splash's state, set a value, close it,
-		// read what triggered it, or ask a door to open (routed via the GM when the player can't write walls).
+		// unlockDoor is routed via the GM when a player can't write walls.
 		const api = {
 			trigger: this.#trigger,
 			changeState: (load?: string[], unload?: string[]) => this.changeStates({ load, unload }),

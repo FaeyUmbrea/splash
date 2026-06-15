@@ -2,7 +2,7 @@ import type { SplashPage } from '../utils/launch.ts';
 import { SvelteApplicationMixin } from '../mixins/SvelteApplicationMixin.svelte.ts';
 import TriggersPanel from '../svelte/TriggersPanel.svelte';
 
-/** Per-splash trigger management. Self-contained so it can later embed in the manager; for now its own window. */
+/** Per-splash trigger management window. */
 export default class SplashTriggersApplication extends SvelteApplicationMixin(foundry.applications.api.ApplicationV2) {
 	protected override root = TriggersPanel;
 

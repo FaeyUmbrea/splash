@@ -7,7 +7,7 @@
 
 	const {
 		kind = null,
-		title = 'Apply preset',
+		title = game.i18n.localize('splash.presets.presetPicker.title'),
 		onPick,
 		onClose,
 	}: {
@@ -66,10 +66,10 @@
 	<div class='preset-picker' role='dialog' aria-label={title} tabindex='-1' onclick={e => e.stopPropagation()}>
 		<header>
 			<span class='title'>{title}</span>
-			<button type='button' class='x' title='Close' aria-label='Close' onclick={onClose}><i class='fa-solid fa-xmark'></i></button>
+			<button type='button' class='x' title={game.i18n.localize('splash.presets.presetPicker.close')} aria-label={game.i18n.localize('splash.presets.presetPicker.close')} onclick={onClose}><i class='fa-solid fa-xmark'></i></button>
 		</header>
 
-		<input class='search' type='text' placeholder='Search presets…' bind:value={search} />
+		<input class='search' type='text' placeholder={game.i18n.localize('splash.presets.presetPicker.searchPlaceholder')} bind:value={search} />
 
 		<div class='list'>
 			{#each presets as preset (preset.uuid)}
@@ -80,7 +80,7 @@
 				</button>
 			{/each}
 			{#if presets.length === 0}
-				<div class='empty'>No presets{kind ? ` of kind "${kind}"` : ''} yet.</div>
+				<div class='empty'>{kind ? game.i18n.format('splash.presets.presetPicker.emptyOfKind', { kind }) : game.i18n.localize('splash.presets.presetPicker.empty')}</div>
 			{/if}
 		</div>
 	</div>

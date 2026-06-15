@@ -4,9 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Guards the committed `Splash Presets` compendium source — the artifact `yarn build:packs` compiles to
- * a shipped LevelDB. The generator derives it from `tumblerLock.build()`, so these checks catch a stale
- * regeneration (or a behavior change that wasn't re-baked) before it reaches the pack a world imports.
+ * Guards the committed `Splash Presets` compendium source that `yarn build:packs` compiles to a shipped
+ * LevelDB. Derived from `tumblerLock.build()`, so these checks catch a stale regeneration.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));

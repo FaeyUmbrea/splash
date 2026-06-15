@@ -4,9 +4,7 @@ import { nanoid } from 'nanoid';
 
 /**
  * The preset library service. Presets are `splash.preset` JournalEntryPage subtypes living in a single
- * lazily-created world `JournalEntry` (the host-coupled choice is isolated HERE; swapping to Item/
- * compendium hosting touches only this file). Splits cleanly into pure transforms (no Foundry, unit
- * tested) and the thin document-CRUD surface on top.
+ * lazily-created world `JournalEntry`; all host coupling is isolated to this file.
  */
 
 /** The world journal that holds every preset page. Created lazily on first save. */

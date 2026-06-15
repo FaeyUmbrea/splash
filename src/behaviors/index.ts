@@ -8,11 +8,7 @@ export interface BehaviorField {
 	default?: string | number;
 }
 
-/**
- * A predefined, parametric prefab: registered in code (not authored by end users), it asks for a few
- * config values, then GENERATES a self-contained group of sprites with inline macros. The result is a
- * plain splash that carries no dependency back to the behavior — it only runs at drop time.
- */
+/** A code-registered prefab that prompts for config, then generates a self-contained sprite group; the result keeps no dependency back to the behavior. */
 export interface PrefabBehavior {
 	key: string;
 	label: string;

@@ -70,9 +70,9 @@
 <div class='splash-editor themed'>
 	<header class='toolbar'>
 		<div class='spacer'></div>
-		<button type='button' class='tool' title='Undo (Ctrl+Z)' aria-label='Undo' disabled={!model.canUndo} onclick={() => model.undo()}><i class='fa-solid fa-rotate-left'></i></button>
-		<button type='button' class='tool' title='Redo (Ctrl+Shift+Z)' aria-label='Redo' disabled={!model.canRedo} onclick={() => model.redo()}><i class='fa-solid fa-rotate-right'></i></button>
-		<button type='button' class='tool' title='Preview' aria-label='Preview' onclick={preview}><i class='fa-solid fa-play'></i></button>
+		<button type='button' class='tool' title={game.i18n.localize('splash.editor.editor.undoTooltip')} aria-label={game.i18n.localize('splash.editor.editor.undo')} disabled={!model.canUndo} onclick={() => model.undo()}><i class='fa-solid fa-rotate-left'></i></button>
+		<button type='button' class='tool' title={game.i18n.localize('splash.editor.editor.redoTooltip')} aria-label={game.i18n.localize('splash.editor.editor.redo')} disabled={!model.canRedo} onclick={() => model.redo()}><i class='fa-solid fa-rotate-right'></i></button>
+		<button type='button' class='tool' title={game.i18n.localize('splash.actions.preview')} aria-label={game.i18n.localize('splash.actions.preview')} onclick={preview}><i class='fa-solid fa-play'></i></button>
 	</header>
 
 	<div class='workspace'>
@@ -90,8 +90,7 @@
 </div>
 
 <style lang='scss'>
-	// No z-index hack: the editor is a normal Foundry window, so pop-outs (file pickers, dialogs)
-	// opened from it stack above it naturally. The content fills the window with no padding.
+	// No z-index hack: the editor is a normal Foundry window, so pop-outs (file pickers, dialogs) stack above it.
 	:global(.splash-editor-content) {
 		padding: 0 !important;
 		overflow: hidden;

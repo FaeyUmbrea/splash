@@ -11,9 +11,9 @@
 
 	let tab = $state('object');
 	const tabs: Tab[] = [
-		{ id: 'object', label: 'Object', icon: 'fa-solid fa-cube' },
-		{ id: 'state', label: 'State', icon: 'fa-solid fa-clapperboard' },
-		{ id: 'splash', label: 'Splash', icon: 'fa-solid fa-image' },
+		{ id: 'object', label: game.i18n.localize('splash.editor.sidebar.tabObject'), icon: 'fa-solid fa-cube' },
+		{ id: 'state', label: game.i18n.localize('splash.editor.sidebar.tabState'), icon: 'fa-solid fa-clapperboard' },
+		{ id: 'splash', label: game.i18n.localize('splash.editor.sidebar.tabSplash'), icon: 'fa-solid fa-image' },
 	];
 
 	// Selecting an object jumps to the Object tab (but manual tab switches stick).

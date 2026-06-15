@@ -21,11 +21,10 @@
 	}
 	function savePrefab() {
 		const sprites = model.selectedObjects.map(o => o.raw);
-		if (sprites.length) promptAndSavePreset({ type: 'spriteGroup', value: sprites } as PresetPayload, 'Prefab');
+		if (sprites.length) promptAndSavePreset({ type: 'spriteGroup', value: sprites } as PresetPayload, game.i18n.localize('splash.editor.objectsPanel.prefabDefaultName'));
 	}
 	function applyPrefab(payload: PresetPayload, summary: PresetSummary) {
-		// A behavior-backed prefab (e.g. the tumbler lock) runs its config dialog + build on apply instead of
-		// stamping the baked sprites, so dropping it asks "what's the code word?".
+		// Behavior-backed prefabs (e.g. tumbler lock) run their config dialog + build on apply instead of stamping baked sprites.
 		if (summary.behavior && getBehavior(summary.behavior)) {
 			void placeBehavior(summary.behavior);
 			return;
@@ -41,12 +40,12 @@
 	};
 
 	const addItems = $derived<ContextMenuItem[]>([
-		{ label: 'Image', icon: 'fa-solid fa-image', action: () => add('image') },
-		{ label: 'Text', icon: 'fa-solid fa-font', action: () => add('text') },
-		{ label: 'Button', icon: 'fa-solid fa-hand-pointer', action: () => add('button') },
-		{ label: 'Panel', icon: 'fa-solid fa-square', action: () => add('panel') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addImage'), icon: 'fa-solid fa-image', action: () => add('image') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addText'), icon: 'fa-solid fa-font', action: () => add('text') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addButton'), icon: 'fa-solid fa-hand-pointer', action: () => add('button') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addPanel'), icon: 'fa-solid fa-square', action: () => add('panel') },
 		{ separator: true } as ContextMenuItem,
-		{ label: 'Prefab…', icon: 'fa-solid fa-cubes', action: openPrefabPicker },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addPrefab'), icon: 'fa-solid fa-cubes', action: openPrefabPicker },
 	]);
 
 	function add(type: SpriteType) {
@@ -65,7 +64,7 @@
 			window: { title: behavior.label },
 			content,
 			ok: {
-				label: 'Place',
+				label: game.i18n.localize('splash.editor.objectsPanel.place'),
 				callback: (_event: unknown, button: { form: HTMLFormElement }) => {
 					const data: Record<string, unknown> = {};
 					for (const field of behavior.fields) {
@@ -93,11 +92,11 @@
 			y: event.clientY,
 			items: [
 				obj.inState
-					? { label: `Remove from "${model.activeState}"`, icon: 'fa-solid fa-eye-slash', action: () => model.removeFromState(obj.id) }
-					: { label: `Place in "${model.activeState}"`, icon: 'fa-solid fa-plus', action: () => model.placeInState(obj.id) },
-				{ label: 'Duplicate', icon: 'fa-solid fa-clone', action: () => model.duplicateObject(obj.id) },
+					? { label: game.i18n.format('splash.editor.objectsPanel.removeFromState', { state: model.activeState }), icon: 'fa-solid fa-eye-slash', action: () => model.removeFromState(obj.id) }
+					: { label: game.i18n.format('splash.editor.objectsPanel.placeInState', { state: model.activeState }), icon: 'fa-solid fa-plus', action: () => model.placeInState(obj.id) },
+				{ label: game.i18n.localize('splash.editor.objectsPanel.duplicate'), icon: 'fa-solid fa-clone', action: () => model.duplicateObject(obj.id) },
 				{ separator: true },
-				{ label: 'Delete', icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteObject(obj.id) },
+				{ label: game.i18n.localize('splash.editor.objectsPanel.delete'), icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteObject(obj.id) },
 			],
 		};
 	}
@@ -135,9 +134,9 @@
 	async function renameGroup(node: EditorGroupNode) {
 		const safe = node.name.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c] ?? c));
 		const name = await foundry.applications.api.DialogV2.prompt({
-			window: { title: 'Rename group' },
+			window: { title: game.i18n.localize('splash.editor.objectsPanel.renameGroupTitle') },
 			content: `<input type="text" name="name" value="${safe}" style="width:100%" autofocus />`,
-			ok: { label: 'Rename', callback: (_event: unknown, button: { form: HTMLFormElement }) => (button.form.elements.namedItem('name') as HTMLInputElement)?.value },
+			ok: { label: game.i18n.localize('splash.editor.objectsPanel.rename'), callback: (_event: unknown, button: { form: HTMLFormElement }) => (button.form.elements.namedItem('name') as HTMLInputElement)?.value },
 		}).catch(() => null);
 		if (name != null) model.renameGroup(node.groupId, String(name));
 	}
@@ -150,15 +149,15 @@
 			y: event.clientY,
 			items: [
 				model.activeGroup === node.groupId
-					? { label: 'Exit group', icon: 'fa-solid fa-arrow-up-from-bracket', action: () => model.exitGroup() }
-					: { label: 'Enter group', icon: 'fa-solid fa-arrow-down-to-bracket', action: () => model.enterGroup(node.groupId) },
-				{ label: 'Rename', icon: 'fa-solid fa-i-cursor', action: () => renameGroup(node) },
+					? { label: game.i18n.localize('splash.editor.objectsPanel.exitGroup'), icon: 'fa-solid fa-arrow-up-from-bracket', action: () => model.exitGroup() }
+					: { label: game.i18n.localize('splash.editor.objectsPanel.enterGroup'), icon: 'fa-solid fa-arrow-down-to-bracket', action: () => model.enterGroup(node.groupId) },
+				{ label: game.i18n.localize('splash.editor.objectsPanel.rename'), icon: 'fa-solid fa-i-cursor', action: () => renameGroup(node) },
 				node.inState
-					? { label: `Remove from "${model.activeState}"`, icon: 'fa-solid fa-eye-slash', action: () => model.setGroupInState(node.groupId, false) }
-					: { label: `Place in "${model.activeState}"`, icon: 'fa-solid fa-plus', action: () => model.setGroupInState(node.groupId, true) },
-				{ label: 'Ungroup', icon: 'fa-solid fa-object-ungroup', action: () => model.ungroupGroup(node.groupId) },
+					? { label: game.i18n.format('splash.editor.objectsPanel.removeFromState', { state: model.activeState }), icon: 'fa-solid fa-eye-slash', action: () => model.setGroupInState(node.groupId, false) }
+					: { label: game.i18n.format('splash.editor.objectsPanel.placeInState', { state: model.activeState }), icon: 'fa-solid fa-plus', action: () => model.setGroupInState(node.groupId, true) },
+				{ label: game.i18n.localize('splash.editor.objectsPanel.ungroup'), icon: 'fa-solid fa-object-ungroup', action: () => model.ungroupGroup(node.groupId) },
 				{ separator: true },
-				{ label: 'Delete group', icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteGroup(node.groupId) },
+				{ label: game.i18n.localize('splash.editor.objectsPanel.deleteGroup'), icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteGroup(node.groupId) },
 			],
 		};
 	}
@@ -166,19 +165,19 @@
 
 <section class='objects-panel'>
 	<header>
-		<span class='title'>Objects</span>
+		<span class='title'>{game.i18n.localize('splash.editor.objectsPanel.title')}</span>
 		{#if model.activeGroup}
-			<IconButton icon='fa-solid fa-arrow-up-from-bracket' title='Exit group' onclick={() => model.exitGroup()} />
+			<IconButton icon='fa-solid fa-arrow-up-from-bracket' title={game.i18n.localize('splash.editor.objectsPanel.exitGroup')} onclick={() => model.exitGroup()} />
 		{/if}
 		{#if model.selectionGrouped}
-			<IconButton icon='fa-solid fa-object-ungroup' title='Ungroup' onclick={() => model.ungroup()} />
+			<IconButton icon='fa-solid fa-object-ungroup' title={game.i18n.localize('splash.editor.objectsPanel.ungroup')} onclick={() => model.ungroup()} />
 		{:else if model.selectedIds.length > 1}
-			<IconButton icon='fa-solid fa-object-group' title='Group selection' onclick={() => model.group()} />
+			<IconButton icon='fa-solid fa-object-group' title={game.i18n.localize('splash.editor.objectsPanel.groupSelection')} onclick={() => model.group()} />
 		{/if}
 		{#if model.selectedIds.length > 1}
-			<IconButton icon='fa-solid fa-floppy-disk' title='Save selection as prefab' onclick={savePrefab} />
+			<IconButton icon='fa-solid fa-floppy-disk' title={game.i18n.localize('splash.editor.objectsPanel.savePrefab')} onclick={savePrefab} />
 		{/if}
-		<IconButton icon='fa-solid fa-plus' title='Add object' onclick={e => (addMenu = { x: e.clientX, y: e.clientY })} />
+		<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.objectsPanel.addObject')} onclick={e => (addMenu = { x: e.clientX, y: e.clientY })} />
 	</header>
 
 	<div class='list'>
@@ -193,13 +192,13 @@
 					class:dim={!node.inState}
 					role='button'
 					tabindex='0'
-					title='Double-click to edit members individually'
+					title={game.i18n.localize('splash.editor.objectsPanel.groupDblClickHint')}
 					onclick={e => selectGroup(node, e.shiftKey || e.ctrlKey || e.metaKey)}
 					onkeydown={e => (e.key === 'Enter' || e.key === ' ') && selectGroup(node, false)}
 					ondblclick={() => model.enterGroup(node.groupId)}
 					oncontextmenu={e => openGroupMenu(e, node)}
 				>
-					<button type='button' class='caret' aria-label='Collapse group' onclick={e => toggleCollapse(e, node.groupId)}>
+					<button type='button' class='caret' aria-label={game.i18n.localize('splash.editor.objectsPanel.collapseGroup')} onclick={e => toggleCollapse(e, node.groupId)}>
 						<i class={isExpanded(node) ? 'fa-solid fa-caret-down' : 'fa-solid fa-caret-right'}></i>
 					</button>
 					<i class='fa-solid fa-object-group'></i>
@@ -208,8 +207,8 @@
 						type='button'
 						class='in-state'
 						class:on={node.inState}
-						title={node.inState ? 'In this state — click to remove the group' : 'Not in this state — click to add the group'}
-						aria-label='Toggle group in state'
+						title={node.inState ? game.i18n.localize('splash.editor.objectsPanel.groupInStateOn') : game.i18n.localize('splash.editor.objectsPanel.groupInStateOff')}
+						aria-label={game.i18n.localize('splash.editor.objectsPanel.toggleGroupInState')}
 						onclick={e => toggleGroupPlacement(e, node)}
 					>
 						<i class={node.inState ? 'fa-solid fa-eye' : 'fa-regular fa-eye-slash'}></i>
@@ -223,7 +222,7 @@
 			{/if}
 		{/each}
 		{#if model.objectTree.length === 0}
-			<div class='empty'>No objects yet — use + to add one.</div>
+			<div class='empty'>{game.i18n.localize('splash.editor.objectsPanel.empty')}</div>
 		{/if}
 	</div>
 </section>
@@ -237,7 +236,7 @@
 		role='button'
 		tabindex='0'
 		draggable='true'
-		title={obj.inState ? '' : `Drag onto the canvas to add to "${model.activeState}"`}
+		title={obj.inState ? '' : game.i18n.format('splash.editor.objectsPanel.dragToAdd', { state: model.activeState })}
 		onclick={e => model.select(obj.id, e.shiftKey || e.ctrlKey || e.metaKey)}
 		onkeydown={e => (e.key === 'Enter' || e.key === ' ') && model.select(obj.id)}
 		oncontextmenu={e => openRowMenu(e, obj)}
@@ -249,8 +248,8 @@
 			type='button'
 			class='in-state'
 			class:on={obj.inState}
-			title={obj.inState ? 'In this state — click to remove' : 'Not in this state — click to add'}
-			aria-label='Toggle in state'
+			title={obj.inState ? game.i18n.localize('splash.editor.objectsPanel.rowInStateOn') : game.i18n.localize('splash.editor.objectsPanel.rowInStateOff')}
+			aria-label={game.i18n.localize('splash.editor.objectsPanel.toggleInState')}
 			onclick={e => togglePlacement(e, obj)}
 		>
 			<i class={obj.inState ? 'fa-solid fa-eye' : 'fa-regular fa-eye-slash'}></i>
@@ -265,7 +264,7 @@
 	<ContextMenu x={rowMenu.x} y={rowMenu.y} items={rowMenu.items} onClose={() => (rowMenu = null)} />
 {/if}
 {#if prefabPicking}
-	<PresetPicker kind='spriteGroup' title='Place prefab' onPick={applyPrefab} onClose={() => (prefabPicking = false)} />
+	<PresetPicker kind='spriteGroup' title={game.i18n.localize('splash.editor.objectsPanel.placePrefabTitle')} onPick={applyPrefab} onClose={() => (prefabPicking = false)} />
 {/if}
 
 <style lang='scss'>

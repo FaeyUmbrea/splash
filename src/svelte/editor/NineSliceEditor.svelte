@@ -76,47 +76,47 @@
 <div class='nine-slice-backdrop' role='presentation' onclick={onClose}>
 	<div class='nine-slice-editor' role='dialog' aria-label={title} onclick={e => e.stopPropagation()}>
 		<header>
-			<span>{title} — nine-slice</span>
+			<span>{game.i18n.format('splash.editor.nineSliceEditor.headerTitle', { title })}</span>
 			<span class='header-actions'>
-				<IconButton icon='fa-solid fa-folder-open' title='Apply nine-slice preset' onclick={() => (picking = true)} />
+				<IconButton icon='fa-solid fa-folder-open' title={game.i18n.localize('splash.editor.nineSliceEditor.applyPreset')} onclick={() => (picking = true)} />
 				{#if isGM && value.url}
-					<IconButton icon='fa-solid fa-floppy-disk' title='Save as preset' onclick={() => promptAndSavePreset({ type: 'nineslice', ...value } as PresetPayload, 'Nine-slice')} />
+					<IconButton icon='fa-solid fa-floppy-disk' title={game.i18n.localize('splash.editor.nineSliceEditor.saveAsPreset')} onclick={() => promptAndSavePreset({ type: 'nineslice', ...value } as PresetPayload, game.i18n.localize('splash.editor.nineSliceEditor.presetDefaultName'))} />
 				{/if}
-				<button type='button' class='close' title='Close' aria-label='Close' onclick={onClose}><i class='fa-solid fa-xmark'></i></button>
+				<button type='button' class='close' title={game.i18n.localize('splash.editor.nineSliceEditor.close')} aria-label={game.i18n.localize('splash.editor.nineSliceEditor.close')} onclick={onClose}><i class='fa-solid fa-xmark'></i></button>
 			</span>
 		</header>
 
 		<div class='body'>
 			<div class='left'>
-				<ImageField label='Image' value={value.url ?? ''} onChange={v => onChange({ url: v })} />
+				<ImageField label={game.i18n.localize('splash.editor.nineSliceEditor.imageLabel')} value={value.url ?? ''} onChange={v => onChange({ url: v })} />
 				<div class='cut-area'>
 					{#if value.url}
 						<div class='canvas' style={`width:${dispW}px;height:${dispH}px;`}>
 							<img bind:this={imgEl} src={value.url} alt='' onload={onImgLoad} />
 							{#if natW}
-								<div class='line v' role='slider' aria-label='Left cut' aria-valuenow={l} tabindex='0' style={`left:${l * scale}px;`} onpointerdown={e => dragLine(e, 'l')}></div>
-								<div class='line v' role='slider' aria-label='Right cut' aria-valuenow={r} tabindex='0' style={`left:${(natW - r) * scale}px;`} onpointerdown={e => dragLine(e, 'r')}></div>
-								<div class='line h' role='slider' aria-label='Top cut' aria-valuenow={t} tabindex='0' style={`top:${t * scale}px;`} onpointerdown={e => dragLine(e, 't')}></div>
-								<div class='line h' role='slider' aria-label='Bottom cut' aria-valuenow={b} tabindex='0' style={`top:${(natH - b) * scale}px;`} onpointerdown={e => dragLine(e, 'b')}></div>
+								<div class='line v' role='slider' aria-label={game.i18n.localize('splash.editor.nineSliceEditor.cutLeft')} aria-valuenow={l} tabindex='0' style={`left:${l * scale}px;`} onpointerdown={e => dragLine(e, 'l')}></div>
+								<div class='line v' role='slider' aria-label={game.i18n.localize('splash.editor.nineSliceEditor.cutRight')} aria-valuenow={r} tabindex='0' style={`left:${(natW - r) * scale}px;`} onpointerdown={e => dragLine(e, 'r')}></div>
+								<div class='line h' role='slider' aria-label={game.i18n.localize('splash.editor.nineSliceEditor.cutTop')} aria-valuenow={t} tabindex='0' style={`top:${t * scale}px;`} onpointerdown={e => dragLine(e, 't')}></div>
+								<div class='line h' role='slider' aria-label={game.i18n.localize('splash.editor.nineSliceEditor.cutBottom')} aria-valuenow={b} tabindex='0' style={`top:${(natH - b) * scale}px;`} onpointerdown={e => dragLine(e, 'b')}></div>
 							{/if}
 						</div>
 					{:else}
-						<p class='hint'>Pick an image to set its slice borders.</p>
+						<p class='hint'>{game.i18n.localize('splash.editor.nineSliceEditor.pickImageHint')}</p>
 					{/if}
 				</div>
-				<p class='hint'>Drag the orange guides to set the stretch borders (L {l} · T {t} · R {r} · B {b}).</p>
+				<p class='hint'>{game.i18n.format('splash.editor.nineSliceEditor.dragHint', { l, t, r, b })}</p>
 			</div>
 
 			<div class='right'>
-				<span class='sublabel'>Demo — resize me</span>
-				<div class='demo' style={demoBorderImage}>Button</div>
+				<span class='sublabel'>{game.i18n.localize('splash.editor.nineSliceEditor.demoLabel')}</span>
+				<div class='demo' style={demoBorderImage}>{game.i18n.localize('splash.editor.nineSliceEditor.demoButton')}</div>
 			</div>
 		</div>
 	</div>
 </div>
 
 {#if picking}
-	<PresetPicker kind='nineslice' title='Apply nine-slice preset' onPick={applyPreset} onClose={() => (picking = false)} />
+	<PresetPicker kind='nineslice' title={game.i18n.localize('splash.editor.nineSliceEditor.applyPreset')} onPick={applyPreset} onClose={() => (picking = false)} />
 {/if}
 
 <style lang='scss'>

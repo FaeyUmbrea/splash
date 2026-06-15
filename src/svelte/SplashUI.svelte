@@ -32,8 +32,7 @@
 	let sync: SyncDriver | undefined;
 	let presence: PresenceReporter | undefined;
 
-	// close-requested stays instance-scoped (this window only); everything else
-	// becomes a regular hook for the rest of the world to observe.
+	// close-requested stays instance-scoped (this window only); everything else becomes a global hook.
 	function emitEvent(event: string, ...args: unknown[]) {
 		if (event === 'splash.close-requested') {
 			foundryApp.close();
@@ -89,7 +88,7 @@
 
 <div class='splash-stage'>
 	{#if loading}
-		<div class='loading'><span>Loading</span></div>
+		<div class='loading'><span>{game.i18n.localize('splash.ui.splashUI.loading')}</span></div>
 	{/if}
 	{#if rendererKind === 'webgl'}
 		<canvas bind:this={view}></canvas>
@@ -99,8 +98,7 @@
 </div>
 
 <style lang='stylus'>
-  // The frameless ApplicationV2 host element must span the screen without Foundry's window theming.
-  // Stacking per layer (scene/hud/full) is assigned by css/splash.scss via host classes.
+  // Frameless ApplicationV2 host spans the screen without window theming; per-layer stacking is set in css/splash.scss.
   :global(#splash-application)
     position fixed
     inset 0

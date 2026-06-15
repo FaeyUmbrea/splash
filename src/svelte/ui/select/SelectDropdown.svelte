@@ -34,8 +34,7 @@
 		onBlur: () => void;
 	} = $props();
 
-	// Pre-compute the cumulative offset per group so item index in the flat list
-	// matches the parent's highlightedIdx without re-traversing each render.
+	// Cumulative offset per group, so a group item's flat index matches the parent's highlightedIdx.
 	const groupOffsets = $derived.by(() => {
 		const offsets: number[] = [];
 		let acc = 0;

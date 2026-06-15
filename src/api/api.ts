@@ -10,9 +10,6 @@ import type { SpriteContext } from '../renderer/SplashRenderer.ts';
 import type { TriggerBinding, TriggerDefinition, TriggerOptions } from '../triggers/types.ts';
 import type { SplashLayer } from '../utils/settings.ts';
 
-/**
- * Accepts the definition of an animation type and a sprite object and initializes the requested animation on that sprite.
- */
 export type AnimationBuilder<A extends Animation> = (
 	animation: A,
 	sprite: PIXI.DisplayObject,
@@ -35,9 +32,6 @@ export type EffectBuilder<E extends Effect> = (
 	effect: E,
 ) => Promise<PIXI.Filter> | PIXI.Filter;
 
-/**
- *
- */
 export class SplashAPI {
 	private animations: Map<string, AnimationBuilder<Animation>> = new Map();
 	private animationNames: Map<string, string> = new Map();
@@ -143,11 +137,7 @@ export class SplashAPI {
 		return Array.from(this.actionNames.entries()).map(([type, name]) => ({ type, name }));
 	}
 
-	/**
-	 * Register a trigger type. First-party triggers (door, region) are registered through this
-	 * same API — anything a third-party module can do, they do too. The triggers app is a generic
-	 * front-end over `registeredTriggers` and never hard-codes a specific type.
-	 */
+	/** Register a trigger type. First-party triggers (door, region) go through this same API. */
 	public registerTrigger(type: string, label: string, options: TriggerOptions): void {
 		this.triggers.set(type, { type, label, ...options });
 	}
@@ -167,9 +157,8 @@ export class SplashAPI {
 	}
 
 	/**
-	 * Show a splash page (macro/module entry point). The caller must be a GM or page owner.
-	 * `global` (GM only) shows it to the whole table and persists across reloads;
-	 * `targetUser` shows it transiently to one player; otherwise it opens locally.
+	 * Show a splash page at a given layer. `global` (GM only) shows it table-wide and persists across
+	 * reloads; `targetUser` shows it transiently to one player; otherwise it opens locally.
 	 */
 	public async show(
 		uuid: string,
@@ -200,9 +189,8 @@ export class SplashAPI {
 	}
 
 	/**
-	 * Unified launch entry point. Reads the splash's stored `layer` and routes:
-	 * `handout` → windowed app; `scene`/`hud`/`full` → fullscreen overlay at that layer.
-	 * This supersedes passing a layer at call time — layer is intrinsic to the splash.
+	 * Launch using the splash's stored `layer`: `handout` → windowed app;
+	 * `scene`/`hud`/`full` → fullscreen overlay at that layer.
 	 */
 	public async launch(
 		uuid: string,

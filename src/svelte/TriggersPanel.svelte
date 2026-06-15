@@ -30,7 +30,7 @@
 		if (!def) return;
 		const ok = await def.createBinding(splashUuid);
 		if (!ok) return;
-		// Players can now fire this splash, so raise ownership enough that they can read it (see grantTriggerVisibility).
+		// Players can now fire this splash, so raise ownership enough that they can read it.
 		const page = await fromUuid(splashUuid);
 		if (isSplashPage(page)) await grantTriggerVisibility(page);
 		refresh();
@@ -43,20 +43,20 @@
 </script>
 
 <div class='triggers'>
-	<p class='intro'>Sources that launch <strong>{splashName ?? 'this splash'}</strong>.</p>
+	<p class='intro'>{game.i18n.localize('splash.ui.triggersPanel.introLead')} <strong>{splashName ?? game.i18n.localize('splash.ui.triggersPanel.thisSplash')}</strong>.</p>
 
-	<Select options={triggerTypes} value={addType} placeholder='Add a trigger…' searchable={false} onChange={add} />
+	<Select options={triggerTypes} value={addType} placeholder={game.i18n.localize('splash.ui.triggersPanel.addPlaceholder')} searchable={false} onChange={add} />
 
 	<div class='list'>
 		{#each bindings as binding (binding.id)}
 			<div class='binding'>
 				<i class={api.getTrigger(binding.type)?.icon ?? 'fa-solid fa-bolt'}></i>
 				<span class='summary'>{binding.summary}</span>
-				<IconButton icon='fa-solid fa-trash' title='Remove trigger' danger onclick={() => remove(binding)} />
+				<IconButton icon='fa-solid fa-trash' title={game.i18n.localize('splash.ui.triggersPanel.removeTrigger')} danger onclick={() => remove(binding)} />
 			</div>
 		{/each}
 		{#if bindings.length === 0}
-			<div class='empty'>No triggers yet — add one above.</div>
+			<div class='empty'>{game.i18n.localize('splash.ui.triggersPanel.noTriggers')}</div>
 		{/if}
 	</div>
 </div>

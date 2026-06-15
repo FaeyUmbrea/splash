@@ -16,7 +16,7 @@
 		void rev;
 		if (!active) return '';
 		const page = fromUuidSync(active.uuid) as { name?: string } | null;
-		return page?.name ?? 'Splash';
+		return page?.name ?? game.i18n.localize('splash.ui.gmLiveControls.defaultName');
 	});
 
 	const hooks: [string, (...a: unknown[]) => void][] = [
@@ -32,16 +32,16 @@
 {#if active}
 	<div class='gm-live'>
 		<span class='dot' class:peeking></span>
-		<span class='label'>{peeking ? 'Hidden' : 'Live'}: {name}</span>
+		<span class='label'>{peeking ? game.i18n.localize('splash.ui.gmLiveControls.hidden') : game.i18n.localize('splash.ui.gmLiveControls.live')}: {name}</span>
 		<IconButton
 			icon={peeking ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'}
-			title={peeking ? 'Show splash again' : 'Minimize (hide for me, keep it running)'}
+			title={peeking ? game.i18n.localize('splash.ui.gmLiveControls.showAgain') : game.i18n.localize('splash.ui.gmLiveControls.minimize')}
 			active={peeking}
 			onclick={() => togglePeek()}
 		/>
 		<IconButton
 			icon='fa-solid fa-circle-xmark'
-			title='Force-close every splash for everyone'
+			title={game.i18n.localize('splash.ui.gmLiveControls.forceClose')}
 			danger
 			onclick={() => void forceCloseAllSplashes()}
 		/>

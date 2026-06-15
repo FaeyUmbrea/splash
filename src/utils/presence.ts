@@ -1,10 +1,7 @@
 import type { RuntimeSnapshot } from '../renderer/SplashRuntime.ts';
 import { ID } from './const.js';
 
-/**
- * Async-exploration feedback: players on local-mode splashes report which
- * states they're on (like scene presence); the GM collects and can spectate.
- */
+/** Players on local-mode splashes report their current state; the GM collects these and can spectate. */
 
 interface PresenceEvent {
 	eventType: 'splashPresence';

@@ -3,11 +3,7 @@ import { SvelteRenderer } from './SvelteRenderer.ts';
 
 const GM_CONTROLS_ID = 'splash-gm-controls';
 
-/**
- * Mount the GM live-control surface once. It's a frameless, click-through host (pointer-events: none)
- * that renders nothing until a splash is active; the chip itself is the only interactive part. Sits
- * above the fullscreen overlay so the GM can always minimize or force-close a live splash.
- */
+/** Click-through host (pointer-events: none) above the overlay; only the active-splash chip is interactive. */
 export function registerGmControls(): void {
 	Hooks.once('ready', () => {
 		if (!game.user?.isGM) return;

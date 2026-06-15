@@ -25,20 +25,20 @@
 
 <div class='effects'>
 	<div class='head'>
-		<span class='sublabel'>Effects (WebGL only)</span>
-		<IconButton icon='fa-solid fa-plus' title='Add effect' onclick={add} />
+		<span class='sublabel'>{game.i18n.localize('splash.editor.effectsEditor.heading')}</span>
+		<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.effectsEditor.addEffect')} onclick={add} />
 	</div>
 	{#each effects as effect, i (i)}
 		<div class='effect'>
 			<div class='effect-head'>
-				<span>Glitch</span>
-				<IconButton icon='fa-solid fa-trash' title='Remove effect' danger onclick={() => remove(i)} />
+				<span>{game.i18n.localize('splash.editor.effectsEditor.glitch')}</span>
+				<IconButton icon='fa-solid fa-trash' title={game.i18n.localize('splash.editor.effectsEditor.removeEffect')} danger onclick={() => remove(i)} />
 			</div>
 			<div class='grid'>
-				<NumberField label='Bands' value={(effect.bands as number) ?? 8} onChange={v => patch(i, { bands: v ?? 8 })} />
-				<NumberField label='Intensity' step={0.01} value={(effect.intensity as number) ?? 0.01} onChange={v => patch(i, { intensity: v ?? 0.01 })} />
+				<NumberField label={game.i18n.localize('splash.editor.effectsEditor.bands')} value={(effect.bands as number) ?? 8} onChange={v => patch(i, { bands: v ?? 8 })} />
+				<NumberField label={game.i18n.localize('splash.editor.effectsEditor.intensity')} step={0.01} value={(effect.intensity as number) ?? 0.01} onChange={v => patch(i, { intensity: v ?? 0.01 })} />
 			</div>
-			<ColorField label='Tint' value={(effect.tint as string) ?? '#0044ff'} onChange={v => patch(i, { tint: v })} />
+			<ColorField label={game.i18n.localize('splash.editor.effectsEditor.tint')} value={(effect.tint as string) ?? '#0044ff'} onChange={v => patch(i, { tint: v })} />
 		</div>
 	{/each}
 </div>

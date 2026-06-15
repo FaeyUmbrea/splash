@@ -12,11 +12,7 @@ interface DoorControlLike {
 	__splashBadge?: { destroy: () => void } | undefined;
 }
 
-/**
- * GM-only: badge any door control whose wall is bound to a splash, so the GM can see at a glance which
- * doors trigger one. The badge is rebuilt every `draw()` (door state changes, refreshes) and nudged on
- * flag edits so binding/unbinding shows immediately.
- */
+/** GM-only: badge door controls whose wall is splash-bound. Rebuilt every draw(); nudged on flag edits. */
 export function registerDoorIndicator(): void {
 	const libWrapper = (globalThis as { libWrapper?: LibWrapper }).libWrapper;
 	if (!game.modules?.get('lib-wrapper')?.active || !libWrapper) return;
@@ -50,10 +46,7 @@ export function registerDoorIndicator(): void {
 	});
 }
 
-/**
- * Wrap `DoorControl#_onMouseDown` via libWrapper: clicking a locked, bound door launches its splash and
- * still runs the default behaviour, so the locked sound plays.
- */
+/** Clicking a locked, bound door launches its splash and still runs default behaviour (so the locked sound plays). */
 export function registerDoorWrap(): void {
 	const libWrapper = (globalThis as { libWrapper?: LibWrapper }).libWrapper;
 	if (!game.modules?.get('lib-wrapper')?.active || !libWrapper) {
@@ -86,13 +79,13 @@ export const doorTrigger: TriggerOptions = {
 		const scene = canvas?.scene as unknown as SceneLike | null;
 		const doors = (scene?.walls?.contents ?? []).filter(w => w.door > 0);
 		if (!scene || doors.length === 0) {
-			ui.notifications?.warn('Splash | No doors on the active scene to bind.');
+			ui.notifications?.warn(game.i18n.localize('splash.triggers.doorTrigger.noDoors'));
 			return false;
 		}
-		const options = doors.map((w, i) => `<option value="${w.id}">Door ${i + 1}</option>`).join('');
+		const options = doors.map((w, i) => `<option value="${w.id}">${game.i18n.format('splash.triggers.doorTrigger.doorOption', { index: i + 1 })}</option>`).join('');
 		const wallId = await foundry.applications.api.DialogV2.prompt({
-			window: { title: 'Bind door trigger' },
-			content: `<p>Clicking which locked door launches this splash?</p><select name="door" style="width:100%">${options}</select>`,
+			window: { title: game.i18n.localize('splash.triggers.doorTrigger.bindTitle') },
+			content: `<p>${game.i18n.localize('splash.triggers.doorTrigger.bindPrompt')}</p><select name="door" style="width:100%">${options}</select>`,
 			ok: { callback: (_e: Event, button: HTMLButtonElement) => (button.form?.elements.namedItem('door') as HTMLSelectElement)?.value },
 		}).catch(() => null);
 		if (!wallId) return false;
@@ -105,7 +98,7 @@ export const doorTrigger: TriggerOptions = {
 		for (const scene of (game.scenes ?? []) as unknown as Iterable<SceneLike>) {
 			for (const wall of scene.walls) {
 				const uuid = wall.getFlag(ID, 'launchSplash') as string | undefined;
-				if (uuid) bindings.push({ id: wall.uuid, type: 'door', splashUuid: uuid, summary: `Door in "${scene.name}"`, sceneId: scene.id });
+				if (uuid) bindings.push({ id: wall.uuid, type: 'door', splashUuid: uuid, summary: game.i18n.format('splash.triggers.doorTrigger.bindingSummary', { scene: scene.name }), sceneId: scene.id });
 			}
 		}
 		return bindings;

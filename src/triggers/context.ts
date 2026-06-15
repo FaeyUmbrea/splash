@@ -1,7 +1,7 @@
 /**
  * What launched the current splash, handed to its inline macros as `api.trigger` (e.g. `{ door }`).
- * A trigger sets it immediately before calling `launch`; SplashUI consumes it once at runtime creation
- * (captured then, not read at script time, so a later launch can't make it stale).
+ * A trigger sets it immediately before calling `launch`; SplashUI consumes it once at runtime creation,
+ * so a later launch can't make it stale.
  */
 export interface TriggerContext {
 	/** The wall/door uuid that launched this splash, if a door trigger. */

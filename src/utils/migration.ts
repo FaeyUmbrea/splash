@@ -1,10 +1,8 @@
 import { CURRENT_DATA_MODEL_VERSION, getDataModelVersion, setDataModelVersion } from './settings.ts';
 
 /**
- * Baseline version stamp. The module is unreleased, so there is no persisted data
- * to migrate — the only job here is to lift the stored data-model version from its
- * -1 sentinel to the current version. Future per-document migrations (added only
- * after a release ships) gate on the stored version and run before the stamp.
+ * Lifts the stored data-model version to current. No persisted data exists yet (unreleased), so
+ * per-document migrations gate on the stored version and run before the stamp once a release ships.
  */
 export async function runDataModelMigrations(): Promise<void> {
 	// Only the active GM writes the world setting, so the stamp runs once per world.

@@ -12,11 +12,11 @@
 </script>
 
 <div class='state-tab'>
-	<TextField label='State label' value={def.label ?? ''} onChange={v => model.renameState(model.activeState, v)} />
-	<CheckboxField label='Loaded on open (initial state)' value={isInitial} onChange={v => model.toggleInitial(model.activeState, v)} />
+	<TextField label={game.i18n.localize('splash.editor.stateTab.stateLabel')} value={def.label ?? ''} onChange={v => model.renameState(model.activeState, v)} />
+	<CheckboxField label={game.i18n.localize('splash.editor.stateTab.initialState')} value={isInitial} onChange={v => model.toggleInitial(model.activeState, v)} />
 
 	<div class='subsection'>
-		<span class='sublabel'>On enter — actions run when this state loads</span>
+		<span class='sublabel'>{game.i18n.localize('splash.editor.stateTab.onEnter')}</span>
 		<ActionListEditor actions={(def.onEnter as Record<string, unknown>[]) ?? []} {states} onChange={a => model.setStateOnEnter(a)} />
 	</div>
 </div>

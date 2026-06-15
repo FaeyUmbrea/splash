@@ -12,8 +12,7 @@ export function transitionState(child: PIXI.DisplayObject, state: State) {
 	} else if (child instanceof PanelGraphics) {
 		child.resize(state.width ?? 200, state.height ?? 200);
 	} else if (child instanceof PIXI.Text) {
-		// Text auto-sizes to its glyphs; scaling it (esp. a 0 height) would distort or hide it — the HTML
-		// renderer treats width/height as the wrapper, not the glyph, so we leave PIXI text natural to match.
+		// Left natural: text auto-sizes to its glyphs and the HTML renderer sizes the wrapper, not the glyph.
 	} else if (child instanceof PIXI.Container) {
 		child.width = state.width ?? child.width;
 		child.height = state.height ?? child.height;

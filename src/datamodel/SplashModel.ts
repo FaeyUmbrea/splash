@@ -177,10 +177,9 @@ function VoteActionSchemaCreator() {
 }
 
 /**
- * An INLINE macro carried on the action itself (vs the `macro` action's reference to a world-local Macro
- * document). The source runs with `scope` = the firing sprite's node in the materialized tree, so it
- * navigates relatively (`scope.parent.child.get("Top").text = "A"`) and reads `scope.context`. Inline =
- * travels with a prefab; the trust surface is Foundry's existing macro model.
+ * Inline macro carried on the action itself (vs the `macro` action's reference to a world-local Macro).
+ * The source runs with `scope` = the firing sprite's node in the materialized tree, navigating relatively
+ * (`scope.parent.child.get("Top").text = "A"`) and reading `scope.context`.
  */
 function ScriptActionSchemaCreator() {
 	const fields = foundry.data.fields;

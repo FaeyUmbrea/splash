@@ -4,11 +4,11 @@ import type { PresetPayload } from '../utils/presets.ts';
 const HandlebarsSheet = foundry.applications.sheets.journal.JournalEntryPageHandlebarsSheet;
 
 const KIND_META: Record<string, { label: string; icon: string }> = {
-	nineslice: { label: 'Nine-slice', icon: 'fa-solid fa-border-all' },
-	button: { label: 'Button', icon: 'fa-solid fa-hand-pointer' },
-	animation: { label: 'Animation', icon: 'fa-solid fa-wand-magic-sparkles' },
-	sprite: { label: 'Sprite', icon: 'fa-solid fa-image' },
-	spriteGroup: { label: 'Sprite group', icon: 'fa-solid fa-layer-group' },
+	nineslice: { label: 'splash.sheet.presetSheet.kindNineslice', icon: 'fa-solid fa-border-all' },
+	button: { label: 'splash.sheet.presetSheet.kindButton', icon: 'fa-solid fa-hand-pointer' },
+	animation: { label: 'splash.sheet.presetSheet.kindAnimation', icon: 'fa-solid fa-wand-magic-sparkles' },
+	sprite: { label: 'splash.sheet.presetSheet.kindSprite', icon: 'fa-solid fa-image' },
+	spriteGroup: { label: 'splash.sheet.presetSheet.kindSpriteGroup', icon: 'fa-solid fa-layer-group' },
 };
 
 const SPRITE_GLYPH: Record<string, string> = {
@@ -47,12 +47,7 @@ interface PresetView {
 	members: { name: string; glyph: string; image: string | null }[];
 }
 
-/**
- * Read-only preview sheet for `splash.preset` journal pages. Renders an HTML summary of the preset —
- * nine-slice frames via CSS `border-image`, text/images, and parameter tables — so opening a preset in
- * the journal shows what it is. Strictly HTML/CSS, never a canvas. Presets are authored from the splash
- * editor, so edit mode only carries the core header (rename) + a note.
- */
+/** Preview sheet for `splash.preset` pages: an HTML/CSS summary (never a canvas). Presets are authored from the editor, so edit mode only carries the header (rename) + a note. */
 export class PresetSheet extends HandlebarsSheet {
 	static VIEW_PARTS = {
 		content: { template: 'modules/splash/templates/preset-view.hbs', root: true },
@@ -70,44 +65,46 @@ export class PresetSheet extends HandlebarsSheet {
 
 	#describe(payload: PresetPayload | null): PresetView {
 		const kind = payload?.type ?? 'unknown';
-		const meta = KIND_META[kind] ?? { label: kind, icon: 'fa-solid fa-question' };
-		const view: PresetView = { kind, kindLabel: meta.label, icon: meta.icon, rows: [], demo: false, demoLabel: '', text: null, image: null, swatch: false, members: [] };
+		const meta = KIND_META[kind];
+		const kindLabel = meta ? game.i18n.localize(meta.label) : kind;
+		const icon = meta?.icon ?? 'fa-solid fa-question';
+		const view: PresetView = { kind, kindLabel, icon, rows: [], demo: false, demoLabel: '', text: null, image: null, swatch: false, members: [] };
 		if (!payload) return view;
 
 		if (payload.type === 'nineslice') {
 			view.demo = true;
-			view.demoLabel = 'Preview';
-			view.rows.push({ label: 'Image', value: baseName(payload.url) });
-			view.rows.push({ label: 'Insets', value: `L ${payload.leftWidth ?? 0} · T ${payload.topHeight ?? 0} · R ${payload.rightWidth ?? 0} · B ${payload.bottomHeight ?? 0}` });
+			view.demoLabel = game.i18n.localize('splash.sheet.presetSheet.preview');
+			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowImage'), value: baseName(payload.url) });
+			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowInsets'), value: `L ${payload.leftWidth ?? 0} · T ${payload.topHeight ?? 0} · R ${payload.rightWidth ?? 0} · B ${payload.bottomHeight ?? 0}` });
 		} else if (payload.type === 'button') {
 			const b = payload as Record<string, unknown>;
 			view.demo = true;
-			view.demoLabel = (b.label as { text?: string })?.text || 'Button';
-			view.rows.push({ label: 'Label', value: (b.label as { text?: string })?.text || '—' });
+			view.demoLabel = (b.label as { text?: string })?.text || game.i18n.localize('splash.sheet.presetSheet.kindButton');
+			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowLabel'), value: (b.label as { text?: string })?.text || '—' });
 			const variants = ['hoverImage', 'clickImage', 'hoverLabel', 'clickLabel'].filter(k => b[k]);
-			if (variants.length) view.rows.push({ label: 'Variants', value: variants.join(', ') });
+			if (variants.length) view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowVariants'), value: variants.join(', ') });
 		} else if (payload.type === 'animation') {
 			const v = payload.value as Record<string, unknown>;
 			const props = (v.props ?? {}) as Record<string, unknown>;
 			view.swatch = v.type === 'glitch';
-			view.rows.push({ label: 'Effect', value: String(v.type ?? '—') });
-			view.rows.push({ label: 'Duration', value: `${v.duration ?? 0} ms` });
-			view.rows.push({ label: 'Delay', value: `${v.delay ?? 0} ms` });
+			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowEffect'), value: String(v.type ?? '—') });
+			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowDuration'), value: `${v.duration ?? 0} ms` });
+			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowDelay'), value: `${v.delay ?? 0} ms` });
 			const origins = (v.type === 'dissolve' ? props : (props.origins ?? {})) as Record<string, unknown>;
-			view.rows.push({ label: 'Origins', value: origins.type === 'fixedOrigins' ? `fixed (${((origins.origins as unknown[]) ?? []).length})` : `random (${origins.numOrigins ?? 0})` });
+			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowOrigins'), value: origins.type === 'fixedOrigins' ? game.i18n.format('splash.sheet.presetSheet.originsFixed', { n: ((origins.origins as unknown[]) ?? []).length }) : game.i18n.format('splash.sheet.presetSheet.originsRandom', { n: (origins.numOrigins as number) ?? 0 }) });
 			if (v.type === 'glitch') {
-				view.rows.push({ label: 'Bands', value: String(props.bands ?? '—') });
-				view.rows.push({ label: 'Intensity', value: String(props.intensity ?? '—') });
-				view.rows.push({ label: 'Invert', value: props.invert ? 'yes' : 'no' });
+				view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowBands'), value: String(props.bands ?? '—') });
+				view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowIntensity'), value: String(props.intensity ?? '—') });
+				view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowInvert'), value: props.invert ? game.i18n.localize('splash.sheet.presetSheet.yes') : game.i18n.localize('splash.sheet.presetSheet.no') });
 			}
 		} else if (payload.type === 'sprite') {
 			this.#describeSpriteInto(view, payload.value);
 		} else if (payload.type === 'spriteGroup') {
-			view.rows.push({ label: 'Members', value: String(payload.value?.length ?? 0) });
+			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowMembers'), value: String(payload.value?.length ?? 0) });
 			view.members = (payload.value ?? []).map((s) => {
 				const r = s as Record<string, unknown>;
 				return {
-					name: (r.name as string) || (KIND_META[String(r.type)]?.label ?? String(r.type)),
+					name: (r.name as string) || (KIND_META[String(r.type)] ? game.i18n.localize(KIND_META[String(r.type)].label) : String(r.type)),
 					glyph: SPRITE_GLYPH[String(r.type)] ?? 'fa-solid fa-shapes',
 					image: r.type === 'image' && r.img ? String(r.img) : null,
 				};
@@ -119,14 +116,14 @@ export class PresetSheet extends HandlebarsSheet {
 	/** Describe a single sprite into the view (shared by the `sprite` kind). */
 	#describeSpriteInto(view: PresetView, sprite: SpriteCreate): void {
 		const s = sprite as Record<string, unknown>;
-		view.rows.push({ label: 'Sprite', value: KIND_META[String(s.type)]?.label ?? String(s.type) });
+		view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowSprite'), value: KIND_META[String(s.type)] ? game.i18n.localize(KIND_META[String(s.type)].label) : String(s.type) });
 		if (s.type === 'image') {
 			view.image = (s.img as string) || null;
 		} else if (s.type === 'text') {
 			view.text = (s.text as string) || '';
 		} else if (s.type === 'button') {
 			view.demo = true;
-			view.demoLabel = (s.label as { text?: string })?.text || 'Button';
+			view.demoLabel = (s.label as { text?: string })?.text || game.i18n.localize('splash.sheet.presetSheet.kindButton');
 		}
 	}
 

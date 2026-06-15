@@ -31,9 +31,8 @@ export function setupAPI(api: SplashAPI) {
 	api.registerAction('close', 'Close Splash', () => {
 		Hooks.call('splash.close-splash');
 	});
-	// Value actions are handled inside each runtime instance; these registrations
-	// exist so editors can list them. Reaching the processor means the action was
-	// dispatched outside a splash, where values don't exist.
+	// Value actions run inside each runtime instance; these registrations only let editors list them.
+	// Reaching this warning means the action was dispatched outside a splash.
 	const valueActionWarning = () => console.warn('Splash | Value actions only work inside a running splash.');
 	api.registerAction('set-value', 'Set Value', valueActionWarning);
 	api.registerAction('increment-value', 'Increment Value', valueActionWarning);

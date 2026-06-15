@@ -2,9 +2,8 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.ts';
 
 /**
- * Splash E2E. Every test restores the world to its seeded baseline (close any overlays, clear the lock's
- * runtime flag, unbind doors) so runs never poison one another. The renderer is forced to `html` where we
- * need to click a sprite, since DOM sprites are directly clickable (the WebGL canvas is not).
+ * Splash E2E. Each test restores the seeded baseline so runs don't poison one another. Renderer is forced
+ * to `html` where a sprite must be clicked — DOM sprites are clickable, the WebGL canvas is not.
  */
 
 test.describe.configure({ mode: 'serial' });

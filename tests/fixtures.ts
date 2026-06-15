@@ -3,9 +3,8 @@ import process from 'node:process';
 import { test as base, expect } from '@playwright/test';
 
 /**
- * Two-client fixtures: a Gamemaster context and a Player context, each a separate browser context so they
- * are genuinely different Foundry sessions (needed for the synced GM↔player flows). The world itself is
- * seeded once in globalSetup; tests that change world state must restore it (see the cleanup helpers).
+ * Two-client fixtures: GM and Player in separate browser contexts so they're genuinely different Foundry sessions (for synced GM↔player flows).
+ * The world is seeded once in globalSetup; tests that change world state must restore it.
  */
 
 const PASSWORD = process.env.TEST_INSTALL_PASSWORD ?? '';

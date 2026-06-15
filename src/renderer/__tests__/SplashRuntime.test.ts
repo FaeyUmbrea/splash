@@ -333,7 +333,7 @@ describe('splashRuntime', () => {
 
 		runtime.setOverride('img-1', 'text', undefined);
 		expect(handles[0].applyOverrides).toHaveBeenLastCalledWith({});
-		expect(runtime.snapshot.overrides).toEqual({}); // empty bag is dropped, leaving no trace in the snapshot
+		expect(runtime.snapshot.overrides).toEqual({}); // empty bag is dropped
 	});
 
 	it('applyShared adopts overrides from an authoritative snapshot without echoing back', async () => {

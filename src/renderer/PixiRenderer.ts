@@ -55,9 +55,7 @@ export class PixiRenderer implements SplashRenderer {
 	#resizeObserver: ResizeObserver | undefined;
 
 	constructor(view: HTMLCanvasElement) {
-		// Sized to the host container so the renderer works fullscreen and in handout
-		// windows; the observer also covers the container not being laid out yet at
-		// mount time and users resizing handout windows.
+		// Sized to the host container; the observer covers not-yet-laid-out mounts and handout-window resizes.
 		const container = view.parentElement;
 		this.#app = new PIXI.Application({
 			view,
@@ -120,8 +118,7 @@ export class PixiRenderer implements SplashRenderer {
 
 	destroy(): void {
 		this.#resizeObserver?.disconnect();
-		// Destroy the whole Application to release the WebGL context; destroying only the stage leaks it, and
-		// browsers cap contexts (~16). `removeView: false` leaves the <canvas> for Svelte to unmount.
+		// Destroy the whole Application to release the WebGL context (browsers cap ~16); removeView:false leaves the canvas for Svelte.
 		this.#app.destroy(false, { children: true });
 	}
 }

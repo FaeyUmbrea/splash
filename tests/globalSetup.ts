@@ -3,12 +3,8 @@ import { chromium } from '@playwright/test';
 import { login } from './fixtures.ts';
 
 /**
- * Seed the live world with the fixtures the suite needs, idempotently (by name, so re-runs are no-ops):
- * the two extra player users, a journal of test splashes (a local fullscreen one and a synced handout
- * "lock"), and a scene with a door. This is the world's baseline; tests must leave it in this state.
- *
- * The same seed makes any fresh world (e.g. a v14 copy) into a runnable test world — only the splash +
- * lib-wrapper modules need to be enabled first.
+ * Seeds the world's baseline fixtures idempotently (by name, so re-runs are no-ops); tests must leave
+ * the world in this state. Turns any fresh world into a runnable one once splash + lib-wrapper are on.
  */
 export default async function globalSetup(): Promise<void> {
 	const baseURL = process.env.TEST_URL ?? 'http://localhost:30001';
@@ -61,7 +57,7 @@ async function seed(): Promise<Record<string, unknown>> {
 
 	let journal = game.journal.getName('E2E Splashes');
 	if (!journal) journal = await JournalEntry.create({ name: 'E2E Splashes', ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER } });
-	// Upsert: refresh an existing page's structure to the canonical baseline so the suite's expectations hold.
+	// Upsert: reset an existing page's structure to the canonical baseline.
 	const ensurePage = async (name: string, system: { layer: string; mode: string; children: object[] }) => {
 		const existing = journal.pages.getName(name);
 		if (existing) await existing.update({ 'system.==children': system.children, 'system.layer': system.layer, 'system.mode': system.mode });

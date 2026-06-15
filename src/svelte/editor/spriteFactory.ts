@@ -13,19 +13,19 @@ export function createSprite(type: SpriteType, stateKey: string): SpriteCreate {
 	const states = { [stateKey]: basePlacement() };
 
 	if (type === 'image') {
-		return { type, id, name: 'Image', img: '', effects: [], states } as SpriteCreate;
+		return { type, id, name: game.i18n.localize('splash.editor.spriteFactory.imageName'), img: '', effects: [], states } as SpriteCreate;
 	}
 	if (type === 'text') {
-		return { type, id, name: 'Text', text: 'Text', font: 'Arial', size: 34, fillColor: '#ffffff', align: 'center', effects: [], states } as SpriteCreate;
+		return { type, id, name: game.i18n.localize('splash.editor.spriteFactory.textName'), text: game.i18n.localize('splash.editor.spriteFactory.textContent'), font: 'Arial', size: 34, fillColor: '#ffffff', align: 'center', effects: [], states } as SpriteCreate;
 	}
 	if (type === 'panel') {
-		return { type, id, name: 'Panel', fill: '#222831', borderColor: '#000000', borderWidth: 0, radius: 0, effects: [], states } as SpriteCreate;
+		return { type, id, name: game.i18n.localize('splash.editor.spriteFactory.panelName'), fill: '#222831', borderColor: '#000000', borderWidth: 0, radius: 0, effects: [], states } as SpriteCreate;
 	}
 	return {
 		type: 'button',
 		id,
-		name: 'Button',
-		label: { text: 'Button', fontSize: 20, strokeThickness: 0, stroke: '#000000', fill: '#ffffff' },
+		name: game.i18n.localize('splash.editor.spriteFactory.buttonName'),
+		label: { text: game.i18n.localize('splash.editor.spriteFactory.buttonLabel'), fontSize: 20, strokeThickness: 0, stroke: '#000000', fill: '#ffffff' },
 		image: { url: '', leftWidth: 0, topHeight: 0, rightWidth: 0, bottomHeight: 0 },
 		onClick: { type: 'close' },
 		effects: [],

@@ -3,8 +3,8 @@ import { SvelteApplicationMixin } from '../mixins/SvelteApplicationMixin.svelte.
 import Editor from '../svelte/editor/Editor.svelte';
 
 /**
- * The splash editor as a normal (large, z-managed) Foundry window — NOT a z-index-hacked frameless
- * overlay. Foundry then stacks pop-outs opened from it (file pickers, dialogs) above it naturally.
+ * A normal z-managed Foundry window, not a frameless overlay, so Foundry stacks pop-outs
+ * (file pickers, dialogs) above it naturally.
  */
 export default class SplashEditorApplication extends SvelteApplicationMixin(foundry.applications.api.ApplicationV2) {
 	protected override root = Editor;
@@ -29,7 +29,7 @@ export default class SplashEditorApplication extends SvelteApplicationMixin(foun
 	};
 
 	override get title(): string {
-		return `Splash Editor — ${this.#page.name}`;
+		return game.i18n.format('splash.app.splashEditorApplication.title', { name: this.#page.name });
 	}
 
 	protected override async _prepareContext() {

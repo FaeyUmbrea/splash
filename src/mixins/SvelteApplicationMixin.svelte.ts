@@ -28,18 +28,13 @@ function SvelteApplicationMixin<
 		/** The mounted root component, saved to be unmounted on application close */
 		#mount: object = {};
 
-		/**
-		 * Optional async hook the mounted component can set to run work (e.g. an outro animation) while
-		 * the DOM is still live, before the app tears down. Awaited in `_preClose`. `skipOutro` lets an
-		 * emergency/instant close bypass it.
-		 */
+		/** Hook the mounted component sets to run work (e.g. an outro) while the DOM is still live; awaited in `_preClose` unless `skipOutro`. */
 		onPreClose?: (options: foundry.applications.api.ApplicationV2.ClosingOptions & { skipOutro?: boolean }) => Promise<void> | void;
 
 		protected override async _preClose(
 			options: foundry.applications.api.ApplicationV2.ClosingOptions & { skipOutro?: boolean },
 		): Promise<void> {
-			// The outro is best-effort: a rejected/thrown out-animation must NEVER abort the close, or the
-			// app would zombie on screen and every later close would re-run the same failing hook.
+			// Best-effort: a thrown outro must not abort the close, or the app zombies on screen.
 			if (!options?.skipOutro) {
 				try {
 					await this.onPreClose?.(options);

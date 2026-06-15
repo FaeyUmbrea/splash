@@ -14,10 +14,10 @@
 	}
 
 	const layerMeta: Record<string, { label: string; icon: string }> = {
-		scene: { label: 'Scene', icon: 'fa-solid fa-layer-group' },
-		hud: { label: 'HUD', icon: 'fa-solid fa-table-columns' },
-		full: { label: 'Full', icon: 'fa-solid fa-expand' },
-		handout: { label: 'Handout', icon: 'fa-solid fa-window-maximize' },
+		scene: { label: game.i18n.localize('splash.manager.layerScene'), icon: 'fa-solid fa-layer-group' },
+		hud: { label: game.i18n.localize('splash.manager.layerHud'), icon: 'fa-solid fa-table-columns' },
+		full: { label: game.i18n.localize('splash.manager.layerFull'), icon: 'fa-solid fa-expand' },
+		handout: { label: game.i18n.localize('splash.manager.layerHandout'), icon: 'fa-solid fa-window-maximize' },
 	};
 
 	let pages = $state<SplashPage[]>(allSplashPages());
@@ -38,8 +38,8 @@
 	}
 
 	const primaryTabs: Tab[] = [
-		{ id: 'splashes', label: 'Splashes', icon: 'fa-solid fa-images' },
-		{ id: 'presets', label: 'Presets', icon: 'fa-solid fa-swatchbook' },
+		{ id: 'splashes', label: game.i18n.localize('splash.manager.tabSplashes'), icon: 'fa-solid fa-images' },
+		{ id: 'presets', label: game.i18n.localize('splash.manager.tabPresets'), icon: 'fa-solid fa-swatchbook' },
 	];
 
 	const filteredPresets = $derived.by(() => {
@@ -49,9 +49,9 @@
 
 	async function renamePreset(preset: PresetSummary) {
 		const name = await foundry.applications.api.DialogV2.prompt({
-			window: { title: 'Rename preset' },
+			window: { title: game.i18n.localize('splash.manager.renamePresetTitle') },
 			content: `<input type="text" name="name" value="${escapeHtml(preset.name)}" style="width:100%" autofocus />`,
-			ok: { label: 'Rename', callback: (_event: unknown, button: { form: HTMLFormElement }) => (button.form.elements.namedItem('name') as HTMLInputElement)?.value },
+			ok: { label: game.i18n.localize('splash.manager.renamePresetOk'), callback: (_event: unknown, button: { form: HTMLFormElement }) => (button.form.elements.namedItem('name') as HTMLInputElement)?.value },
 		}).catch(() => null);
 		if (name == null) return;
 		const page = await fromUuid(preset.uuid);
@@ -60,8 +60,8 @@
 
 	async function deletePreset(preset: PresetSummary) {
 		const ok = await foundry.applications.api.DialogV2.confirm({
-			window: { title: 'Delete preset' },
-			content: `<p>Delete preset "<strong>${escapeHtml(preset.name)}</strong>"? This cannot be undone.</p>`,
+			window: { title: game.i18n.localize('splash.manager.deletePresetTitle') },
+			content: `<p>${game.i18n.format('splash.manager.deletePresetContent', { name: `<strong>${escapeHtml(preset.name)}</strong>` })}</p>`,
 		}).catch(() => false);
 		if (!ok) return;
 		const page = await fromUuid(preset.uuid);
@@ -78,18 +78,18 @@
 	});
 
 	const groupTabs: Tab[] = [
-		{ id: 'journal', label: 'By journal', icon: 'fa-solid fa-book' },
-		{ id: 'kind', label: 'By kind', icon: 'fa-solid fa-shapes' },
+		{ id: 'journal', label: game.i18n.localize('splash.manager.groupByJournal'), icon: 'fa-solid fa-book' },
+		{ id: 'kind', label: game.i18n.localize('splash.manager.groupByKind'), icon: 'fa-solid fa-shapes' },
 	];
 
 	const layerOptions: SelectItem[] = [
-		{ value: 'full', label: 'Full splash' },
-		{ value: 'scene', label: 'Scene splash' },
-		{ value: 'hud', label: 'HUD splash' },
-		{ value: 'handout', label: 'Handout' },
+		{ value: 'full', label: game.i18n.localize('splash.manager.newLayerFull') },
+		{ value: 'scene', label: game.i18n.localize('splash.manager.newLayerScene') },
+		{ value: 'hud', label: game.i18n.localize('splash.manager.newLayerHud') },
+		{ value: 'handout', label: game.i18n.localize('splash.manager.newLayerHandout') },
 	];
 	const journalOptions = $derived<SelectItem[]>([
-		{ value: '', label: 'Splashes and Handouts (default)' },
+		{ value: '', label: game.i18n.localize('splash.manager.journalDefault') },
 		...(game.journal?.contents ?? []).map(j => ({ value: j.id as string, label: j.name as string })),
 	]);
 
@@ -101,7 +101,7 @@
 	const groups = $derived.by(() => {
 		const byKey: Record<string, SplashPage[]> = {};
 		for (const p of filtered) {
-			const key = groupBy === 'journal' ? (p.parent?.name ?? 'Ungrouped') : (layerMeta[p.system.layer]?.label ?? p.system.layer);
+			const key = groupBy === 'journal' ? (p.parent?.name ?? game.i18n.localize('splash.manager.ungrouped')) : (layerMeta[p.system.layer]?.label ?? p.system.layer);
 			(byKey[key] ??= []).push(p);
 		}
 		return Object.entries(byKey).sort((a, b) => a[0].localeCompare(b[0]));
@@ -117,14 +117,14 @@
 	async function duplicate(page: SplashPage) {
 		const data = page.toObject();
 		delete (data as { _id?: string })._id;
-		data.name = `${page.name} copy`;
+		data.name = game.i18n.format('splash.manager.duplicateName', { name: page.name });
 		await page.parent?.createEmbeddedDocuments('JournalEntryPage', [data]);
 	}
 
 	async function remove(page: SplashPage) {
 		const ok = await foundry.applications.api.DialogV2.confirm({
-			window: { title: 'Delete splash' },
-			content: `<p>Delete "<strong>${page.name}</strong>"? This cannot be undone.</p>`,
+			window: { title: game.i18n.localize('splash.manager.deleteSplashTitle') },
+			content: `<p>${game.i18n.format('splash.manager.deleteSplashContent', { name: `<strong>${escapeHtml(page.name ?? '')}</strong>` })}</p>`,
 		}).catch(() => false);
 		if (ok) await page.delete();
 	}
@@ -146,11 +146,11 @@
 		const items: ContextMenuItem[] = [
 			...availableActions(page).map(a => ({ label: a.label.startsWith('splash.') ? game.i18n.localize(a.label) : a.label, icon: a.icon, disabled: a.disabled, action: () => runSplashAction(a.action, page) })),
 			{ separator: true },
-			{ label: page.system.global ? 'Unset global' : 'Set global', icon: 'fa-solid fa-globe', action: () => void page.update({ 'system.global': !page.system.global }) },
-			{ label: pinned ? 'Unpin from scene' : 'Pin to current scene', icon: 'fa-solid fa-thumbtack', disabled: !canvas?.scene, action: () => togglePin(page) },
-			{ label: 'Duplicate', icon: 'fa-solid fa-clone', action: () => duplicate(page) },
+			{ label: page.system.global ? game.i18n.localize('splash.manager.unsetGlobal') : game.i18n.localize('splash.manager.setGlobal'), icon: 'fa-solid fa-globe', action: () => void page.update({ 'system.global': !page.system.global }) },
+			{ label: pinned ? game.i18n.localize('splash.manager.unpinFromScene') : game.i18n.localize('splash.manager.pinToScene'), icon: 'fa-solid fa-thumbtack', disabled: !canvas?.scene, action: () => togglePin(page) },
+			{ label: game.i18n.localize('splash.manager.duplicate'), icon: 'fa-solid fa-clone', action: () => duplicate(page) },
 			{ separator: true },
-			{ label: 'Delete', icon: 'fa-solid fa-trash', danger: true, action: () => remove(page) },
+			{ label: game.i18n.localize('splash.manager.delete'), icon: 'fa-solid fa-trash', danger: true, action: () => remove(page) },
 		];
 		menu = { x: event.clientX, y: event.clientY, items };
 	}
@@ -168,22 +168,22 @@
 		<header class='toolbar'>
 			<div class='search'>
 				<i class='fa-solid fa-magnifying-glass'></i>
-				<input type='text' placeholder='Search splashes…' bind:value={search} />
+				<input type='text' placeholder={game.i18n.localize('splash.manager.searchSplashes')} bind:value={search} />
 			</div>
 			<Tabs tabs={groupTabs} bind:value={groupBy} />
-			<IconButton icon='fa-solid fa-plus' title='New splash' active={creating} onclick={() => (creating = !creating)} />
+			<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.manager.newSplash')} active={creating} onclick={() => (creating = !creating)} />
 		</header>
 
 		{#if creating}
 			<div class='create'>
-				<TextField label='Name' bind:value={newName} placeholder='New Splash' />
+				<TextField label={game.i18n.localize('splash.manager.name')} bind:value={newName} placeholder={game.i18n.localize('splash.manager.newSplashPlaceholder')} />
 				<div class='create-row'>
-					<label class='lbl'>Kind <Select options={layerOptions} bind:value={newLayer} searchable={false} /></label>
-					<label class='lbl'>Journal <Select options={journalOptions} bind:value={newJournalId} /></label>
+					<label class='lbl'>{game.i18n.localize('splash.manager.kind')} <Select options={layerOptions} bind:value={newLayer} searchable={false} /></label>
+					<label class='lbl'>{game.i18n.localize('splash.manager.journal')} <Select options={journalOptions} bind:value={newJournalId} /></label>
 				</div>
 				<div class='create-actions'>
-					<button type='button' class='ghost' onclick={() => (creating = false)}>Cancel</button>
-					<button type='button' class='primary' onclick={create}>Create &amp; edit</button>
+					<button type='button' class='ghost' onclick={() => (creating = false)}>{game.i18n.localize('splash.manager.cancel')}</button>
+					<button type='button' class='primary' onclick={create}>{game.i18n.localize('splash.manager.createAndEdit')}</button>
 				</div>
 			</div>
 		{/if}
@@ -196,26 +196,26 @@
 						<i class={layerMeta[page.system.layer]?.icon ?? 'fa-solid fa-image'} title={layerMeta[page.system.layer]?.label}></i>
 						<span class='name'>{page.name}</span>
 						<span class='chips'>
-							{#if page.system.global}<span class='chip'>global</span>{/if}
-							{#if page.system.mode === 'synced'}<span class='chip'>synced</span>{/if}
+							{#if page.system.global}<span class='chip'>{game.i18n.localize('splash.manager.chipGlobal')}</span>{/if}
+							{#if page.system.mode === 'synced'}<span class='chip'>{game.i18n.localize('splash.manager.chipSynced')}</span>{/if}
 							<span class='chip layer'>{layerMeta[page.system.layer]?.label ?? page.system.layer}</span>
 						</span>
 						<span class='row-actions'>
-							<IconButton icon={page.system.layer === 'handout' ? 'fa-solid fa-window-maximize' : 'fa-solid fa-play'} title='Launch' onclick={e => primaryAction(e, page)} />
-							<IconButton icon='fa-solid fa-ellipsis-vertical' title='More' onclick={e => rowMenu(e, page)} />
+							<IconButton icon={page.system.layer === 'handout' ? 'fa-solid fa-window-maximize' : 'fa-solid fa-play'} title={game.i18n.localize('splash.manager.launch')} onclick={e => primaryAction(e, page)} />
+							<IconButton icon='fa-solid fa-ellipsis-vertical' title={game.i18n.localize('splash.manager.more')} onclick={e => rowMenu(e, page)} />
 						</span>
 					</ListRow>
 				{/each}
 			{/each}
 			{#if filtered.length === 0}
-				<div class='empty'>No splashes{search ? ' match your search' : ' yet — use + to create one'}.</div>
+				<div class='empty'>{search ? game.i18n.localize('splash.manager.noSplashesMatch') : game.i18n.localize('splash.manager.noSplashesYet')}</div>
 			{/if}
 		</div>
 	{:else}
 		<header class='toolbar'>
 			<div class='search'>
 				<i class='fa-solid fa-magnifying-glass'></i>
-				<input type='text' placeholder='Search presets…' bind:value={search} />
+				<input type='text' placeholder={game.i18n.localize('splash.manager.searchPresets')} bind:value={search} />
 			</div>
 		</header>
 
@@ -226,13 +226,13 @@
 					<span class='name'>{preset.name}</span>
 					<span class='chip'>{preset.kind}</span>
 					<span class='row-actions'>
-						<IconButton icon='fa-solid fa-pen' title='Rename' onclick={() => renamePreset(preset)} />
-						<IconButton icon='fa-solid fa-trash' title='Delete' danger onclick={() => deletePreset(preset)} />
+						<IconButton icon='fa-solid fa-pen' title={game.i18n.localize('splash.manager.rename')} onclick={() => renamePreset(preset)} />
+						<IconButton icon='fa-solid fa-trash' title={game.i18n.localize('splash.manager.delete')} danger onclick={() => deletePreset(preset)} />
 					</span>
 				</ListRow>
 			{/each}
 			{#if filteredPresets.length === 0}
-				<div class='empty'>No presets{search ? ' match your search' : ' yet — save one from the splash editor'}.</div>
+				<div class='empty'>{search ? game.i18n.localize('splash.manager.noPresetsMatch') : game.i18n.localize('splash.manager.noPresetsYet')}</div>
 			{/if}
 		</div>
 	{/if}

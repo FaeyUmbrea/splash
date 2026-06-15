@@ -24,13 +24,13 @@
 	} = $props();
 
 	const typeOptions: SelectItem[] = [
-		{ value: '', label: 'None' },
-		{ value: 'dissolve', label: 'Dissolve' },
-		{ value: 'glitch', label: 'Glitch' },
+		{ value: '', label: game.i18n.localize('splash.editor.animationEditor.typeNone') },
+		{ value: 'dissolve', label: game.i18n.localize('splash.editor.animationEditor.typeDissolve') },
+		{ value: 'glitch', label: game.i18n.localize('splash.editor.animationEditor.typeGlitch') },
 	];
 	const originTypeOptions: SelectItem[] = [
-		{ value: 'randomOrigins', label: 'Random' },
-		{ value: 'fixedOrigins', label: 'Fixed' },
+		{ value: 'randomOrigins', label: game.i18n.localize('splash.editor.animationEditor.originRandom') },
+		{ value: 'fixedOrigins', label: game.i18n.localize('splash.editor.animationEditor.originFixed') },
 	];
 
 	const type = $derived(value?.type ?? '');
@@ -76,9 +76,9 @@
 	<div class='label-row'>
 		<span class='sublabel'>{label}</span>
 		<span class='preset-actions'>
-			<IconButton icon='fa-solid fa-folder-open' title='Apply animation preset' onclick={() => (picking = true)} />
+			<IconButton icon='fa-solid fa-folder-open' title={game.i18n.localize('splash.editor.animationEditor.applyPreset')} onclick={() => (picking = true)} />
 			{#if isGM && value}
-				<IconButton icon='fa-solid fa-floppy-disk' title='Save as preset' onclick={() => promptAndSavePreset({ type: 'animation', value } as PresetPayload, 'Animation')} />
+				<IconButton icon='fa-solid fa-floppy-disk' title={game.i18n.localize('splash.editor.animationEditor.savePreset')} onclick={() => promptAndSavePreset({ type: 'animation', value } as PresetPayload, game.i18n.localize('splash.editor.animationEditor.presetDefaultName'))} />
 			{/if}
 		</span>
 	</div>
@@ -86,15 +86,15 @@
 
 	{#if value}
 		<div class='grid'>
-			<NumberField label='Duration' value={(value.duration as number) ?? 1000} onChange={v => patchAnim({ duration: v ?? 0 })} />
-			<NumberField label='Delay' value={(value.delay as number) ?? 0} onChange={v => patchAnim({ delay: v ?? 0 })} />
+			<NumberField label={game.i18n.localize('splash.editor.animationEditor.duration')} value={(value.duration as number) ?? 1000} onChange={v => patchAnim({ duration: v ?? 0 })} />
+			<NumberField label={game.i18n.localize('splash.editor.animationEditor.delay')} value={(value.delay as number) ?? 0} onChange={v => patchAnim({ delay: v ?? 0 })} />
 		</div>
 
-		<Field label='Origins'>
+		<Field label={game.i18n.localize('splash.editor.animationEditor.origins')}>
 			<Select options={originTypeOptions} value={originType} searchable={false} onChange={t => setOrigins(t === 'randomOrigins' ? randomOrigins() : { type: 'fixedOrigins', origins: [] })} />
 		</Field>
 		{#if originType === 'randomOrigins'}
-			<NumberField label='Origin count' value={(origins.numOrigins as number) ?? 5} onChange={v => setOrigins(randomOrigins(v ?? 1))} />
+			<NumberField label={game.i18n.localize('splash.editor.animationEditor.originCount')} value={(origins.numOrigins as number) ?? 5} onChange={v => setOrigins(randomOrigins(v ?? 1))} />
 		{:else}
 			<OriginEditor
 				origins={(origins.origins as number[]) ?? []}
@@ -105,17 +105,17 @@
 
 		{#if value.type === 'glitch'}
 			<div class='grid'>
-				<NumberField label='Bands' value={(props.bands as number) ?? 20} onChange={v => patchGlitch({ bands: v ?? 1 })} />
-				<NumberField label='Intensity' step={0.01} value={(props.intensity as number) ?? 0.05} onChange={v => patchGlitch({ intensity: v ?? 0 })} />
+				<NumberField label={game.i18n.localize('splash.editor.animationEditor.bands')} value={(props.bands as number) ?? 20} onChange={v => patchGlitch({ bands: v ?? 1 })} />
+				<NumberField label={game.i18n.localize('splash.editor.animationEditor.intensity')} step={0.01} value={(props.intensity as number) ?? 0.05} onChange={v => patchGlitch({ intensity: v ?? 0 })} />
 			</div>
-			<ColorField label='Tint' value={(props.tint as string) ?? '#0044ff'} onChange={v => patchGlitch({ tint: v })} />
-			<CheckboxField label='Invert' value={(props.invert as boolean) ?? false} onChange={v => patchGlitch({ invert: v })} />
+			<ColorField label={game.i18n.localize('splash.editor.animationEditor.tint')} value={(props.tint as string) ?? '#0044ff'} onChange={v => patchGlitch({ tint: v })} />
+			<CheckboxField label={game.i18n.localize('splash.editor.animationEditor.invert')} value={(props.invert as boolean) ?? false} onChange={v => patchGlitch({ invert: v })} />
 		{/if}
 	{/if}
 </div>
 
 {#if picking}
-	<PresetPicker kind='animation' title='Apply animation preset' onPick={applyPreset} onClose={() => (picking = false)} />
+	<PresetPicker kind='animation' title={game.i18n.localize('splash.editor.animationEditor.applyPreset')} onPick={applyPreset} onClose={() => (picking = false)} />
 {/if}
 
 <style lang='scss'>

@@ -3,10 +3,9 @@ import type { PrefabBehavior } from './index.ts';
 import { nanoid } from 'nanoid';
 
 /**
- * The tumbler-lock behavior. Given a code word, it generates N letter wheels (each a grouped panel +
- * Top/Middle/Bottom text + Up/Down arrows) plus an Unlock button. All interactivity is two shared inline
- * macros parameterized by per-button context — the result is a plain, portable splash with no reference
- * back to this behavior.
+ * Given a code word, generates N letter wheels (grouped panel + Top/Middle/Bottom text + Up/Down arrows)
+ * plus an Unlock button. Interactivity is two shared inline macros parameterized by per-button context, so
+ * the output is a plain portable splash with no reference back to this behavior.
  */
 
 // Per-wheel rotate: read this wheel's Middle, write prev/current/next. context.Direction is +1 (up) / -1 (down).
@@ -19,8 +18,8 @@ const ROTATE
 const UNLOCK
 	= `const root=scope.parent;`
 		+ `const word=context.Wheels.map(id=>String(root.child.get(id)?.child.get('Middle').text||'').toUpperCase()).join('');`
-		+ `if(word===String(context.Keyword).toUpperCase()){ui.notifications?.info('Unlocked!');api.unlockDoor();api.close();}`
-		+ `else{ui.notifications?.warn('Wrong combination.');}`;
+		+ `if(word===String(context.Keyword).toUpperCase()){ui.notifications?.info(game.i18n.localize('splash.behavior.tumblerLock.unlocked'));api.unlockDoor();api.close();}`
+		+ `else{ui.notifications?.warn(game.i18n.localize('splash.behavior.tumblerLock.wrongCombination'));}`;
 
 const WHEEL_W = 90;
 const WHEEL_H = 240;
@@ -30,9 +29,11 @@ const Y0 = 200;
 
 export const tumblerLock: PrefabBehavior = {
 	key: 'tumbler-lock',
-	label: 'Tumbler lock',
+	// Getters, not eager calls: the literal is evaluated at import, before game.i18n exists (and in Node when
+	// buildPresets bundles this file). `.label` is only read at dialog time, when i18n is ready.
+	get label() { return game.i18n.localize('splash.behavior.tumblerLock.label'); },
 	icon: 'fa-solid fa-lock',
-	fields: [{ key: 'codeword', label: 'Code word', type: 'text', default: 'OPEN' }],
+	fields: [{ key: 'codeword', get label() { return game.i18n.localize('splash.behavior.tumblerLock.codeword'); }, type: 'text', default: 'OPEN' }],
 
 	build(config, { stateKey }) {
 		const word = (String(config.codeword ?? '').toUpperCase().replace(/[^A-Z]/g, '') || 'OPEN');

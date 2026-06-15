@@ -39,14 +39,14 @@ If a user password is set, pass it via `TEST_INSTALL_PASSWORD`.
 
 Running against your day-to-day world clutters it and steals the `Gamemaster` seat. Make a dedicated one:
 
-1. Log into any world, then use the in-world **Return to Setup** (the *world-overview* "Go to Setup" button
+1. Log into any world, then use the in-world **Return to Setup** (the _world-overview_ "Go to Setup" button
    can't return you to setup without a setup password set, so use the in-world one).
 2. On Setup, create a world (any system), enable **`splash`** + **`lib-wrapper`** in it, and launch it.
 3. Run `yarn test:e2e` — `globalSetup` populates everything it needs; nothing else to set up.
 
 ## Checking a new Foundry version (e.g. v14)
 
-The seed *is* the world data, so there's nothing binary to copy: create a fresh world on the new version,
+The seed _is_ the world data, so there's nothing binary to copy: create a fresh world on the new version,
 enable the two modules, and run the suite. Anything that regressed shows up as a failed test.
 
 ## Writing a test
@@ -56,11 +56,11 @@ cross-client propagation with `expect.poll`. **Always** undo world mutations in 
 
 ```ts
 test('…', async ({ pages: { gmPage, playerPage } }) => {
-  const uuid = await uuidOf(gmPage, 'E2E Lock');
-  try {
-    // … act on gmPage, assert on playerPage via expect.poll …
-  } finally {
-    await resetLock(gmPage, uuid); // restore the baseline
-  }
+	const uuid = await uuidOf(gmPage, 'E2E Lock');
+	try {
+		// … act on gmPage, assert on playerPage via expect.poll …
+	} finally {
+		await resetLock(gmPage, uuid); // restore the baseline
+	}
 });
 ```

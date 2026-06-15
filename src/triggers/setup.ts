@@ -9,6 +9,6 @@ export function setupTriggers(): void {
 	registerDoorIndicator();
 
 	const api = SplashAPI.getInstance();
-	api.registerTrigger('region', 'Token enters a region', regionTrigger);
-	api.registerTrigger('door', 'Player clicks a locked door', doorTrigger);
+	api.registerTrigger('region', game.i18n.localize('splash.triggers.setup.regionLabel'), regionTrigger);
+	api.registerTrigger('door', game.i18n.localize('splash.triggers.setup.doorLabel'), doorTrigger);
 }

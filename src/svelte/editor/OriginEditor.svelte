@@ -45,7 +45,7 @@
 </script>
 
 <div class='origin-editor'>
-	<span class='sublabel'>Origins — click to add, drag to move, right-click to remove</span>
+	<span class='sublabel'>{game.i18n.localize('splash.editor.originEditor.sublabel')}</span>
 	<div class='bar' bind:this={barEl} role='presentation' onclick={addOrigin}>
 		{#each origins as o, i (i)}
 			<div
@@ -60,7 +60,7 @@
 			></div>
 		{/each}
 		{#if origins.length === 0}
-			<span class='empty'>click to add an origin</span>
+			<span class='empty'>{game.i18n.localize('splash.editor.originEditor.empty')}</span>
 		{/if}
 	</div>
 </div>

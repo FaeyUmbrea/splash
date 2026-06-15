@@ -34,12 +34,7 @@ export async function killGlobalSplash(): Promise<void> {
 	await game.settings?.set(ID, SETTING_ACTIVE_SPLASH, null);
 }
 
-/**
- * GM emergency stop: tear down EVERY splash on EVERY client — not just the global one. Broadcasts a
- * close to all other clients (overlays and handouts alike), closes the GM's own, and nulls the world
- * setting so nothing restores on reload. For "someone fucked up" — a stuck or rogue local splash that
- * killing the global setting alone wouldn't touch.
- */
+/** GM emergency stop: tear down every splash on every client (including rogue local ones), not just the global. */
 export async function forceCloseAllSplashes(): Promise<void> {
 	broadcastCloseSplash(undefined, true);
 	Hooks.call('splash.close-splash', { skipOutro: true });

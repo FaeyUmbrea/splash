@@ -30,13 +30,13 @@
 	{#each actions as action, i (i)}
 		<div class='item'>
 			<div class='item-head'>
-				<span>Action {i + 1}</span>
-				<IconButton icon='fa-solid fa-trash' title='Remove action' danger onclick={() => remove(i)} />
+				<span>{game.i18n.format('splash.editor.actionListEditor.actionN', { n: i + 1 })}</span>
+				<IconButton icon='fa-solid fa-trash' title={game.i18n.localize('splash.editor.actionListEditor.removeAction')} danger onclick={() => remove(i)} />
 			</div>
 			<ActionEditor {action} {states} onChange={a => setAt(i, a)} />
 		</div>
 	{/each}
-	<IconButton icon='fa-solid fa-plus' title='Add action' onclick={add} />
+	<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.actionListEditor.addAction')} onclick={add} />
 </div>
 
 <style lang='scss'>

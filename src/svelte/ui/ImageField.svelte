@@ -42,7 +42,7 @@
 			{disabled}
 			onchange={() => onChange?.(value)}
 		/>
-		<button type='button' class='splash-image-browse' title='Browse files' aria-label='Browse files' {disabled} onclick={browse}>
+		<button type='button' class='splash-image-browse' title={game.i18n.localize('splash.ui.imageField.browse')} aria-label={game.i18n.localize('splash.ui.imageField.browse')} {disabled} onclick={browse}>
 			<i class='fas fa-folder-open'></i>
 		</button>
 	</span>

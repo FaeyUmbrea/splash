@@ -10,7 +10,7 @@
 
 	async function rename(state: EditorState) {
 		const label = await foundry.applications.api.DialogV2.prompt({
-			window: { title: 'Rename state' },
+			window: { title: game.i18n.localize('splash.editor.statesPanel.renameTitle') },
 			content: `<input name="label" type="text" value="${state.label}" autofocus style="width:100%">`,
 			ok: { callback: (_e: Event, button: HTMLButtonElement) => (button.form?.elements.namedItem('label') as HTMLInputElement)?.value },
 		}).catch(() => null);
@@ -24,11 +24,11 @@
 			x: event.clientX,
 			y: event.clientY,
 			items: [
-				{ label: 'Rename', icon: 'fa-solid fa-pen', action: () => void rename(state) },
-				{ label: 'Duplicate', icon: 'fa-solid fa-clone', action: () => model.duplicateState(state.key) },
-				{ label: 'Set as sole initial state', icon: 'fa-solid fa-flag', action: () => model.setSoleInitial(state.key) },
+				{ label: game.i18n.localize('splash.editor.statesPanel.rename'), icon: 'fa-solid fa-pen', action: () => void rename(state) },
+				{ label: game.i18n.localize('splash.editor.statesPanel.duplicate'), icon: 'fa-solid fa-clone', action: () => model.duplicateState(state.key) },
+				{ label: game.i18n.localize('splash.editor.statesPanel.setSoleInitial'), icon: 'fa-solid fa-flag', action: () => model.setSoleInitial(state.key) },
 				{ separator: true },
-				{ label: 'Delete', icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteState(state.key) },
+				{ label: game.i18n.localize('splash.editor.statesPanel.delete'), icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteState(state.key) },
 			],
 		};
 	}
@@ -36,8 +36,8 @@
 
 <section class='states-panel'>
 	<header>
-		<span class='title'>States</span>
-		<IconButton icon='fa-solid fa-plus' title='Add state' onclick={() => model.addState()} />
+		<span class='title'>{game.i18n.localize('splash.editor.statesPanel.title')}</span>
+		<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.statesPanel.addState')} onclick={() => model.addState()} />
 	</header>
 
 	<div class='list'>
@@ -53,7 +53,7 @@
 			>
 				<i class='fa-solid fa-clapperboard'></i>
 				<span class='name'>{state.label}</span>
-				{#if state.isInitial}<i class='fa-solid fa-flag initial' title='Initial state'></i>{/if}
+				{#if state.isInitial}<i class='fa-solid fa-flag initial' title={game.i18n.localize('splash.editor.statesPanel.initialState')}></i>{/if}
 			</div>
 		{/each}
 	</div>

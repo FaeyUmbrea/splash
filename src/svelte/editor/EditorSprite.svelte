@@ -62,7 +62,7 @@
 		{#if Component}<Component {sprite} />{/if}
 	</div>
 	{#if selected}
-		<div class='resize-handle' role='button' tabindex='-1' aria-label='Resize' onpointerdown={onResizeStart}></div>
+		<div class='resize-handle' role='button' tabindex='-1' aria-label={game.i18n.localize('splash.ui.editorSprite.resize')} onpointerdown={onResizeStart}></div>
 	{/if}
 </div>
 

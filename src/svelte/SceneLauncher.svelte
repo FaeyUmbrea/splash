@@ -12,7 +12,11 @@
 	import { getActiveSplash } from '../utils/settings.ts';
 	import { ContextMenu, IconButton, ListRow, Tabs } from './ui';
 
-	const layerLabel: Record<string, string> = { scene: 'Scene', hud: 'HUD', full: 'Full' };
+	const layerLabel: Record<string, string> = {
+		scene: game.i18n.localize('splash.launcher.sceneLauncher.layerScene'),
+		hud: game.i18n.localize('splash.launcher.sceneLauncher.layerHud'),
+		full: game.i18n.localize('splash.launcher.sceneLauncher.layerFull'),
+	};
 
 	const isGM = !!game.user?.isGM;
 
@@ -25,7 +29,7 @@
 	const activeName = $derived.by(() => {
 		if (!active) return '';
 		const page = fromUuidSync(active.uuid) as { name?: string } | null;
-		return page?.name ?? 'Splash';
+		return page?.name ?? game.i18n.localize('splash.launcher.sceneLauncher.fallbackName');
 	});
 	let menu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
 
@@ -59,8 +63,8 @@
 	const shown = $derived(tab === 'pinned' ? pinned : global);
 
 	const tabs = $derived<Tab[]>([
-		{ id: 'pinned', label: `Pinned (${pinned.length})`, icon: 'fa-solid fa-thumbtack', disabled: pinned.length === 0 },
-		{ id: 'global', label: `Global (${global.length})`, icon: 'fa-solid fa-globe' },
+		{ id: 'pinned', label: game.i18n.format('splash.launcher.sceneLauncher.tabPinned', { count: pinned.length }), icon: 'fa-solid fa-thumbtack', disabled: pinned.length === 0 },
+		{ id: 'global', label: game.i18n.format('splash.launcher.sceneLauncher.tabGlobal', { count: global.length }), icon: 'fa-solid fa-globe' },
 	]);
 
 	function refresh() {
@@ -86,7 +90,6 @@
 	onMount(() => hooks.forEach(([h, fn]) => ids.push(Hooks.on(h, fn))));
 	onDestroy(() => hooks.forEach(([h], i) => Hooks.off(h, ids[i])));
 
-	// If no scene is pinned, default the visible tab to Global.
 	$effect(() => {
 		if (tab === 'pinned' && pinned.length === 0) tab = 'global';
 	});
@@ -102,9 +105,9 @@
 			x: event.clientX,
 			y: event.clientY,
 			items: [
-				{ label: 'Preview (just me)', icon: 'fa-solid fa-eye', action: () => previewSplash(page) },
-				{ label: 'Open editor', icon: 'fa-solid fa-pen-to-square', action: () => openSplashEditor(page) },
-				{ label: 'Open manager', icon: 'fa-solid fa-images', action: () => openSplashManager() },
+				{ label: game.i18n.localize('splash.launcher.sceneLauncher.previewJustMe'), icon: 'fa-solid fa-eye', action: () => previewSplash(page) },
+				{ label: game.i18n.localize('splash.actions.edit'), icon: 'fa-solid fa-pen-to-square', action: () => openSplashEditor(page) },
+				{ label: game.i18n.localize('splash.launcher.sceneLauncher.openManager'), icon: 'fa-solid fa-images', action: () => openSplashManager() },
 			],
 		};
 	}
@@ -113,24 +116,24 @@
 <div class='scene-launcher'>
 	{#if isGM}
 		<header class='launcher-header'>
-			<span class='hdr-title'>Splashes</span>
-			<IconButton icon='fa-solid fa-table-cells-large' title='Open Splash Manager' onclick={() => openSplashManager()} />
+			<span class='hdr-title'>{game.i18n.localize('splash.quickAccess.title')}</span>
+			<IconButton icon='fa-solid fa-table-cells-large' title={game.i18n.localize('splash.manager.menuLabel')} onclick={() => openSplashManager()} />
 		</header>
 	{/if}
 
 	{#if active}
 		<div class='live-banner'>
 			<span class='live-dot' class:peeking></span>
-			<span class='live-name'>{peeking ? 'Hidden' : 'Live'}: {activeName}</span>
+			<span class='live-name'>{peeking ? game.i18n.localize('splash.launcher.sceneLauncher.statusHidden') : game.i18n.localize('splash.launcher.sceneLauncher.statusLive')}: {activeName}</span>
 			<IconButton
 				icon={peeking ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'}
-				title={peeking ? 'Show splash again' : 'Minimize (hide for me, keep it running)'}
+				title={peeking ? game.i18n.localize('splash.launcher.sceneLauncher.showAgain') : game.i18n.localize('splash.launcher.sceneLauncher.minimize')}
 				active={peeking}
 				onclick={() => togglePeek()}
 			/>
 			<IconButton
 				icon='fa-solid fa-circle-xmark'
-				title='Force-close every splash for everyone'
+				title={game.i18n.localize('splash.launcher.sceneLauncher.forceCloseAll')}
 				danger
 				onclick={() => void forceCloseAllSplashes()}
 			/>
@@ -143,11 +146,11 @@
 		{#each shown as page (page.uuid)}
 			{@const isActive = active?.uuid === page.uuid}
 			<ListRow columns='1fr auto auto' active={isActive} oncontextmenu={e => rowMenu(e, page)}>
-				<span class='name'>{#if triggeredUuids.includes(page.uuid)}<i class='fa-solid fa-bolt' title='Triggered in this scene'></i> {/if}{page.name}</span>
+				<span class='name'>{#if triggeredUuids.includes(page.uuid)}<i class='fa-solid fa-bolt' title={game.i18n.localize('splash.launcher.sceneLauncher.triggeredInScene')}></i> {/if}{page.name}</span>
 				<span class='chip'>{layerLabel[page.system.layer] ?? page.system.layer}</span>
 				<IconButton
 					icon={isActive ? 'fa-solid fa-stop' : 'fa-solid fa-play'}
-					title={isActive ? 'Kill' : 'Launch for players'}
+					title={isActive ? game.i18n.localize('splash.launcher.sceneLauncher.kill') : game.i18n.localize('splash.actions.launch')}
 					active={isActive}
 					danger={isActive}
 					onclick={() => toggle(page)}
@@ -156,7 +159,7 @@
 		{/each}
 		{#if shown.length === 0}
 			<div class='empty'>
-				{tab === 'pinned' ? 'No splashes pinned to this scene.' : 'No global splashes.'}
+				{tab === 'pinned' ? game.i18n.localize('splash.launcher.sceneLauncher.emptyPinned') : game.i18n.localize('splash.launcher.sceneLauncher.emptyGlobal')}
 			</div>
 		{/if}
 	</div>

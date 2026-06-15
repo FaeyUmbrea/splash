@@ -5,11 +5,9 @@ const PAGE_FORMATS = CONST.JOURNAL_ENTRY_PAGE_FORMATS;
 const HandlebarsSheet = foundry.applications.sheets.journal.JournalEntryPageHandlebarsSheet;
 
 /**
- * Splash page sheet. Foundry doesn't allow inheriting the core text-page sheet (or its
- * datatype), so this REPRODUCES the default text-page experience — notes in the built-in
- * `text.content`, edited via the core `<prose-mirror>` element — in our own Handlebars
- * parts. The only addition over a default page is a quick-access action bar to the splash
- * data, rendered in BOTH view and edit modes.
+ * Splash page sheet. Foundry doesn't allow inheriting the core text-page sheet, so this reproduces it
+ * (notes in `text.content`, edited via `<prose-mirror>`) in our own Handlebars parts, adding a splash
+ * action bar in both view and edit modes.
  */
 export class SplashSheet extends HandlebarsSheet {
 	static VIEW_PARTS = {

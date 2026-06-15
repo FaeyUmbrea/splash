@@ -226,7 +226,7 @@
 								e.stopPropagation();
 								removeChip(chip.value);
 							}}
-							aria-label='Remove'
+							aria-label={game.i18n.localize('splash.ui.select.removeChip')}
 						><i class='fas fa-times'></i></button>
 					</span>
 				{/each}

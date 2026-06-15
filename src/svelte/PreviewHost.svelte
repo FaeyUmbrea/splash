@@ -27,7 +27,7 @@
 <SplashUI {splashConfig} {foundryApp} />
 
 <button type='button' class='preview-exit' onclick={exit}>
-	<i class='fa-solid fa-xmark'></i> Exit preview <span class='hint'>(Esc)</span>
+	<i class='fa-solid fa-xmark'></i> {game.i18n.localize('splash.preview.previewHost.exitPreview')} <span class='hint'>{game.i18n.localize('splash.preview.previewHost.escHint')}</span>
 </button>
 
 <style lang='scss'>

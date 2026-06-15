@@ -42,31 +42,28 @@ export default class NineSlicePlaneButton extends PIXI.NineSlicePlane {
 
 		this.settings = settings;
 
-		// Main text on the button
 		this.label = new PIXI.Text('');
 		this.label.anchor.set(0.5);
 		this.addChild(this.label);
 
-		// Update visual appearance
 		this.update();
 
 		this.interactive = true;
 
 		this.cursor = 'pointer';
 
-		/** Bind functions on this context as long as we will use them as event handlers */
 		this.onTap = this.onTap.bind(this);
 		this.onOver = this.onOver.bind(this);
 		this.onOut = this.onOut.bind(this);
 		this.onDown = this.onDown.bind(this);
 		this.onUp = this.onUp.bind(this);
 
-		this.on('pointertap', this.onTap); // The moment when we release (click/tap) the button
-		this.on('pointerover', this.onOver); // The moment when we put the cursor over the button
-		this.on('pointerout', this.onOut); // The moment when we put the cursor out of the button
-		this.on('pointerdown', this.onDown); // The moment when we pressed on the button but didn't release yet
-		this.on('pointerup', this.onUp); // The moment when we release the button
-		this.on('pointerupoutside', this.onUp); // The moment when we release the button being outside of it (e.g. we press on the button, move the cursor out of it, and release)
+		this.on('pointertap', this.onTap);
+		this.on('pointerover', this.onOver);
+		this.on('pointerout', this.onOut);
+		this.on('pointerdown', this.onDown);
+		this.on('pointerup', this.onUp);
+		this.on('pointerupoutside', this.onUp);
 	}
 
 	onTap() {
@@ -93,15 +90,13 @@ export default class NineSlicePlaneButton extends PIXI.NineSlicePlane {
 		this.update();
 	}
 
-	/** Updates the button's appearance after changing its settings */
 	update(
 		settings: Partial<NineSlicePlaneButtonSettings> | undefined = undefined,
 	) {
-		// Creating new settings which include old ones and apply new ones over it
 		if (settings) {
 			this.settings = {
-				...this.settings, // including old settings
-				...settings, // including new settings
+				...this.settings,
+				...settings,
 			};
 		}
 
@@ -146,7 +141,6 @@ export default class NineSlicePlaneButton extends PIXI.NineSlicePlane {
 		}
 	}
 
-	/** Changes sizes and positions each time when the button updates */
 	onResize() {
 		this.width = this.settings.width ?? 400;
 		this.height = this.settings.height ?? 200;

@@ -1,11 +1,9 @@
 import type { SpriteInitialized } from '../datamodel/SplashModel.ts';
 
 /**
- * A node in the materialized sprite tree handed to inline macros. The flat `children` array + `groupId`
- * tags become a real hierarchy: root → (top-level sprites + one synthetic group node per groupId) →
- * grouped members. The triggering element's node is dropped into the macro as `scope`, so it navigates
- * relatively — `scope.parent.child.get("Top")` — and names (which survive prefab re-ids) are the address,
- * never sprite ids.
+ * A node in the materialized sprite tree handed to inline macros. The flat sprite list + `groupId` tags
+ * become a hierarchy: root → (top-level sprites + one synthetic group node per groupId) → grouped members.
+ * The triggering element's node is the macro's `scope`; navigation is by `name` (survives prefab re-ids).
  */
 export interface SpriteNode {
 	/** Sprite id, or null for the synthetic root/group nodes. */
@@ -46,10 +44,7 @@ function makeNode(init: Partial<SpriteNode> & Pick<SpriteNode, 'id' | 'name' | '
 	return node;
 }
 
-/**
- * Build the navigable tree for a set of in-state sprites. Cheap and pure: call it once per loaded-state
- * composition (structure is fixed within a loaded state) and reuse it across macro invocations.
- */
+/** Build the navigable tree for a set of in-state sprites. Pure; structure is fixed within a loaded state. */
 export function buildSpriteTree(sprites: SpriteInitialized[]): SpriteTree {
 	const byId = new Map<string, SpriteNode>();
 	const root = makeNode({ id: null, name: 'root', type: 'root', sprite: null, parent: null });

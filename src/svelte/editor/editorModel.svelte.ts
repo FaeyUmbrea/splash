@@ -42,7 +42,11 @@ export interface EditorLeafNode {
 /** One row of the object tree: a loose object or a group, in child order. */
 export type EditorTreeNode = EditorGroupNode | EditorLeafNode;
 
-const TYPE_LABEL: Record<string, string> = { image: 'Image', text: 'Text', button: 'Button' };
+const TYPE_LABEL: Record<string, string> = {
+	image: 'splash.editor.editorModel.typeImage',
+	text: 'splash.editor.editorModel.typeText',
+	button: 'splash.editor.editorModel.typeButton',
+};
 
 /** Delete a dotted-path leaf from a plain object, mirroring a server-side `-=` field deletion. */
 function deleteLeaf(obj: object, path: string): void {
@@ -57,11 +61,7 @@ function defaultPlacement(): Record<string, unknown> {
 	return { x: 100, y: 100, zIndex: 0, priority: 0, name: '' };
 }
 
-/**
- * The editor's conceptual layer over the splash data model — objects, states, selection, "place this object
- * in this state" — never exposing raw `sprite.states[k].x` to the UI. Writes are optimistic-then-atomic via
- * the DocumentStore.
- */
+/** The editor's conceptual layer over the splash data model; writes are optimistic-then-atomic via the DocumentStore. */
 export class EditorModel {
 	readonly store: DocumentStore;
 	activeState = $state('');
@@ -90,16 +90,14 @@ export class EditorModel {
 		return children.map((raw) => {
 			const type = raw.type ?? 'image';
 			counts[type] = (counts[type] ?? 0) + 1;
-			const name = (raw.name && raw.name.trim()) ? raw.name : `${TYPE_LABEL[type] ?? 'Object'} ${counts[type]}`;
+			const typeLabel = TYPE_LABEL[type] ? game.i18n.localize(TYPE_LABEL[type]) : game.i18n.localize('splash.editor.editorModel.typeObject');
+			const name = (raw.name && raw.name.trim()) ? raw.name : `${typeLabel} ${counts[type]}`;
 			const placement = raw.states?.[this.activeState] as StateCreate | undefined;
 			return { id: raw.id ?? '', type, name, raw, inState: !!placement, placement };
 		});
 	});
 
-	/**
-	 * The object list as a tree: loose objects and groups in child order, each group carrying its members.
-	 * A group node appears at the position of its first member, so the tree mirrors the flat z-order.
-	 */
+	/** The object list as a tree; a group node sits at its first member's position, so the tree mirrors the flat z-order. */
 	readonly objectTree = $derived.by<EditorTreeNode[]>(() => {
 		const nodes: EditorTreeNode[] = [];
 		const byGroup: Record<string, EditorGroupNode> = {};
@@ -113,7 +111,7 @@ export class EditorModel {
 			let group = byGroup[gid];
 			if (!group) {
 				const stored = (this.data.groups as Record<string, { name?: string }> | undefined)?.[gid]?.name;
-				group = { kind: 'group', groupId: gid, name: stored || `Group ${++count}`, members: [], inState: false };
+				group = { kind: 'group', groupId: gid, name: stored || game.i18n.format('splash.editor.editorModel.groupName', { n: ++count }), members: [], inState: false };
 				byGroup[gid] = group;
 				nodes.push(group);
 			}
@@ -176,8 +174,7 @@ export class EditorModel {
 			(d) => {
 				d.children = children;
 			},
-			// `==` replaces the whole array while the rest of `system` merges normally. NOT `{recursive:false}`,
-			// which would replace all of `system` and reset layer/states/pins (the "move reverts type" bug).
+			// `==` replaces the whole array while the rest of `system` merges; `{recursive:false}` would reset all of `system`.
 			() => this.page.update({ 'system.==children': children }),
 		);
 	}
@@ -199,14 +196,12 @@ export class EditorModel {
 	}
 
 	setField(path: string, value: unknown, replace = false) {
-		// `replace` overwrites this one field wholesale via the `==` leaf-prefix (or `-=` to clear with null);
-		// `==`+null is a no-op, hence the split. Not `{recursive:false}`, which would reset all of `system`.
+		// `replace` overwrites this field via the `==` leaf-prefix (or `-=` to clear with null, since `==`+null is a no-op).
 		const clearing = replace && value === null;
 		let key = `system.${path}`;
 		if (replace) key = clearing ? `system.${path.replace(/([^.]+)$/, '-=$1')}` : `system.${path.replace(/([^.]+)$/, '==$1')}`;
 		this.store.write(
-			// A `-=` delete omits the key, so the mirror must delete too — setting null would look like an
-			// external edit and record a phantom undo step.
+			// Mirror must delete the leaf too; setting null would look like an external edit and record a phantom undo step.
 			d => (clearing ? deleteLeaf(d as object, path) : foundry.utils.setProperty(d as object, path, value)),
 			() => this.page.update({ [key]: value }),
 		);
@@ -416,10 +411,7 @@ export class EditorModel {
 
 	// --- preset application (copy-on-apply; see utils/presets.ts) -------------
 
-	/**
-	 * Apply a button preset's style fields wholesale to an existing button. The target's `onClick` is
-	 * preserved — a style preset must not wipe the button's wired behaviour.
-	 */
+	/** Apply a button preset's style fields to an existing button; `onClick` is preserved so the wired behaviour survives. */
 	applyButtonPreset(id: string, payload: Record<string, unknown>) {
 		const STYLE_FIELDS = ['label', 'image', 'clickLabel', 'clickImage', 'hoverLabel', 'hoverImage', 'tint', 'hoverTint', 'clickTint'] as const;
 		this.#mutateChildren((next) => {
@@ -437,11 +429,7 @@ export class EditorModel {
 		return placed.id ?? '';
 	}
 
-	/**
-	 * Stamp a group prefab: keep each sprite's arrangement and wiring, regenerate ids, and remap groupIds to
-	 * fresh ones so the prefab doesn't collide with or merge into existing groups. A prefab of loose objects
-	 * is wrapped in one fresh group so it lands as a unit.
-	 */
+	/** Stamp a group prefab: regenerate ids and remap groupIds to fresh ones so it can't merge into existing groups; loose objects get one wrapper group. */
 	applySpriteGroupPreset(sprites: SpriteCreate[]) {
 		const remap: Record<string, string> = {};
 		const wrapper = sprites.every(s => !(s as { groupId?: string }).groupId) ? nanoid() : null;
@@ -451,15 +439,13 @@ export class EditorModel {
 			if (!Array.isArray(copy.effects)) copy.effects = [];
 			const gid = copy.groupId as string | null | undefined;
 			copy.groupId = gid ? (remap[gid] ??= nanoid()) : wrapper;
-			// Re-key the prefab's arrangement onto the active state: a prefab's own state id means nothing
-			// here, so its placement would land under a key this splash never reads (an invisible drop).
+			// Re-key onto the active state: the prefab's own state id means nothing here, so it would land under a key this splash never reads.
 			const states = (copy.states ?? {}) as Record<string, unknown>;
 			const placement = Object.values(states)[0];
 			copy.states = placement ? { [this.activeState]: placement } : {};
 			return copy as SpriteCreate;
 		});
-		// Second pass: rewrite groupId references the prefab stores in `context` (e.g. a lock's Unlock button
-		// holds `Wheels: [groupId,…]`) to follow the remap.
+		// Rewrite groupId refs the prefab stores in `context` (e.g. a lock's Unlock button holds `Wheels: [groupId,…]`) to follow the remap.
 		const remapRef = (v: unknown) => (typeof v === 'string' && remap[v]) ? remap[v] : v;
 		for (const p of placed) {
 			const context = (p as { context?: Record<string, unknown> }).context;
@@ -573,7 +559,7 @@ export class EditorModel {
 	duplicateState(key: string) {
 		const states = foundry.utils.deepClone(this.data.states ?? {}) as Record<string, { label?: string }>;
 		const newKey = this.#freshStateKey(states);
-		states[newKey] = { ...foundry.utils.deepClone(states[key] ?? {}), label: `${states[key]?.label || key} copy` };
+		states[newKey] = { ...foundry.utils.deepClone(states[key] ?? {}), label: game.i18n.format('splash.editor.editorModel.stateCopy', { label: states[key]?.label || key }) };
 		this.#setStates(states);
 		this.#mutateChildren((next) => {
 			for (const sprite of next) {
@@ -586,7 +572,7 @@ export class EditorModel {
 
 	deleteState(key: string) {
 		if (Object.keys(this.data.states ?? {}).length <= 1) {
-			ui.notifications?.warn('Splash | A splash needs at least one state.');
+			ui.notifications?.warn(game.i18n.localize('splash.editor.editorModel.needsState'));
 			return;
 		}
 		const states = foundry.utils.deepClone(this.data.states ?? {}) as Record<string, unknown>;

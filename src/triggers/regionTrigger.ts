@@ -49,13 +49,13 @@ export const regionTrigger: TriggerOptions = {
 		const scene = canvas?.scene as unknown as SceneLike | null;
 		const regions = scene?.regions?.contents ?? [];
 		if (!scene || regions.length === 0) {
-			ui.notifications?.warn('Splash | Create a Scene Region on the active scene first, then bind it.');
+			ui.notifications?.warn(game.i18n.localize('splash.triggers.regionTrigger.noRegions'));
 			return false;
 		}
 		const options = regions.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
 		const regionId = await foundry.applications.api.DialogV2.prompt({
-			window: { title: 'Bind region trigger' },
-			content: `<p>A token entering which region launches this splash?</p><select name="region" style="width:100%">${options}</select>`,
+			window: { title: game.i18n.localize('splash.triggers.regionTrigger.dialogTitle') },
+			content: `<p>${game.i18n.localize('splash.triggers.regionTrigger.dialogPrompt')}</p><select name="region" style="width:100%">${options}</select>`,
 			ok: { callback: (_e: Event, button: HTMLButtonElement) => (button.form?.elements.namedItem('region') as HTMLSelectElement)?.value },
 		}).catch(() => null);
 		if (!regionId) return false;
@@ -74,7 +74,7 @@ export const regionTrigger: TriggerOptions = {
 						id: behavior.uuid,
 						type: 'region',
 						splashUuid: behavior.system.splashUuid,
-						summary: `Region "${region.name}" in "${scene.name}"`,
+						summary: game.i18n.format('splash.triggers.regionTrigger.bindingSummary', { region: region.name, scene: scene.name }),
 						sceneId: scene.id,
 					});
 				}

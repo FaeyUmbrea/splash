@@ -1,7 +1,4 @@
-/**
- * Shared UI types kept in a .ts module so they're importable by consumers (named exports
- *  from .svelte modules aren't visible to tsc).
- */
+/** Shared UI types in a .ts module: named exports from .svelte modules aren't visible to tsc. */
 
 export interface Tab {
 	id: string;

@@ -282,9 +282,9 @@
 			x: event.clientX,
 			y: event.clientY,
 			items: [
-				{ label: 'Add image here', icon: 'fa-solid fa-image', action: () => add('image') },
-				{ label: 'Add text here', icon: 'fa-solid fa-font', action: () => add('text') },
-				{ label: 'Add button here', icon: 'fa-solid fa-hand-pointer', action: () => add('button') },
+				{ label: game.i18n.localize('splash.editor.canvasFrame.addImageHere'), icon: 'fa-solid fa-image', action: () => add('image') },
+				{ label: game.i18n.localize('splash.editor.canvasFrame.addTextHere'), icon: 'fa-solid fa-font', action: () => add('text') },
+				{ label: game.i18n.localize('splash.editor.canvasFrame.addButtonHere'), icon: 'fa-solid fa-hand-pointer', action: () => add('button') },
 			],
 		};
 	}
@@ -299,18 +299,18 @@
 			y: event.clientY,
 			items: multi
 				? [
-					{ label: `Delete ${model.selectedIds.length} objects`, icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteSelected() },
+					{ label: game.i18n.format('splash.editor.canvasFrame.deleteCount', { count: model.selectedIds.length }), icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteSelected() },
 				]
 				: [
-					{ label: 'Duplicate', icon: 'fa-solid fa-clone', action: () => model.duplicateObject(obj.id) },
-					{ label: 'Bring to front', icon: 'fa-solid fa-arrow-up', action: () => model.setPlacement(obj.id, { zIndex: model.zExtent('front') }) },
-					{ label: 'Send to back', icon: 'fa-solid fa-arrow-down', action: () => model.setPlacement(obj.id, { zIndex: model.zExtent('back') }) },
+					{ label: game.i18n.localize('splash.editor.canvasFrame.duplicate'), icon: 'fa-solid fa-clone', action: () => model.duplicateObject(obj.id) },
+					{ label: game.i18n.localize('splash.editor.canvasFrame.bringToFront'), icon: 'fa-solid fa-arrow-up', action: () => model.setPlacement(obj.id, { zIndex: model.zExtent('front') }) },
+					{ label: game.i18n.localize('splash.editor.canvasFrame.sendToBack'), icon: 'fa-solid fa-arrow-down', action: () => model.setPlacement(obj.id, { zIndex: model.zExtent('back') }) },
 					{ separator: true },
-					{ label: 'Scale to fit stage', icon: 'fa-solid fa-expand', action: () => model.scaleToFit(obj.id) },
-					{ label: 'Reset to natural size', icon: 'fa-solid fa-compress', action: () => model.resetSize(obj.id) },
-					{ label: `Remove from "${model.activeState}"`, icon: 'fa-solid fa-eye-slash', action: () => model.removeFromState(obj.id) },
+					{ label: game.i18n.localize('splash.editor.canvasFrame.scaleToFit'), icon: 'fa-solid fa-expand', action: () => model.scaleToFit(obj.id) },
+					{ label: game.i18n.localize('splash.editor.canvasFrame.resetSize'), icon: 'fa-solid fa-compress', action: () => model.resetSize(obj.id) },
+					{ label: game.i18n.format('splash.editor.canvasFrame.removeFromState', { state: model.activeState }), icon: 'fa-solid fa-eye-slash', action: () => model.removeFromState(obj.id) },
 					{ separator: true },
-					{ label: 'Delete', icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteObject(obj.id) },
+					{ label: game.i18n.localize('splash.editor.canvasFrame.delete'), icon: 'fa-solid fa-trash', danger: true, action: () => model.deleteObject(obj.id) },
 				],
 		};
 	}

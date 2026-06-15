@@ -17,13 +17,13 @@
 	} = $props();
 
 	const typeOptions: SelectItem[] = [
-		{ value: 'macro', label: 'Run macro', icon: 'fa-solid fa-scroll' },
-		{ value: 'change-state', label: 'Change state', icon: 'fa-solid fa-right-left' },
-		{ value: 'set-value', label: 'Set value', icon: 'fa-solid fa-equals' },
-		{ value: 'increment-value', label: 'Increment value', icon: 'fa-solid fa-plus-minus' },
-		{ value: 'vote', label: 'Vote', icon: 'fa-solid fa-check-to-slot' },
-		{ value: 'script', label: 'Script (inline macro)', icon: 'fa-solid fa-code' },
-		{ value: 'close', label: 'Close splash', icon: 'fa-solid fa-xmark' },
+		{ value: 'macro', label: game.i18n.localize('splash.editor.actionEditor.typeMacro'), icon: 'fa-solid fa-scroll' },
+		{ value: 'change-state', label: game.i18n.localize('splash.editor.actionEditor.typeChangeState'), icon: 'fa-solid fa-right-left' },
+		{ value: 'set-value', label: game.i18n.localize('splash.editor.actionEditor.typeSetValue'), icon: 'fa-solid fa-equals' },
+		{ value: 'increment-value', label: game.i18n.localize('splash.editor.actionEditor.typeIncrementValue'), icon: 'fa-solid fa-plus-minus' },
+		{ value: 'vote', label: game.i18n.localize('splash.editor.actionEditor.typeVote'), icon: 'fa-solid fa-check-to-slot' },
+		{ value: 'script', label: game.i18n.localize('splash.editor.actionEditor.typeScript'), icon: 'fa-solid fa-code' },
+		{ value: 'close', label: game.i18n.localize('splash.editor.actionEditor.typeClose'), icon: 'fa-solid fa-xmark' },
 	];
 
 	const macroOptions = $derived(
@@ -69,43 +69,43 @@
 </script>
 
 <div class='action-editor'>
-	<Select options={typeOptions} value={type} searchable={false} placeholder='No action' onChange={setType} />
+	<Select options={typeOptions} value={type} searchable={false} placeholder={game.i18n.localize('splash.editor.actionEditor.noAction')} onChange={setType} />
 
 	{#if type === 'macro'}
-		<Select options={macroOptions} value={(action?.macro as string) ?? null} placeholder='Pick a macro' onChange={v => patch({ macro: v })} />
+		<Select options={macroOptions} value={(action?.macro as string) ?? null} placeholder={game.i18n.localize('splash.editor.actionEditor.pickMacro')} onChange={v => patch({ macro: v })} />
 	{:else if type === 'change-state'}
-		<Select options={stateOptions} value={[...((action?.load as string[]) ?? [])]} multiple placeholder='Load states…' onChange={v => patch({ load: v })} />
-		<Select options={stateOptions} value={[...((action?.unload as string[]) ?? [])]} multiple placeholder='Unload states…' onChange={v => patch({ unload: v })} />
+		<Select options={stateOptions} value={[...((action?.load as string[]) ?? [])]} multiple placeholder={game.i18n.localize('splash.editor.actionEditor.loadStates')} onChange={v => patch({ load: v })} />
+		<Select options={stateOptions} value={[...((action?.unload as string[]) ?? [])]} multiple placeholder={game.i18n.localize('splash.editor.actionEditor.unloadStates')} onChange={v => patch({ unload: v })} />
 
 		<div class='conditions'>
-			<span class='sublabel'>Conditions (value gate)</span>
+			<span class='sublabel'>{game.i18n.localize('splash.editor.actionEditor.conditionsLabel')}</span>
 			{#each Object.entries(conditions ?? {}) as [key, value] (key)}
 				<div class='cond-row'>
 					<span class='cond-key'>{key}</span>
 					<TextField value={value} onChange={v => setCondition(key, v)} />
-					<IconButton icon='fa-solid fa-trash' title='Remove condition' danger onclick={() => removeCondition(key)} />
+					<IconButton icon='fa-solid fa-trash' title={game.i18n.localize('splash.editor.actionEditor.removeCondition')} danger onclick={() => removeCondition(key)} />
 				</div>
 			{/each}
 			<div class='cond-add'>
-				<TextField bind:value={newConditionKey} placeholder='value key' />
-				<IconButton icon='fa-solid fa-plus' title='Add condition' onclick={addCondition} />
+				<TextField bind:value={newConditionKey} placeholder={game.i18n.localize('splash.editor.actionEditor.valueKey')} />
+				<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.actionEditor.addCondition')} onclick={addCondition} />
 			</div>
 		</div>
 	{:else if type === 'set-value'}
-		<TextField label='Key' value={(action?.key as string) ?? ''} onChange={v => patch({ key: v })} />
-		<TextField label='Value' value={(action?.value as string) ?? ''} onChange={v => patch({ value: v })} />
+		<TextField label={game.i18n.localize('splash.editor.actionEditor.key')} value={(action?.key as string) ?? ''} onChange={v => patch({ key: v })} />
+		<TextField label={game.i18n.localize('splash.editor.actionEditor.value')} value={(action?.value as string) ?? ''} onChange={v => patch({ value: v })} />
 	{:else if type === 'increment-value'}
-		<TextField label='Key' value={(action?.key as string) ?? ''} onChange={v => patch({ key: v })} />
+		<TextField label={game.i18n.localize('splash.editor.actionEditor.key')} value={(action?.key as string) ?? ''} onChange={v => patch({ key: v })} />
 		<div class='grid'>
-			<NumberField label='Step' value={(action?.step as number) ?? 1} onChange={v => patch({ step: v })} />
-			<NumberField label='Min' value={(action?.min as number) ?? null} onChange={v => patch({ min: v })} />
-			<NumberField label='Max' value={(action?.max as number) ?? null} onChange={v => patch({ max: v })} />
+			<NumberField label={game.i18n.localize('splash.editor.actionEditor.step')} value={(action?.step as number) ?? 1} onChange={v => patch({ step: v })} />
+			<NumberField label={game.i18n.localize('splash.editor.actionEditor.min')} value={(action?.min as number) ?? null} onChange={v => patch({ min: v })} />
+			<NumberField label={game.i18n.localize('splash.editor.actionEditor.max')} value={(action?.max as number) ?? null} onChange={v => patch({ max: v })} />
 		</div>
-		<CheckboxField label='Wrap min↔max (tumbler digit)' value={(action?.wrap as boolean) ?? false} onChange={v => patch({ wrap: v })} />
+		<CheckboxField label={game.i18n.localize('splash.editor.actionEditor.wrap')} value={(action?.wrap as boolean) ?? false} onChange={v => patch({ wrap: v })} />
 	{:else if type === 'vote'}
-		<TextField label='Vote option id' value={(action?.optionId as string) ?? ''} onChange={v => patch({ optionId: v })} />
+		<TextField label={game.i18n.localize('splash.editor.actionEditor.voteOptionId')} value={(action?.optionId as string) ?? ''} onChange={v => patch({ optionId: v })} />
 	{:else if type === 'script'}
-		<span class='sublabel'>Inline macro — globals: <code>scope</code> (this element's node), <code>context</code> (its data), <code>api</code> (changeState / setValue / close)</span>
+		<span class='sublabel'>{game.i18n.localize('splash.editor.actionEditor.scriptGlobals')}: <code>scope</code> {game.i18n.localize('splash.editor.actionEditor.scriptScope')}, <code>context</code> {game.i18n.localize('splash.editor.actionEditor.scriptContext')}, <code>api</code> {game.i18n.localize('splash.editor.actionEditor.scriptApi')}</span>
 		<textarea
 			class='script-source'
 			spellcheck='false'

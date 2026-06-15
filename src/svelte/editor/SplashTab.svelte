@@ -9,18 +9,18 @@
 	const data = $derived(model.data);
 
 	const layerOptions: SelectItem[] = [
-		{ value: 'scene', label: 'Scene (above canvas)', icon: 'fa-solid fa-layer-group' },
-		{ value: 'hud', label: 'HUD (hides scene chrome)', icon: 'fa-solid fa-table-columns' },
-		{ value: 'full', label: 'Full (above all UI)', icon: 'fa-solid fa-expand' },
-		{ value: 'handout', label: 'Handout (windowed)', icon: 'fa-solid fa-window-maximize' },
+		{ value: 'scene', label: game.i18n.localize('splash.editor.splashTab.layerScene'), icon: 'fa-solid fa-layer-group' },
+		{ value: 'hud', label: game.i18n.localize('splash.editor.splashTab.layerHud'), icon: 'fa-solid fa-table-columns' },
+		{ value: 'full', label: game.i18n.localize('splash.editor.splashTab.layerFull'), icon: 'fa-solid fa-expand' },
+		{ value: 'handout', label: game.i18n.localize('splash.editor.splashTab.layerHandout'), icon: 'fa-solid fa-window-maximize' },
 	];
 	const modeOptions: SelectItem[] = [
-		{ value: 'local', label: 'Local (per client)' },
-		{ value: 'synced', label: 'Synced (shared state)' },
+		{ value: 'local', label: game.i18n.localize('splash.editor.splashTab.modeLocal') },
+		{ value: 'synced', label: game.i18n.localize('splash.editor.splashTab.modeSynced') },
 	];
 	const voteOptions: SelectItem[] = [
-		{ value: 'all', label: 'Tallies visible to all' },
-		{ value: 'gm', label: 'Tallies GM only' },
+		{ value: 'all', label: game.i18n.localize('splash.editor.splashTab.voteAll') },
+		{ value: 'gm', label: game.i18n.localize('splash.editor.splashTab.voteGm') },
 	];
 	const sceneOptions = $derived((game.scenes?.contents ?? []).map(s => ({ value: s.id as string, label: s.name as string })));
 
@@ -37,32 +37,32 @@
 </script>
 
 <div class='splash-tab'>
-	<Field label='Kind / layer'>
+	<Field label={game.i18n.localize('splash.editor.splashTab.kindLayer')}>
 		<Select options={layerOptions} value={data.layer} onChange={changeLayer} searchable={false} />
 	</Field>
-	<Field label='Mode'>
+	<Field label={game.i18n.localize('splash.editor.splashTab.mode')}>
 		<Select options={modeOptions} value={data.mode} onChange={v => model.setField('mode', v)} searchable={false} />
 	</Field>
-	<Field label='Vote tallies'>
+	<Field label={game.i18n.localize('splash.editor.splashTab.voteTallies')}>
 		<Select options={voteOptions} value={data.voteVisibility} onChange={v => model.setField('voteVisibility', v)} searchable={false} />
 	</Field>
 
-	<CheckboxField label='Global (scene-control global tab)' value={data.global} onChange={v => model.setField('global', v)} />
+	<CheckboxField label={game.i18n.localize('splash.editor.splashTab.global')} value={data.global} onChange={v => model.setField('global', v)} />
 
-	<Field label='Pinned scenes'>
-		<Select options={sceneOptions} value={[...(data.scenePins ?? [])]} multiple placeholder='No scenes pinned' onChange={v => model.setField('scenePins', v)} />
+	<Field label={game.i18n.localize('splash.editor.splashTab.pinnedScenes')}>
+		<Select options={sceneOptions} value={[...(data.scenePins ?? [])]} multiple placeholder={game.i18n.localize('splash.editor.splashTab.noScenesPinned')} onChange={v => model.setField('scenePins', v)} />
 	</Field>
 
 	{#if isHandout}
 		<div class='grid'>
-			<NumberField label='Width' value={data.handoutSize?.width ?? 800} min={100} onChange={v => model.setField('handoutSize.width', v)} />
-			<NumberField label='Height' value={data.handoutSize?.height ?? 600} min={100} onChange={v => model.setField('handoutSize.height', v)} />
+			<NumberField label={game.i18n.localize('splash.editor.splashTab.width')} value={data.handoutSize?.width ?? 800} min={100} onChange={v => model.setField('handoutSize.width', v)} />
+			<NumberField label={game.i18n.localize('splash.editor.splashTab.height')} value={data.handoutSize?.height ?? 600} min={100} onChange={v => model.setField('handoutSize.height', v)} />
 		</div>
 	{/if}
 
 	<div class='subsection'>
-		<AnimationEditor label='Splash animation in' width={model.stageW} value={data.animIn} onChange={a => model.setField('animIn', a, true)} />
-		<AnimationEditor label='Splash animation out' width={model.stageW} value={data.animOut} onChange={a => model.setField('animOut', a, true)} />
+		<AnimationEditor label={game.i18n.localize('splash.editor.splashTab.animIn')} width={model.stageW} value={data.animIn} onChange={a => model.setField('animIn', a, true)} />
+		<AnimationEditor label={game.i18n.localize('splash.editor.splashTab.animOut')} width={model.stageW} value={data.animOut} onChange={a => model.setField('animOut', a, true)} />
 	</div>
 </div>
 

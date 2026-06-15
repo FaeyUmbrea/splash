@@ -17,8 +17,7 @@ function toHex(color?: string): number {
 
 /**
  * A flat fill/border/radius rectangle for the WebGL renderer — the asset-free analog of the HTML
- * `Panel` div. Redraws on resize (scaling a Graphics would distort the border and corners), mirroring
- * how NineSlicePlaneButton handles sizing.
+ * `Panel` div. Redraws on resize rather than scaling, which would distort the border and corners.
  */
 export default class PanelGraphics extends PIXI.Graphics {
 	#settings: PanelSettings;
@@ -31,7 +30,6 @@ export default class PanelGraphics extends PIXI.Graphics {
 		this.#redraw();
 	}
 
-	/** Redraw at a new size — called from transitionState on initial build and every transition. */
 	resize(width: number, height: number): void {
 		this.#w = width;
 		this.#h = height;

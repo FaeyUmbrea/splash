@@ -14,8 +14,7 @@
 	$: label = (active ? sprite.clickLabel : hover ? sprite.hoverLabel : undefined) ?? sprite.label;
 </script>
 
-<!-- border-image is the DOM analog of a PIXI NineSlicePlane: the slice values
-     carve the texture into corners/edges/center exactly like the GL renderer. -->
+<!-- border-image is the DOM analog of a PIXI NineSlicePlane: slice values carve the same corners/edges/center. -->
 <button
 	type='button'
 	style:border-image-source={image.url ? `url(${image.url})` : undefined}
