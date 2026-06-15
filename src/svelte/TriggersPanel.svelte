@@ -4,6 +4,7 @@
 	import type { SelectItem } from './ui';
 	import { onDestroy, onMount } from 'svelte';
 	import { SplashAPI } from '../api/api.ts';
+	import { grantTriggerVisibility, isSplashPage } from '../utils/launch.ts';
 	import { IconButton, Select } from './ui';
 
 	const { splashUuid, splashName }: { splashUuid: string; splashName?: string } = $props();
@@ -28,7 +29,11 @@
 		addType = '';
 		if (!def) return;
 		const ok = await def.createBinding(splashUuid);
-		if (ok) refresh();
+		if (!ok) return;
+		// Players can now fire this splash, so raise ownership enough that they can read it (see grantTriggerVisibility).
+		const page = await fromUuid(splashUuid);
+		if (isSplashPage(page)) await grantTriggerVisibility(page);
+		refresh();
 	}
 
 	async function remove(binding: TriggerBinding) {

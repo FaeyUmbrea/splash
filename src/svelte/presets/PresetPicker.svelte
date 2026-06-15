@@ -14,7 +14,7 @@
 		/** Restrict to one kind (null shows everything). */
 		kind?: PresetKind | null;
 		title?: string;
-		onPick: (payload: PresetPayload) => void;
+		onPick: (payload: PresetPayload, summary: PresetSummary) => void;
 		onClose: () => void;
 	} = $props();
 
@@ -35,7 +35,7 @@
 
 	async function pick(summary: PresetSummary) {
 		const payload = await loadPresetPayload(summary.uuid);
-		if (payload) onPick(payload);
+		if (payload) onPick(payload, summary);
 		onClose();
 	}
 

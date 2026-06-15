@@ -136,3 +136,6 @@ coverage/*
 stats.html
 
 .vite-cache/
+
+# Compiled compendium LevelDBs — regenerated from src/packs/ by `yarn build:packs`
+/packs/

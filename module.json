@@ -55,5 +55,17 @@
 		"RegionBehavior": {
 			"launchSplash": {}
 		}
-	}
+	},
+	"packs": [
+		{
+			"name": "splash-presets",
+			"label": "Splash Presets",
+			"path": "packs/splash-presets",
+			"type": "JournalEntry",
+			"ownership": {
+				"PLAYER": "NONE",
+				"ASSISTANT": "OWNER"
+			}
+		}
+	]
 }

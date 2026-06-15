@@ -7,6 +7,9 @@ class HandoutApplication extends SvelteRenderer {
 	#title: string;
 
 	constructor(page: SplashPage) {
+		// Present at the splash's authored handout size; the runtime renderer draws sprites at raw
+		// coordinates (no fit-scaling), so the window is NOT resizable — resizing would only clip.
+		const size = (page.system as { handoutSize?: { width?: number; height?: number } | null }).handoutSize;
 		super(
 			SplashUI,
 			{ splashConfig: page.system, pageUuid: page.uuid },
@@ -16,11 +19,11 @@ class HandoutApplication extends SvelteRenderer {
 				window: {
 					frame: true,
 					positioned: true,
-					resizable: true,
+					resizable: false,
 				},
 				position: {
-					width: 800,
-					height: 600,
+					width: size?.width ?? 800,
+					height: size?.height ?? 600,
 				},
 			},
 		);

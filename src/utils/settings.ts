@@ -3,17 +3,10 @@ import { ID } from './const.js';
 
 export const SETTING_RENDERER = 'renderer';
 export const SETTING_ACTIVE_SPLASH = 'activeSplash';
-export const SETTING_SHARED_STATE = 'sharedState';
 export const SETTING_DATA_MODEL_VERSION = 'dataModelVersion';
 
 /** The current data-model version. Bump only when shipping a real post-release migration. */
 export const CURRENT_DATA_MODEL_VERSION = 1;
-
-/** Snapshot of a synced splash's runtime, persisted per page uuid. */
-export interface SharedSplashState {
-	loadedStates: string[];
-	values: Record<string, string | number>;
-}
 
 /** Splash-mode stacking: scene = above canvas only, hud = scene + hides scene chrome, full = above all UI. */
 export type SplashLayer = 'scene' | 'hud' | 'full';
@@ -62,19 +55,8 @@ export function registerSettings(): void {
 		},
 	});
 
-	// Hidden shared-state store for synced splashes, keyed by page uuid. Only the
-	// GM client writes it; everyone else mirrors. Entries persist so a communal
-	// puzzle keeps its progress between opens and across reloads.
-	game.settings?.register(ID, SETTING_SHARED_STATE, {
-		scope: 'world',
-		config: false,
-		type: Object,
-		default: {},
-		onChange: async (value) => {
-			const { onSharedStateChanged } = await import('./sync.ts');
-			onSharedStateChanged((value ?? {}) as Record<string, SharedSplashState>);
-		},
-	});
+	// Synced-splash runtime state now lives per-page in `flags.splash.runtime` (see utils/sync.ts), not a
+	// world setting — so it stays scoped to each splash and never balloons with the number of locks.
 
 	// Stored data-model version. The -1 sentinel means "never stamped" — the baseline
 	// stamp lifts it to CURRENT_DATA_MODEL_VERSION so future releases can tell a fresh
@@ -93,10 +75,6 @@ export function getDataModelVersion(): number {
 
 export async function setDataModelVersion(version: number): Promise<void> {
 	await game.settings?.set(ID, SETTING_DATA_MODEL_VERSION, version);
-}
-
-export function getSharedStates(): Record<string, SharedSplashState> {
-	return (game.settings?.get(ID, SETTING_SHARED_STATE) ?? {}) as Record<string, SharedSplashState>;
 }
 
 export function getActiveSplash(): ActiveSplash | null {

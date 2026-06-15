@@ -55,6 +55,9 @@ export class SplashRuntime {
 	#changingBlocked = false;
 	#suppressAnimIn = false;
 	#mirroring = false;
+	// Set during play-out/teardown so `#emitChanged` stays silent: unloading every state on close is local
+	// cleanup, and broadcasting it would persist `loadedStates: []` and blank the splash on the next synced open.
+	#tearingDown = false;
 	#values: SplashValues = {};
 	#overrides: Record<string, SpriteOverrides> = {};
 	#trigger: Record<string, unknown>;
@@ -87,10 +90,14 @@ export class SplashRuntime {
 		return { loadedStates: [...this.#loadedStates], values: { ...this.#values }, overrides };
 	}
 
+	/** Broadcast the current snapshot, unless we're mirroring a remote one or tearing the splash down. */
+	#emitChanged(): void {
+		if (!this.#mirroring && !this.#tearingDown) this.#onChanged(this.snapshot);
+	}
+
 	/**
-	 * Set an ephemeral property override on a sprite (e.g. a dialed letter's `text`) — applied over the
-	 * sprite's stored data, synced to the table, never persisted to the document. The inline-macro setter
-	 * routes here. `value === undefined` clears the one property.
+	 * Set an ephemeral property override on a sprite (e.g. a dialed letter's `text`): applied over stored
+	 * data, synced to the table, never persisted. `value` null/undefined clears the one property.
 	 */
 	setOverride(spriteId: string, property: string, value: unknown): void {
 		const current = this.#overrides[spriteId] ?? {};
@@ -101,7 +108,7 @@ export class SplashRuntime {
 		if (Object.keys(current).length === 0) delete this.#overrides[spriteId];
 		else this.#overrides[spriteId] = current;
 		this.#rendered.get(spriteId)?.applyOverrides({ ...(this.#overrides[spriteId] ?? {}) });
-		if (!this.#mirroring) this.#onChanged(this.snapshot);
+		this.#emitChanged();
 	}
 
 	/**
@@ -121,10 +128,8 @@ export class SplashRuntime {
 			for (const stateId of [...this.#loadedStates]) {
 				if (!snapshot.loadedStates.includes(stateId)) await this.unloadState(stateId);
 			}
-			// Reconcile overrides to the authoritative snapshot EXACTLY — adopt present, clear absent — so a
-			// reset/cleared dial on the executor reverts on followers instead of diverging forever. Runs after
-			// states load so the target sprites exist. Union of local + incoming sprite ids (object spread
-			// avoids a Set so the lint stays happy).
+			// Reconcile overrides to the snapshot exactly — adopt present, clear absent — so a cleared dial on
+			// the executor reverts on followers. Runs after states load so the target sprites exist.
 			const incomingAll = (snapshot.overrides ?? {}) as Record<string, Record<string, unknown>>;
 			for (const spriteId of Object.keys({ ...this.#overrides, ...incomingAll })) {
 				const incoming = incomingAll[spriteId] ?? {};
@@ -263,7 +268,7 @@ export class SplashRuntime {
 		for (const rendered of this.#rendered.values()) {
 			rendered.updateValues(this.#values);
 		}
-		if (!this.#mirroring) this.#onChanged(this.snapshot);
+		this.#emitChanged();
 	}
 
 	#conditionsMet(conditions: Record<string, string> | null | undefined): boolean {
@@ -327,7 +332,7 @@ export class SplashRuntime {
 			}
 		}
 		this.#loadedStates.push(stateId);
-		if (!this.#mirroring) this.#onChanged(this.snapshot);
+		this.#emitChanged();
 		await this.#executeOnEnter(stateId);
 		return longestTimeout;
 	}
@@ -372,7 +377,7 @@ export class SplashRuntime {
 			}
 		}
 		this.#loadedStates = this.#loadedStates.filter(state => state !== stateId);
-		if (!this.#mirroring) this.#onChanged(this.snapshot);
+		this.#emitChanged();
 		return longestTimeout;
 	}
 
@@ -407,12 +412,12 @@ export class SplashRuntime {
 	}
 
 	/**
-	 * Play the splash out before it's torn down: unload every loaded state so each sprite runs its
-	 * out-animation (its own `animOut`, else its state's, else the splash-level fallback), and resolve
-	 * only once the longest of those animations has finished. The caller (the app's pre-close) awaits
-	 * this so the outro is actually seen before `destroy()`. Resolves immediately if nothing animates.
+	 * Unload every state so each sprite runs its out-animation, resolving once the longest finishes. The
+	 * caller awaits this before `destroy()` so the outro is seen. Resolves immediately if nothing animates.
 	 */
 	async playOut(): Promise<void> {
+		this.#tearingDown = true;
+		if (!this.#hasOutro()) return;
 		let longest = 0;
 		for (const stateId of [...this.#loadedStates]) {
 			longest = Math.max(longest, (await this.unloadState(stateId)) ?? 0);
@@ -420,7 +425,20 @@ export class SplashRuntime {
 		if (longest > 0) await new Promise(resolve => setTimeout(resolve, longest));
 	}
 
+	/** Whether any currently-rendered sprite has an out-animation with a non-zero duration. */
+	#hasOutro(): boolean {
+		for (const stateId of this.#loadedStates) {
+			for (const child of getChildrenWithState(this.#splash, stateId)) {
+				if (!this.#rendered.has(child.id)) continue;
+				const animation = child.animOut ?? child.states[stateId]?.animOut ?? this.#splash.animOut;
+				if (animation && this.#renderer.animationDuration(animation) > 0) return true;
+			}
+		}
+		return false;
+	}
+
 	destroy(): void {
+		this.#tearingDown = true;
 		this.#rendered.clear();
 		this.#renderer.destroy();
 	}

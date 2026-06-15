@@ -1,19 +1,28 @@
 import type { ActionInitialized, SplashInitialized } from '../datamodel/SplashModel.ts';
 import type { RuntimeSnapshot, SplashRuntime } from '../renderer/SplashRuntime.ts';
-import type { SharedSplashState } from './settings.ts';
 import { ID } from './const.js';
-import { getSharedStates, SETTING_SHARED_STATE } from './settings.ts';
 
 /**
- * Synced-mode wiring. One shared state per page uuid lives in a world setting:
- * the GM client executes all actions and persists snapshots; player clients
- * forward their actions as socket intents and mirror the setting.
+ * Synced-mode wiring. A synced splash's runtime snapshot lives in a per-page flag (`flags.splash.runtime`),
+ * synced natively by Foundry's document layer. Only a GM can write a page flag, so player edits run locally
+ * and are proxied to the GM, who validates and writes; observers mirror the resulting update. Votes are
+ * forwarded as intents instead, so the GM keeps per-user attribution.
  */
+
+/** Page-flag key (under `flags.splash`) holding a synced splash's runtime snapshot. */
+const FLAG_RUNTIME = 'runtime';
 
 interface ActionIntentEvent {
 	eventType: 'splashActionIntent';
 	senderId: string;
 	payload: { uuid: string; action: ActionInitialized; sourceId?: string };
+}
+
+/** A non-GM's optimistic runtime snapshot, proxied to the GM to persist on the page flag. */
+interface StateProxyEvent {
+	eventType: 'splashStateProxy';
+	senderId: string;
+	payload: { uuid: string; snapshot: RuntimeSnapshot };
 }
 
 /** Runtimes currently open on this client, by page uuid (synced and local alike). */
@@ -53,8 +62,7 @@ async function recordVote(uuid: string, userId: string, optionId: string, splash
 	if (splash.voteVisibility === 'all') {
 		for (const option of declaredVoteOptions(splash)) {
 			const count = [...ledger.values()].filter(choice => choice === option).length;
-			// Tallies ride the regular value pipeline: persisted, mirrored, and
-			// displayable via {vote:option} interpolation.
+			// Tallies ride the value pipeline so {vote:option} interpolation displays them.
 			await runtime.handleAction({ type: 'set-value', key: `vote:${option}`, value: String(count) } as ActionInitialized);
 		}
 	}
@@ -103,6 +111,49 @@ export interface SyncDriver {
 	dispose: () => void;
 }
 
+/** A page's stored runtime snapshot, if any. */
+function getPageSnapshot(page: JournalEntryPage): RuntimeSnapshot | undefined {
+	return page.getFlag(ID, FLAG_RUNTIME) as RuntimeSnapshot | undefined;
+}
+
+/**
+ * Keep only the parts of a snapshot the splash still backs: loaded states that still exist and overrides on
+ * sprites that still exist. Used both to validate a player's proxied snapshot (so they can only nudge real
+ * state) and to repair the stored flag after the splash is restructured.
+ */
+function pruneSnapshot(splash: SplashInitialized, snapshot: RuntimeSnapshot): RuntimeSnapshot {
+	const stateKeys = new Set(Object.keys(splash.states ?? {}));
+	const spriteIds = new Set((splash.children ?? []).map(c => c?.id).filter(Boolean) as string[]);
+	const overrides: RuntimeSnapshot['overrides'] = {};
+	for (const [id, ov] of Object.entries(snapshot.overrides ?? {})) {
+		if (spriteIds.has(id)) overrides[id] = ov;
+	}
+	return {
+		loadedStates: (snapshot.loadedStates ?? []).filter(s => stateKeys.has(s)),
+		values: { ...(snapshot.values ?? {}) },
+		overrides,
+	};
+}
+
+// Debounced page-flag writes (GM-only). Rapid edits (e.g. spinning a dial) coalesce into one document update.
+const flagTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const flagPending = new Map<string, RuntimeSnapshot>();
+
+/** Persist a snapshot to a page's runtime flag — GM-only (only a GM can write the page), debounced per page. */
+function writeRuntimeFlag(uuid: string, snapshot: RuntimeSnapshot): void {
+	if (game.users?.activeGM?.id !== game.userId) return;
+	flagPending.set(uuid, snapshot);
+	clearTimeout(flagTimers.get(uuid));
+	flagTimers.set(uuid, setTimeout(async () => {
+		const snap = flagPending.get(uuid);
+		flagPending.delete(uuid);
+		flagTimers.delete(uuid);
+		const page = await fromUuid(uuid) as JournalEntryPage | null;
+		// `==` replaces the whole flag; setFlag merges, leaving stale override keys behind.
+		if (page && snap) await page.update({ [`flags.${ID}.==${FLAG_RUNTIME}`]: snap });
+	}, 120));
+}
+
 /** An action is only executable if the splash's own data declares it somewhere. */
 export function isDeclaredAction(splash: SplashInitialized, action: ActionInitialized): boolean {
 	const declared: unknown[] = [];
@@ -116,80 +167,114 @@ export function isDeclaredAction(splash: SplashInitialized, action: ActionInitia
 }
 
 export function createSyncDriver(uuid: string, splash: SplashInitialized, runtime: SplashRuntime): SyncDriver {
-	const isExecutor = () => game.users?.activeGM?.id === game.userId;
+	const isWriter = () => game.users?.activeGM?.id === game.userId;
 	let live = false;
-	let persistTimer: ReturnType<typeof setTimeout> | undefined;
+	let proxyTimer: ReturnType<typeof setTimeout> | undefined;
 
-	const persist = (snapshot: RuntimeSnapshot) => {
-		clearTimeout(persistTimer);
-		persistTimer = setTimeout(() => {
-			const states = { ...getSharedStates(), [uuid]: snapshot as SharedSplashState };
-			game.settings?.set(ID, SETTING_SHARED_STATE, states);
-		}, 100);
+	// A non-GM publishes its optimistic snapshot to the GM, who validates and writes the page flag.
+	const proxy = (snapshot: RuntimeSnapshot) => {
+		clearTimeout(proxyTimer);
+		proxyTimer = setTimeout(() => {
+			game.socket?.emit(`module.${ID}`, {
+				eventType: 'splashStateProxy',
+				senderId: game.userId,
+				payload: { uuid, snapshot },
+			} satisfies StateProxyEvent);
+		}, 120);
 	};
 
 	return {
 		interceptAction: (action, sourceId) => {
-			if (isExecutor()) {
-				// Votes need attribution, which the runtime doesn't know about.
-				if (action.type === 'vote') {
+			// Votes are tallied per-user on the GM, so they alone are routed there — never run locally.
+			if (action.type === 'vote') {
+				if (isWriter()) {
 					recordVote(uuid, game.userId ?? '', action.optionId ?? '', splash, runtime);
-					return true;
+				} else {
+					game.socket?.emit(`module.${ID}`, {
+						eventType: 'splashActionIntent',
+						senderId: game.userId,
+						payload: { uuid, action, sourceId },
+					} satisfies ActionIntentEvent);
 				}
-				return false;
+				return true;
 			}
-			// Forward the firing sprite id so the GM runs the macro with the right `scope`, not the tree root.
-			game.socket?.emit(`module.${ID}`, {
-				eventType: 'splashActionIntent',
-				senderId: game.userId,
-				payload: { uuid, action, sourceId },
-			} satisfies ActionIntentEvent);
-			return true;
+			// Everything else runs LOCALLY (instant feedback); the resulting state syncs via onChanged below.
+			return false;
 		},
 		onChanged: (snapshot) => {
-			if (live && isExecutor()) persist(snapshot);
+			if (!live) return;
+			// The GM writes the page flag directly; a player proxies its snapshot to the GM to write.
+			if (isWriter()) writeRuntimeFlag(uuid, pruneSnapshot(splash, snapshot));
+			else proxy(snapshot);
 		},
 		connect: async () => {
-			const shared = getSharedStates()[uuid];
-			if (shared) await runtime.applyShared(shared);
+			const page = await fromUuid(uuid) as JournalEntryPage | null;
+			const shared = page ? getPageSnapshot(page) : undefined;
+			// Adopt a snapshot only if it has loaded states; an empty/missing one means uninitialized, so the
+			// GM seeds from its own load and a player keeps its own — never reconciled down to blank.
+			if (shared && shared.loadedStates?.length) {
+				await runtime.applyShared(shared);
+			} else if (isWriter()) {
+				writeRuntimeFlag(uuid, runtime.snapshot);
+			}
 			live = true;
-			// First opener seeds the shared state so late joiners see the same thing.
-			if (!shared && isExecutor()) persist(runtime.snapshot);
 		},
 		dispose: () => {
-			clearTimeout(persistTimer);
+			live = false;
+			clearTimeout(proxyTimer);
 		},
 	};
 }
 
-/** Setting onChange: mirror the authoritative snapshots into open runtimes. */
-export function onSharedStateChanged(states: Record<string, SharedSplashState>): void {
-	// The executor's runtimes are the source of these snapshots, not mirrors.
-	if (game.users?.activeGM?.id === game.userId) return;
-	for (const [uuid, runtime] of openRuntimes) {
-		const shared = states[uuid];
-		if (shared) runtime.applyShared(shared);
-	}
+/**
+ * Mirror runtime-flag changes into open runtimes, and repair the stored snapshot when a splash is
+ * restructured. Registered once at init.
+ */
+export function registerSyncHooks(): void {
+	Hooks.on('updateJournalEntryPage', async (page: JournalEntryPage, changed: object) => {
+		// Mirror a runtime-flag change into any open runtime. Match the parent `flags.splash`, not the
+		// `runtime` leaf: the `==` write makes the diff key `flags.splash.==runtime`, which a leaf check misses.
+		if (foundry.utils.hasProperty(changed, `flags.${ID}`)) {
+			const runtime = openRuntimes.get(page.uuid);
+			const snapshot = getPageSnapshot(page);
+			if (runtime && snapshot) void runtime.applyShared(snapshot);
+		}
+		// Structure changed → the stored snapshot may reference deleted states/sprites. Prune it (GM only).
+		if (foundry.utils.hasProperty(changed, 'system') && game.users?.activeGM?.id === game.userId) {
+			const snapshot = getPageSnapshot(page);
+			if (snapshot) {
+				const pruned = pruneSnapshot(page.system as SplashInitialized, snapshot);
+				if (!foundry.utils.objectsEqual(pruned as object, snapshot as object)) {
+					// `==` replaces the flag wholesale so orphaned override keys actually drop (a merge keeps them).
+					await page.update({ [`flags.${ID}.==${FLAG_RUNTIME}`]: pruned });
+				}
+			}
+		}
+	});
 }
 
-/** Socket listener: the executing GM validates and applies player intents. */
+/** Socket listener: the GM tallies forwarded votes and persists players' proxied state edits. */
 export function registerSyncSocket(): void {
-	game.socket?.on(`module.${ID}`, async (event: ActionIntentEvent) => {
-		if (event?.eventType !== 'splashActionIntent') return;
+	game.socket?.on(`module.${ID}`, async (event: ActionIntentEvent | StateProxyEvent) => {
 		if (game.users?.activeGM?.id !== game.userId) return;
-		const { uuid, action, sourceId } = event.payload ?? {};
-		if (!uuid || !action) return;
-		const runtime = openRuntimes.get(uuid);
-		if (!runtime) return;
-		// Reject anything the splash's data doesn't declare — intents are unauthenticated.
+		const uuid = event?.payload?.uuid;
+		if (!uuid) return;
 		const page = await fromUuid(uuid);
 		const splash = (page as JournalEntryPage | null)?.system as SplashInitialized | undefined;
-		if (!splash || !isDeclaredAction(splash, action)) return;
-		if (action.type === 'vote') {
-			await recordVote(uuid, event.senderId, action.optionId ?? '', splash, runtime);
+		if (!splash) return;
+
+		if (event.eventType === 'splashActionIntent') {
+			const action = event.payload.action;
+			// Only declared vote intents are honoured — everything else now runs on the player's own client.
+			if (!action || action.type !== 'vote' || !isDeclaredAction(splash, action)) return;
+			const runtime = openRuntimes.get(uuid);
+			if (runtime) await recordVote(uuid, event.senderId, action.optionId ?? '', splash, runtime);
 			return;
 		}
-		// Pass the forwarded sprite id so script macros resolve `scope` to the firing element on the GM.
-		await runtime.handleAction(action, sourceId);
+
+		if (event.eventType === 'splashStateProxy') {
+			// Prune to the splash's declared states/sprites so a player can only nudge real runtime state.
+			if (event.payload.snapshot) writeRuntimeFlag(uuid, pruneSnapshot(splash, event.payload.snapshot));
+		}
 	});
 }

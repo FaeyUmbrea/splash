@@ -2,16 +2,10 @@ import type { SplashCreate } from '../../datamodel/SplashModel.ts';
 import type { SplashPage } from '../../utils/launch.ts';
 
 /**
- * A fully reactive, atomically-updatable store wrapping a splash page's `system` data — the
- * document-backed analogue of obs-utils' settings store.
- *
- * Reads: `data` (a reactive mirror). Writes go through `write()`: the local mirror is mutated
- * OPTIMISTICALLY (so the UI updates synchronously — no round-trip snap-back) and an atomic
- * `document.update()` is fired in the background. The document's own update hook re-syncs the
- * mirror only when the server state actually differs from ours (i.e. an EXTERNAL edit), so our
- * own writes never cause a flicker.
- *
- * It also keeps an undo history; undo/redo replay snapshots the same optimistic-then-atomic way.
+ * A reactive store over a splash page's `system` data. `data` is a reactive mirror; `write()` mutates it
+ * optimistically (synchronous UI, no round-trip snap-back) then fires an atomic `document.update()`. The
+ * update hook re-syncs the mirror only on external edits, so our own writes never flicker. Keeps an undo
+ * history replayed the same optimistic-then-atomic way.
  */
 export class DocumentStore {
 	readonly page: SplashPage;
@@ -33,12 +27,23 @@ export class DocumentStore {
 		this.#hookId = Hooks.on('updateJournalEntryPage', (doc: JournalEntryPage) => {
 			if (doc.id !== this.page.id) return;
 			const server = this.page.system.toObject() as SplashCreate;
-			// Our own optimistic writes already match the server — ignore the echo (no flicker).
-			if (foundry.utils.objectsEqual(server, this.data)) return;
-			// An external edit (another client, or a non-optimistic path): adopt and record it.
+			// Ignore the echo of our own writes. Compare against a schema-cleaned mirror, not the raw one: the
+			// optimistic mirror holds partial-shaped data (defaults the server fills in), so a raw compare is
+			// always unequal and would re-adopt the echo as a phantom undo step.
+			if (foundry.utils.objectsEqual(server, this.#cleanedMirror())) return;
+			// A genuine external edit (another client, or a non-optimistic path): adopt and record it.
 			this.data = server;
 			this.#record();
 		});
+	}
+
+	/** The optimistic mirror normalized to the schema's stored shape, matching what `toObject()` echoes. */
+	#cleanedMirror(): SplashCreate {
+		try {
+			return this.page.system.schema.clean(foundry.utils.deepClone(this.data)) as unknown as SplashCreate;
+		} catch {
+			return this.data;
+		}
 	}
 
 	/** Optimistically mutate the local mirror, record undo history, then persist atomically. */

@@ -120,7 +120,8 @@ export class PixiRenderer implements SplashRenderer {
 
 	destroy(): void {
 		this.#resizeObserver?.disconnect();
-		this.#app.stop();
-		this.#app.stage.destroy();
+		// Destroy the whole Application to release the WebGL context; destroying only the stage leaks it, and
+		// browsers cap contexts (~16). `removeView: false` leaves the <canvas> for Svelte to unmount.
+		this.#app.destroy(false, { children: true });
 	}
 }

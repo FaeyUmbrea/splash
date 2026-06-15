@@ -94,11 +94,10 @@ export class HtmlRenderer implements SplashRenderer {
 	}
 
 	async animate(_animation: AnimationInitialized, _sprite: RenderedSprite): Promise<void> {
-		// Animations are GL-only effects; the HTML renderer shows state changes instantly.
+		// GL-only; HTML renderer skips animations.
 	}
 
 	animationDuration(_animation: AnimationInitialized | null | undefined): number {
-		// Animations are skipped, so they never block state changes.
 		return 0;
 	}
 

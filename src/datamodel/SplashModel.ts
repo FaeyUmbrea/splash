@@ -412,6 +412,11 @@ function SplashModelSchemaCreator() {
 		children: new fields.ArrayField(
 			SpriteFieldCreator(),
 		),
+		// Optional display names for object groups, keyed by the shared `groupId` the members carry.
+		// Editor-only metadata; a group with no entry falls back to a positional label.
+		groups: new fields.TypedObjectField(new fields.SchemaField({
+			name: new fields.StringField({ required: true, initial: '' }),
+		}), { required: false, initial: {} }),
 		initialState: new fields.ArrayField(new fields.StringField(), {
 			required: true,
 			initial: ['initial'],

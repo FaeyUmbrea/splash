@@ -14,7 +14,7 @@ import { registerPresenceSocket } from './utils/presence.ts';
 import { registerSettings } from './utils/settings.ts';
 import { setupAPI } from './utils/setup.js';
 import { registerSocket } from './utils/socket.ts';
-import { registerSyncSocket } from './utils/sync.ts';
+import { registerSyncHooks, registerSyncSocket } from './utils/sync.ts';
 import './css/splash.scss';
 
 Hooks.once('init', () => {
@@ -40,6 +40,7 @@ Hooks.once('init', () => {
 	registerSettings();
 	registerSocket();
 	registerSyncSocket();
+	registerSyncHooks();
 	registerPresenceSocket();
 	registerControllerHooks();
 	registerGmControls();

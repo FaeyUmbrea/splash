@@ -1,0 +1,684 @@
+{
+	"_id": "splashPresetJrnl",
+	"_key": "!journal!splashPresetJrnl",
+	"name": "Tumbler Lock",
+	"pages": [
+		{
+			"_id": "splashTumblerPg0",
+			"_key": "!journal.pages!splashPresetJrnl.splashTumblerPg0",
+			"name": "Tumbler Lock",
+			"type": "splash.preset",
+			"title": {
+				"show": false,
+				"level": 1
+			},
+			"system": {
+				"notes": "A combination lock. Drop it onto a splash and it asks for the code word, generating one wheel per letter plus an Unlock button. The baked sprites below are a 4-wheel \"OPEN\" preview.",
+				"behavior": "tumbler-lock",
+				"payload": {
+					"type": "spriteGroup",
+					"value": [
+						{
+							"type": "panel",
+							"id": "wheel0-body",
+							"name": "Body",
+							"groupId": "wheel0",
+							"fill": "#1b2838",
+							"borderColor": "#7799bb",
+							"borderWidth": 4,
+							"radius": 10,
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 200,
+									"y": 200,
+									"width": 90,
+									"height": 240
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "wheel0-up",
+							"name": "Up",
+							"groupId": "wheel0",
+							"label": {
+								"text": "▲",
+								"fontSize": 26,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#2d4a63",
+							"onClick": {
+								"type": "script",
+								"source": "const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];"
+							},
+							"context": {
+								"Direction": 1
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 215,
+									"y": 206,
+									"width": 60,
+									"height": 30
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel0-top",
+							"name": "Top",
+							"groupId": "wheel0",
+							"text": "Z",
+							"font": "Arial",
+							"size": 28,
+							"fillColor": "#7f9fc0",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 200,
+									"y": 245,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel0-middle",
+							"name": "Middle",
+							"groupId": "wheel0",
+							"text": "A",
+							"font": "Arial",
+							"size": 56,
+							"fillColor": "#ffffff",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 200,
+									"y": 292,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel0-bottom",
+							"name": "Bottom",
+							"groupId": "wheel0",
+							"text": "B",
+							"font": "Arial",
+							"size": 28,
+							"fillColor": "#7f9fc0",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 200,
+									"y": 368,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "wheel0-down",
+							"name": "Down",
+							"groupId": "wheel0",
+							"label": {
+								"text": "▼",
+								"fontSize": 26,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#2d4a63",
+							"onClick": {
+								"type": "script",
+								"source": "const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];"
+							},
+							"context": {
+								"Direction": -1
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 215,
+									"y": 404,
+									"width": 60,
+									"height": 30
+								}
+							}
+						},
+						{
+							"type": "panel",
+							"id": "wheel1-body",
+							"name": "Body",
+							"groupId": "wheel1",
+							"fill": "#1b2838",
+							"borderColor": "#7799bb",
+							"borderWidth": 4,
+							"radius": 10,
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 306,
+									"y": 200,
+									"width": 90,
+									"height": 240
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "wheel1-up",
+							"name": "Up",
+							"groupId": "wheel1",
+							"label": {
+								"text": "▲",
+								"fontSize": 26,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#2d4a63",
+							"onClick": {
+								"type": "script",
+								"source": "const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];"
+							},
+							"context": {
+								"Direction": 1
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 321,
+									"y": 206,
+									"width": 60,
+									"height": 30
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel1-top",
+							"name": "Top",
+							"groupId": "wheel1",
+							"text": "Z",
+							"font": "Arial",
+							"size": 28,
+							"fillColor": "#7f9fc0",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 306,
+									"y": 245,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel1-middle",
+							"name": "Middle",
+							"groupId": "wheel1",
+							"text": "A",
+							"font": "Arial",
+							"size": 56,
+							"fillColor": "#ffffff",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 306,
+									"y": 292,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel1-bottom",
+							"name": "Bottom",
+							"groupId": "wheel1",
+							"text": "B",
+							"font": "Arial",
+							"size": 28,
+							"fillColor": "#7f9fc0",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 306,
+									"y": 368,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "wheel1-down",
+							"name": "Down",
+							"groupId": "wheel1",
+							"label": {
+								"text": "▼",
+								"fontSize": 26,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#2d4a63",
+							"onClick": {
+								"type": "script",
+								"source": "const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];"
+							},
+							"context": {
+								"Direction": -1
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 321,
+									"y": 404,
+									"width": 60,
+									"height": 30
+								}
+							}
+						},
+						{
+							"type": "panel",
+							"id": "wheel2-body",
+							"name": "Body",
+							"groupId": "wheel2",
+							"fill": "#1b2838",
+							"borderColor": "#7799bb",
+							"borderWidth": 4,
+							"radius": 10,
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 412,
+									"y": 200,
+									"width": 90,
+									"height": 240
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "wheel2-up",
+							"name": "Up",
+							"groupId": "wheel2",
+							"label": {
+								"text": "▲",
+								"fontSize": 26,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#2d4a63",
+							"onClick": {
+								"type": "script",
+								"source": "const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];"
+							},
+							"context": {
+								"Direction": 1
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 427,
+									"y": 206,
+									"width": 60,
+									"height": 30
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel2-top",
+							"name": "Top",
+							"groupId": "wheel2",
+							"text": "Z",
+							"font": "Arial",
+							"size": 28,
+							"fillColor": "#7f9fc0",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 412,
+									"y": 245,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel2-middle",
+							"name": "Middle",
+							"groupId": "wheel2",
+							"text": "A",
+							"font": "Arial",
+							"size": 56,
+							"fillColor": "#ffffff",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 412,
+									"y": 292,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel2-bottom",
+							"name": "Bottom",
+							"groupId": "wheel2",
+							"text": "B",
+							"font": "Arial",
+							"size": 28,
+							"fillColor": "#7f9fc0",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 412,
+									"y": 368,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "wheel2-down",
+							"name": "Down",
+							"groupId": "wheel2",
+							"label": {
+								"text": "▼",
+								"fontSize": 26,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#2d4a63",
+							"onClick": {
+								"type": "script",
+								"source": "const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];"
+							},
+							"context": {
+								"Direction": -1
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 427,
+									"y": 404,
+									"width": 60,
+									"height": 30
+								}
+							}
+						},
+						{
+							"type": "panel",
+							"id": "wheel3-body",
+							"name": "Body",
+							"groupId": "wheel3",
+							"fill": "#1b2838",
+							"borderColor": "#7799bb",
+							"borderWidth": 4,
+							"radius": 10,
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 518,
+									"y": 200,
+									"width": 90,
+									"height": 240
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "wheel3-up",
+							"name": "Up",
+							"groupId": "wheel3",
+							"label": {
+								"text": "▲",
+								"fontSize": 26,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#2d4a63",
+							"onClick": {
+								"type": "script",
+								"source": "const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];"
+							},
+							"context": {
+								"Direction": 1
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 533,
+									"y": 206,
+									"width": 60,
+									"height": 30
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel3-top",
+							"name": "Top",
+							"groupId": "wheel3",
+							"text": "Z",
+							"font": "Arial",
+							"size": 28,
+							"fillColor": "#7f9fc0",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 518,
+									"y": 245,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel3-middle",
+							"name": "Middle",
+							"groupId": "wheel3",
+							"text": "A",
+							"font": "Arial",
+							"size": 56,
+							"fillColor": "#ffffff",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 518,
+									"y": 292,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "text",
+							"id": "wheel3-bottom",
+							"name": "Bottom",
+							"groupId": "wheel3",
+							"text": "B",
+							"font": "Arial",
+							"size": 28,
+							"fillColor": "#7f9fc0",
+							"align": "center",
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 518,
+									"y": 368,
+									"width": 90,
+									"height": null
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "wheel3-down",
+							"name": "Down",
+							"groupId": "wheel3",
+							"label": {
+								"text": "▼",
+								"fontSize": 26,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#2d4a63",
+							"onClick": {
+								"type": "script",
+								"source": "const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';const w=scope.parent;const i=(A.indexOf((w.child.get('Middle').text||'A').toUpperCase())+(context.Direction||1)+26)%26;w.child.get('Middle').text=A[i];w.child.get('Top').text=A[(i+25)%26];w.child.get('Bottom').text=A[(i+1)%26];"
+							},
+							"context": {
+								"Direction": -1
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 533,
+									"y": 404,
+									"width": 60,
+									"height": 30
+								}
+							}
+						},
+						{
+							"type": "button",
+							"id": "unlock",
+							"name": "Unlock",
+							"groupId": null,
+							"label": {
+								"text": "UNLOCK",
+								"fontSize": 22,
+								"strokeThickness": 0,
+								"stroke": "#000000",
+								"fill": "#cfe3ff"
+							},
+							"image": {
+								"url": "",
+								"leftWidth": 0,
+								"topHeight": 0,
+								"rightWidth": 0,
+								"bottomHeight": 0
+							},
+							"tint": "#3a6ea5",
+							"onClick": {
+								"type": "script",
+								"source": "const root=scope.parent;const word=context.Wheels.map(id=>String(root.child.get(id)?.child.get('Middle').text||'').toUpperCase()).join('');if(word===String(context.Keyword).toUpperCase()){ui.notifications?.info('Unlocked!');api.unlockDoor();api.close();}else{ui.notifications?.warn('Wrong combination.');}"
+							},
+							"context": {
+								"Keyword": "OPEN",
+								"Wheels": [
+									"wheel0",
+									"wheel1",
+									"wheel2",
+									"wheel3"
+								]
+							},
+							"effects": [],
+							"states": {
+								"preset": {
+									"x": 200,
+									"y": 456,
+									"width": 408,
+									"height": 44
+								}
+							}
+						}
+					]
+				}
+			}
+		}
+	],
+	"ownership": {
+		"default": 2
+	}
+}

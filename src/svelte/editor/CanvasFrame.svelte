@@ -44,6 +44,23 @@
 		return { x: p.x ?? 0, y: p.y ?? 0, w: p.width ?? fb.width ?? 100, h: p.height ?? fb.height ?? 40 };
 	}
 
+	/** The union bounding box of the given in-state objects — what a group move snaps by. */
+	function boundingBox(ids: string[]) {
+		let minX = Infinity;
+		let minY = Infinity;
+		let maxX = -Infinity;
+		let maxY = -Infinity;
+		for (const o of model.objectsInState) {
+			if (!ids.includes(o.id)) continue;
+			const r = rectOf(o);
+			minX = Math.min(minX, r.x);
+			minY = Math.min(minY, r.y);
+			maxX = Math.max(maxX, r.x + r.w);
+			maxY = Math.max(maxY, r.y + r.h);
+		}
+		return Number.isFinite(minX) ? { x: minX, y: minY, w: maxX - minX, h: maxY - minY } : null;
+	}
+
 	function toStage(clientX: number, clientY: number) {
 		const r = stageEl?.getBoundingClientRect();
 		return { x: Math.round((clientX - (r?.left ?? 0)) / scale), y: Math.round((clientY - (r?.top ?? 0)) / scale) };
@@ -66,9 +83,8 @@
 	}
 
 	/**
-	 * Snap one of an object's reference points (e.g. left/center/right) to a line. It LOCKS onto a
-	 * specific (point, line) pair and keeps aligning THAT point until it drifts past RELEASE — so it
-	 * never flips which point aligns to a line mid-drag (the cause of the stutter).
+	 * Snap one of an object's reference points (left/center/right) to a line. Locks onto a (point, line) pair
+	 * and holds it until it drifts past RELEASE, so it never flips which point aligns mid-drag (stutter).
 	 */
 	function snap1D(refs: number[], lines: number[], current: Snap | null): { snap: Snap | null; offset: number } {
 		if (current && Math.abs(current.line - refs[current.pi]) <= RELEASE) {
@@ -177,13 +193,16 @@
 		}
 		let snapX: Snap | null = null;
 		let snapY: Snap | null = null;
+		// Snap the WHOLE selection's bounding box, not just the grabbed object — so a group aligns by its
+		// outer edges/centre. For a single object the box equals its own rect, so behaviour is unchanged.
+		const box = boundingBox(gesture.ids) ?? r;
 		if (snapping && axis !== 'y') {
-			const sx = snap1D([r.x + dx, r.x + dx + r.w / 2, r.x + dx + r.w], snapLines('x'), gesture.snapX);
+			const sx = snap1D([box.x + dx, box.x + dx + box.w / 2, box.x + dx + box.w], snapLines('x'), gesture.snapX);
 			dx += sx.offset;
 			snapX = sx.snap;
 		}
 		if (snapping && axis !== 'x') {
-			const sy = snap1D([r.y + dy, r.y + dy + r.h / 2, r.y + dy + r.h], snapLines('y'), gesture.snapY);
+			const sy = snap1D([box.y + dy, box.y + dy + box.h / 2, box.y + dy + box.h], snapLines('y'), gesture.snapY);
 			dy += sy.offset;
 			snapY = sy.snap;
 		}
@@ -308,6 +327,19 @@
 		const o = model.objectsInState.find(p => p.id === gesture!.primaryId);
 		return o ? rectOf(o) : null;
 	});
+
+	/**
+	 * When a whole group is selected it reads as one object: draw a single bounding box instead of a box per
+	 * member (and the members below drop their individual outlines). Null for a single or loose selection.
+	 */
+	const groupSelectionBox = $derived.by(() => {
+		const ids = model.selectedIds;
+		if (ids.length < 2) return null;
+		const objs = model.objectsInState.filter(o => ids.includes(o.id));
+		const gid = objs[0] ? (objs[0].raw as { groupId?: string | null }).groupId : null;
+		if (!gid || !objs.every(o => (o.raw as { groupId?: string | null }).groupId === gid)) return null;
+		return boundingBox(ids);
+	});
 </script>
 
 <div
@@ -332,7 +364,7 @@
 				sprite={obj.raw}
 				placement={obj.placement ?? {}}
 				fallback={spriteDefaultSize(obj.type)}
-				selected={model.isSelected(obj.id)}
+				selected={model.isSelected(obj.id) && !groupSelectionBox}
 				dx={moveDx(obj.id)}
 				dy={moveDy(obj.id)}
 				dw={gesture?.kind === 'resize' && gesture.primaryId === obj.id ? gesture.dw : 0}
@@ -343,6 +375,12 @@
 				onDblClick={() => onSpriteDblClick(obj)}
 			/>
 		{/each}
+
+		{#if groupSelectionBox}
+			{@const gdx = gesture?.kind === 'move' ? gesture.dx : 0}
+			{@const gdy = gesture?.kind === 'move' ? gesture.dy : 0}
+			<div class='group-box' style={`left:${groupSelectionBox.x + gdx}px;top:${groupSelectionBox.y + gdy}px;width:${groupSelectionBox.w}px;height:${groupSelectionBox.h}px;`}></div>
+		{/if}
 
 		{#if marqueeRect && (marqueeRect.w > 2 || marqueeRect.h > 2)}
 			<div class='marquee' style={`left:${marqueeRect.x}px;top:${marqueeRect.y}px;width:${marqueeRect.w}px;height:${marqueeRect.h}px;`}></div>
@@ -407,6 +445,13 @@
 		border: 1px solid rgba(255, 144, 0, 0.7);
 		pointer-events: none;
 		z-index: 100000;
+	}
+
+	.group-box {
+		position: absolute;
+		outline: 2px solid #ff9800;
+		pointer-events: none;
+		z-index: 99999;
 	}
 
 	.snap-line {

@@ -48,6 +48,9 @@ function PresetModelSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
 		notes: new fields.StringField({ required: false }),
+		// Registered PrefabBehavior key (e.g. the tumbler lock): the `payload` is then a preview, and applying
+		// re-runs the behavior's dialog + build instead of stamping it. Null for plain style/content presets.
+		behavior: new fields.StringField({ required: false, nullable: true, initial: null }),
 		payload: new fields.TypedSchemaField({
 			// Multi-field records get a discriminator `type` + the reused factory fields.
 			nineslice: { type: new fields.StringField({ required: true, choices: ['nineslice'] }), ...ButtonImageSchemaCreator() },

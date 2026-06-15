@@ -18,6 +18,8 @@ export interface PresetSummary {
 	name: string;
 	kind: PresetKind;
 	img: string;
+	/** Registered PrefabBehavior key, when this preset reconfigures via a dialog on apply. */
+	behavior?: string | null;
 }
 
 /** The discriminated payload as stored on a preset page (`system.payload`). */
@@ -141,9 +143,9 @@ export function findPresetLibrary(): JournalEntry | undefined {
 }
 
 /**
- * The preset library, created once if missing. GM-only; players get null (they can still read an
- * existing library via its OBSERVER default ownership). Concurrent calls share one in-flight create so
- * two rapid saves never race two journals (mirrors discovery.ts's lazy default-journal pattern).
+ * The preset library, created once if missing. GM-only, keeping Foundry's default GM-owner ownership — it's
+ * an authoring tool, never exposed to players. Concurrent calls share one in-flight create so two rapid
+ * saves never race two journals.
  */
 export async function ensurePresetLibrary(): Promise<JournalEntry | null> {
 	const existing = findPresetLibrary();
@@ -151,7 +153,6 @@ export async function ensurePresetLibrary(): Promise<JournalEntry | null> {
 	if (!game.user?.isGM) return null;
 	libraryInFlight ??= JournalEntry.create({
 		name: PRESET_LIBRARY_NAME,
-		ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER },
 	})
 		.then(journal => (journal ?? null) as JournalEntry | null)
 		.catch(() => null)
@@ -166,8 +167,9 @@ export function allPresets(kind?: PresetKind): PresetSummary[] {
 	return library.pages.contents
 		.filter(page => page.type === 'splash.preset')
 		.map((page) => {
-			const payload = (page.system as { payload?: PresetPayload }).payload;
-			return payload && { uuid: page.uuid, name: page.name, kind: payload.type, img: presetThumb(payload) };
+			const system = page.system as { payload?: PresetPayload; behavior?: string | null };
+			const payload = system.payload;
+			return payload && { uuid: page.uuid, name: page.name, kind: payload.type, img: presetThumb(payload), behavior: system.behavior ?? null };
 		})
 		.filter((s): s is PresetSummary => !!s && (!kind || s.kind === kind));
 }
@@ -193,9 +195,10 @@ export async function compendiumPresets(kind?: PresetKind): Promise<PresetSummar
 			const doc = await pack.getDocument((entry as { _id: string })._id) as { pages?: Iterable<JournalEntryPage> } | null;
 			for (const page of doc?.pages ?? []) {
 				if (page.type !== 'splash.preset') continue;
-				const payload = (page.system as { toObject?: () => { payload?: PresetPayload } }).toObject?.().payload;
+				const source = (page.system as { toObject?: () => { payload?: PresetPayload; behavior?: string | null } }).toObject?.();
+				const payload = source?.payload;
 				if (payload && (!kind || payload.type === kind)) {
-					out.push({ uuid: page.uuid, name: page.name, kind: payload.type, img: presetThumb(payload) });
+					out.push({ uuid: page.uuid, name: page.name, kind: payload.type, img: presetThumb(payload), behavior: source?.behavior ?? null });
 				}
 			}
 		}

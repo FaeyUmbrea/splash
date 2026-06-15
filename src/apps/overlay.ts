@@ -10,9 +10,8 @@ export interface SplashOptions {
 	skipAnimations?: boolean;
 }
 
-/** Body classes drive the layer CSS: raising the interface and hiding scene chrome. */
+/** hud mode hides Foundry's scene navigation and control bars, which would otherwise reveal the upcoming map. */
 function applyLayerClasses(layer: SplashLayer | null): void {
-	document.body.classList.toggle('splash-scene-covered', layer === 'scene' || layer === 'hud');
 	document.body.classList.toggle('splash-hud-covered', layer === 'hud');
 }
 

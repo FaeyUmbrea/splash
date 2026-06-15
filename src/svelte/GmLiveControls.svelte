@@ -49,7 +49,7 @@
 {/if}
 
 <style lang='scss'>
-	// Lives above the 'full' overlay (z 8000) so it stays reachable when a splash covers the whole UI.
+	// Above the 'full' overlay so the GM can always minimize or close a splash that covers the whole UI.
 	:global(#splash-gm-controls) {
 		position: fixed;
 		inset: 0;
@@ -58,7 +58,7 @@
 		border: none;
 		background: none;
 		pointer-events: none;
-		z-index: 9500;
+		z-index: var(--z-index-notification);
 	}
 
 	.gm-live {
