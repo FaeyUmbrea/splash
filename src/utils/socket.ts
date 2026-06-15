@@ -8,7 +8,7 @@ interface SplashSocketEvent {
 	/** Restrict the event to a single user; undefined means everyone. */
 	targetUser?: string;
 	senderId: string;
-	payload: { uuid?: string; layer?: SplashLayer };
+	payload: { uuid?: string; layer?: SplashLayer; skipOutro?: boolean };
 }
 
 export function registerSocket(): void {
@@ -27,7 +27,7 @@ async function handleEvent({ eventType, targetUser, senderId, payload }: SplashS
 		await openSplashOverlay(page, { layer: payload.layer ?? 'full' });
 	} else if (eventType === 'closeSplash') {
 		if (!sender.isGM) return;
-		Hooks.call('splash.close-splash');
+		Hooks.call('splash.close-splash', { skipOutro: payload.skipOutro });
 	}
 }
 
@@ -40,11 +40,11 @@ export function broadcastShowSplash(uuid: string, layer: SplashLayer = 'full', t
 	} satisfies SplashSocketEvent);
 }
 
-export function broadcastCloseSplash(targetUser?: string): void {
+export function broadcastCloseSplash(targetUser?: string, skipOutro = false): void {
 	game.socket?.emit(`module.${ID}`, {
 		eventType: 'closeSplash',
 		targetUser,
 		senderId: game.userId,
-		payload: {},
+		payload: { skipOutro },
 	} satisfies SplashSocketEvent);
 }

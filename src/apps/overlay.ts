@@ -26,7 +26,8 @@ class SplashOverlayApplication extends SvelteRenderer {
 
 /** Open the splash-mode overlay for a page, replacing any active one. */
 export async function openSplashOverlay(page: SplashPage, { layer = 'full', skipAnimations = false }: SplashOptions = {}): Promise<void> {
-	await closeSplashOverlay();
+	// Switching splashes: drop the outgoing one instantly so its outro doesn't delay the incoming splash.
+	await closeSplashOverlay({ skipOutro: true });
 	applyLayerClasses(layer);
 	new SplashOverlayApplication(
 		SplashUI,
@@ -35,8 +36,8 @@ export async function openSplashOverlay(page: SplashPage, { layer = 'full', skip
 	).render(true);
 }
 
-export async function closeSplashOverlay(): Promise<void> {
-	await foundry.applications.instances.get(OVERLAY_ID)?.close();
+export async function closeSplashOverlay({ skipOutro = false }: { skipOutro?: boolean } = {}): Promise<void> {
+	await foundry.applications.instances.get(OVERLAY_ID)?.close({ skipOutro } as foundry.applications.api.ApplicationV2.ClosingOptions);
 }
 
 export function getSplashOverlay(): foundry.applications.api.ApplicationV2.Any | undefined {

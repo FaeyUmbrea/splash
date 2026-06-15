@@ -1,7 +1,10 @@
 import { SplashAPI } from './api/api.js';
 import { registerControllerHooks } from './apps/controller.ts';
+import { registerGmControls } from './apps/gmControls.ts';
 
+import { PresetModel } from './datamodel/PresetModel.js';
 import { SplashModel } from './datamodel/SplashModel.js';
+import { PresetSheet } from './sheet/PresetSheet.ts';
 import { SplashSheet } from './sheet/SplashSheet.ts';
 import { setupTriggers } from './triggers/setup.ts';
 import { registerKeybindings } from './utils/keyboard.js';
@@ -16,6 +19,7 @@ import './css/splash.scss';
 Hooks.once('init', () => {
 	Object.assign(CONFIG.JournalEntryPage.dataModels, {
 		'splash.splash': SplashModel,
+		'splash.preset': PresetModel,
 	});
 
 	// The page-sheet action bar is a shared partial included by both view and edit templates.
@@ -26,12 +30,18 @@ Hooks.once('init', () => {
 		makeDefault: true,
 	});
 
+	foundry.applications.apps.DocumentSheetConfig.registerSheet(JournalEntryPage, 'splash', PresetSheet, {
+		types: ['splash.preset'],
+		makeDefault: true,
+	});
+
 	registerKeybindings();
 	registerSettings();
 	registerSocket();
 	registerSyncSocket();
 	registerPresenceSocket();
 	registerControllerHooks();
+	registerGmControls();
 
 	const api = SplashAPI.getInstance();
 

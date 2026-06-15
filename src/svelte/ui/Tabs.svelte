@@ -60,6 +60,7 @@
 		opacity: 0.7;
 		cursor: pointer;
 		font-size: 12px;
+		white-space: nowrap;
 
 		&:hover:not(:disabled) {
 			opacity: 1;

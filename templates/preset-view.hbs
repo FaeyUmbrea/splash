@@ -1,0 +1,45 @@
+{{!-- Read-only HTML preview of a splash.preset page. Dynamic CSS (border-image, fonts, tint) is applied
+in PresetSheet._onRender. The journal embeds the `.journal-page-content` section and drops any outer
+wrapper, so everything (incl. the kind badge) lives INSIDE this section and the CSS is scoped to it. --}}
+<div>
+	<section class="journal-page-content splash-preset-body">
+		<div class="preset-kind"><i class="{{ preset.icon }}"></i> {{ preset.kindLabel }}</div>
+
+		{{#if preset.demo}}
+			<div class="preset-demo-wrap">
+				<div class="preset-demo" data-preset-demo>{{ preset.demoLabel }}</div>
+			</div>
+		{{/if}}
+
+		{{#if preset.image}}
+			<div class="preset-image-wrap"><img src="{{ preset.image }}" alt="" /></div>
+		{{/if}}
+
+		{{#if preset.text}}
+			<div class="preset-text-wrap"><span data-preset-text>{{ preset.text }}</span></div>
+		{{/if}}
+
+		{{#if preset.swatch}}
+			<div class="preset-swatch-row"><span class="preset-swatch" data-preset-swatch></span> tint</div>
+		{{/if}}
+
+		{{#if preset.members.length}}
+			<div class="preset-members">
+				{{#each preset.members}}
+					<div class="preset-member">
+						{{#if this.image}}<img src="{{ this.image }}" alt="" />{{else}}<i class="{{ this.glyph }}"></i>{{/if}}
+						<span>{{ this.name }}</span>
+					</div>
+				{{/each}}
+			</div>
+		{{/if}}
+
+		{{#if preset.rows.length}}
+			<dl class="preset-rows">
+				{{#each preset.rows}}
+					<dt>{{ this.label }}</dt><dd>{{ this.value }}</dd>
+				{{/each}}
+			</dl>
+		{{/if}}
+	</section>
+</div>

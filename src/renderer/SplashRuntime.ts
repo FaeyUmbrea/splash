@@ -234,8 +234,13 @@ export class SplashRuntime {
 				const state = child.states[stateId]!;
 				const animation = child.animOut ?? state.animOut ?? this.#splash.animOut;
 				if (animation && this.#renderer.animationDuration(animation) > 0) {
-					await this.#renderer.animate(animation, rendered);
 					const timeout = this.#renderer.animationDuration(animation);
+					// Best-effort: a failed out-animation must still destroy this sprite and not abort the others.
+					try {
+						await this.#renderer.animate(animation, rendered);
+					} catch (error) {
+						console.error('Splash | out-animation failed', error);
+					}
 					setTimeout(() => {
 						rendered.destroy();
 						this.#rendered.delete(child.id);
@@ -280,6 +285,20 @@ export class SplashRuntime {
 			this.#changingBlocked = false;
 			this.#events('splash.changed-states', { load, unload });
 		}
+	}
+
+	/**
+	 * Play the splash out before it's torn down: unload every loaded state so each sprite runs its
+	 * out-animation (its own `animOut`, else its state's, else the splash-level fallback), and resolve
+	 * only once the longest of those animations has finished. The caller (the app's pre-close) awaits
+	 * this so the outro is actually seen before `destroy()`. Resolves immediately if nothing animates.
+	 */
+	async playOut(): Promise<void> {
+		let longest = 0;
+		for (const stateId of [...this.#loadedStates]) {
+			longest = Math.max(longest, (await this.unloadState(stateId)) ?? 0);
+		}
+		if (longest > 0) await new Promise(resolve => setTimeout(resolve, longest));
 	}
 
 	destroy(): void {

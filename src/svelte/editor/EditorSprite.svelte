@@ -4,77 +4,44 @@
 	import { spriteComponents } from '../components/index.ts';
 
 	interface Placement { x?: number; y?: number; width?: number | null; height?: number | null; zIndex?: number }
-	interface Patch { x?: number; y?: number; width?: number; height?: number }
 
 	const {
 		sprite,
 		placement,
 		fallback,
 		selected,
-		onSelect,
-		onCommit,
+		dx = 0,
+		dy = 0,
+		dw = 0,
+		dh = 0,
+		onPointerDown,
+		onResizeStart,
 		onContext,
 	}: {
 		sprite: SpriteCreate;
 		placement: Placement;
 		fallback: { width?: number; height?: number };
 		selected: boolean;
-		onSelect: () => void;
-		/** Commit a finished move/resize gesture — one atomic write, fired on pointer-up only. */
-		onCommit: (patch: Patch) => void;
+		/** Live gesture offsets applied by the canvas during a drag/resize (stage pixels). */
+		dx?: number;
+		dy?: number;
+		dw?: number;
+		dh?: number;
+		onPointerDown: (event: PointerEvent) => void;
+		onResizeStart: (event: PointerEvent) => void;
 		onContext: (event: MouseEvent) => void;
 	} = $props();
 
-	// Local gesture state. During a drag the sprite renders from base + delta and writes
-	// NOTHING to the document; the single atomic commit happens on pointer-up.
-	let drag = $state<null | { startX: number; startY: number; baseX: number; baseY: number; baseW: number; baseH: number; resize: boolean; dx: number; dy: number }>(null);
-
 	const Component = $derived(spriteComponents[sprite.type ?? '']);
+	const baseW = $derived(placement.width ?? fallback.width ?? null);
+	const baseH = $derived(placement.height ?? fallback.height ?? null);
 
-	const renderX = $derived(drag && !drag.resize ? drag.baseX + drag.dx : (placement.x ?? 0));
-	const renderY = $derived(drag && !drag.resize ? drag.baseY + drag.dy : (placement.y ?? 0));
-	const renderW = $derived(drag?.resize ? Math.max(10, Math.round(drag.baseW + drag.dx)) : (placement.width ?? fallback.width ?? null));
-	const renderH = $derived(drag?.resize ? Math.max(10, Math.round(drag.baseH + drag.dy)) : (placement.height ?? fallback.height ?? null));
-
-	function onPointerDown(event: PointerEvent, resize = false) {
-		event.preventDefault();
-		event.stopPropagation();
-		onSelect();
-		drag = {
-			startX: event.clientX,
-			startY: event.clientY,
-			baseX: placement.x ?? 0,
-			baseY: placement.y ?? 0,
-			baseW: placement.width ?? fallback.width ?? 100,
-			baseH: placement.height ?? fallback.height ?? 100,
-			resize,
-			dx: 0,
-			dy: 0,
-		};
-		window.addEventListener('pointermove', onPointerMove);
-		window.addEventListener('pointerup', onPointerUp);
-	}
-
-	function onPointerMove(event: PointerEvent) {
-		if (!drag) return;
-		// Local state only — cheap, re-renders just this sprite, no document write until pointer-up.
-		drag = { ...drag, dx: event.clientX - drag.startX, dy: event.clientY - drag.startY };
-	}
-
-	function onPointerUp() {
-		if (drag) {
-			const patch: Patch = drag.resize
-				? { width: Math.round(renderW ?? 0), height: Math.round(renderH ?? 0) }
-				: { x: Math.round(renderX), y: Math.round(renderY) };
-			onCommit(patch);
-		}
-		drag = null;
-		window.removeEventListener('pointermove', onPointerMove);
-		window.removeEventListener('pointerup', onPointerUp);
-	}
+	const renderX = $derived((placement.x ?? 0) + dx);
+	const renderY = $derived((placement.y ?? 0) + dy);
+	const renderW = $derived(baseW != null ? Math.max(10, baseW + dw) : null);
+	const renderH = $derived(baseH != null ? Math.max(10, baseH + dh) : null);
 </script>
 
-<!-- z-index is offset so negative data values still hit-test above the canvas backdrop. -->
 <div
 	class='editor-sprite'
 	class:selected
@@ -85,20 +52,14 @@
 	style:width={renderW ? `${renderW}px` : 'auto'}
 	style:height={renderH ? `${renderH}px` : 'auto'}
 	style:z-index={(placement.zIndex ?? 0) + 1000}
-	onpointerdown={e => onPointerDown(e)}
+	onpointerdown={onPointerDown}
 	oncontextmenu={onContext}
 >
 	<div class='content'>
 		{#if Component}<Component {sprite} />{/if}
 	</div>
 	{#if selected}
-		<div
-			class='resize-handle'
-			role='button'
-			tabindex='-1'
-			aria-label='Resize'
-			onpointerdown={e => onPointerDown(e, true)}
-		></div>
+		<div class='resize-handle' role='button' tabindex='-1' aria-label='Resize' onpointerdown={onResizeStart}></div>
 	{/if}
 </div>
 
@@ -112,7 +73,6 @@
 			outline: 2px solid #ff9800;
 		}
 
-		// Sprites must not swallow pointer events in edit mode (e.g. buttons firing actions).
 		.content {
 			width: 100%;
 			height: 100%;

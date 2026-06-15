@@ -1,9 +1,8 @@
 import type { SplashInitialized } from '../datamodel/SplashModel.ts';
 import type { SplashPage } from '../utils/launch.ts';
 import { SplashAPI } from '../api/api.ts';
+import { openSplashEditorApp } from '../apps/SplashEditorApplication.ts';
 import { openSplashTriggersApp } from '../apps/SplashTriggersApplication.ts';
-import { SvelteRenderer } from '../apps/SvelteRenderer.ts';
-import Editor from '../svelte/editor/Editor.svelte';
 import { canTriggerSplash, canViewSplash } from '../utils/launch.ts';
 
 /** One quick-access action descriptor for the page-sheet bar (shared with the manager later). */
@@ -50,11 +49,7 @@ export async function openHandoutSplash(page: SplashPage): Promise<void> {
 
 /** Open the visual content editor for a splash. */
 export function openSplashEditor(page: SplashPage): void {
-	new SvelteRenderer(
-		Editor,
-		{ page },
-		{ id: 'splash-editor', classes: ['splash-editor'] },
-	).render(true);
+	openSplashEditorApp(page);
 }
 
 /** Open the triggers window for a splash. */

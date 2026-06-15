@@ -1,4 +1,5 @@
 import type { SplashAPI } from './api/api.js';
+import type { PresetModel } from './datamodel/PresetModel.ts';
 import type { SplashModel } from './datamodel/SplashModel.ts';
 
 declare global {
@@ -16,6 +17,7 @@ declare global {
 	interface DataModelConfig {
 		JournalEntryPage: {
 			'splash.splash': SplashModel;
+			'splash.preset': PresetModel;
 		};
 	}
 }

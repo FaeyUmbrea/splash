@@ -1,67 +1,59 @@
 <svelte:options runes={true} />
 <script lang='ts'>
-	import type { SvelteApplication } from '../../mixins/SvelteApplicationMixin.svelte.ts';
 	import type { SplashPage } from '../../utils/launch.ts';
 	import { onDestroy, onMount } from 'svelte';
 	import { closeSplashOverlay } from '../../apps/overlay.ts';
 	import { SvelteRenderer } from '../../apps/SvelteRenderer.ts';
 	import { SplashModel } from '../../datamodel/SplashModel.ts';
-	import SplashUI from '../SplashUI.svelte';
+	import PreviewHost from '../PreviewHost.svelte';
 	import CanvasFrame from './CanvasFrame.svelte';
-	import { DocumentStore } from './documentStore.svelte.ts';
-	import Inspector from './Inspector.svelte';
-	import LayersPanel from './LayersPanel.svelte';
-	import SplashSettings from './SplashSettings.svelte';
-	import StateTabs from './StateTabs.svelte';
+	import { EditorModel } from './editorModel.svelte.ts';
+	import ObjectsPanel from './ObjectsPanel.svelte';
+	import Sidebar from './Sidebar.svelte';
+	import StatesPanel from './StatesPanel.svelte';
 
-	const { foundryApp, page }: { foundryApp: SvelteApplication; page: SplashPage } = $props();
+	const { page }: { page: SplashPage } = $props();
 
-	const store = new DocumentStore(page);
-	let activeState = $state(Object.keys(page.system.states ?? {})[0] ?? 'initial');
-	let selectedId = $state<string | null>(null);
+	const model = new EditorModel(page);
+	onDestroy(() => model.destroy());
 
-	onDestroy(() => store.destroy());
-
-	// Keep the active state valid as states change underneath us (rename/delete/sync).
+	// Keep the active state valid, and clear a selection pointing at a deleted object.
 	$effect(() => {
-		if (!store.data.states?.[activeState]) {
-			activeState = Object.keys(store.data.states ?? {})[0] ?? 'initial';
+		if (!model.data.states?.[model.activeState]) {
+			model.activeState = Object.keys(model.data.states ?? {})[0] ?? 'initial';
 		}
 	});
-
-	// Clear a selection that points at a sprite that no longer exists (deleted here or by sync).
 	$effect(() => {
-		if (selectedId && !(store.data.children ?? []).some(c => c.id === selectedId)) {
-			selectedId = null;
-		}
+		const valid = model.selectedIds.filter(id => model.objects.some(o => o.id === id));
+		if (valid.length !== model.selectedIds.length) model.selectedIds = valid;
 	});
 
-	function activate(state: string) {
-		activeState = state;
-		selectedId = null;
-	}
-
-	// Frameless host has no close transition, so skip the animation wait — instant close.
-	function close() {
-		void foundryApp.close({ animate: false });
-	}
-
-	// Preview runs the real runtime on the CURRENT (already-saved) document data.
 	async function preview() {
-		await closeSplashOverlay();
-		const model = new SplashModel(foundry.utils.deepClone(store.data));
+		// Preview replaces whatever overlay is on screen — drop it instantly rather than playing its outro.
+		await closeSplashOverlay({ skipOutro: true });
+		const splash = new SplashModel(foundry.utils.deepClone(model.data));
 		new SvelteRenderer(
-			SplashUI,
-			{ splashConfig: model },
+			PreviewHost,
+			{ splashConfig: splash },
 			{ id: 'splash-application', classes: ['splash-overlay', 'splash-preview'] },
 		).render(true);
 	}
 
+	function isTyping() {
+		const el = document.activeElement;
+		return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || (el as HTMLElement).isContentEditable);
+	}
+
 	function onKeydown(event: KeyboardEvent) {
+		if ((event.key === 'Delete' || event.key === 'Backspace') && !isTyping() && model.selectedIds.length) {
+			event.preventDefault();
+			model.deleteSelected();
+			return;
+		}
 		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
 		event.preventDefault();
-		if (event.shiftKey) void store.redo();
-		else void store.undo();
+		if (event.shiftKey) model.redo();
+		else model.undo();
 	}
 
 	onMount(() => {
@@ -71,48 +63,33 @@
 </script>
 
 <div class='splash-editor themed'>
-	<CanvasFrame {store} {activeState} {selectedId} onSelect={id => (selectedId = id)} />
-
 	<header class='toolbar'>
-		<h1 class='title'>{page.name}</h1>
-		<StateTabs {store} {activeState} onActivate={activate} />
-		<button type='button' class='tool-btn' title='Undo (Ctrl+Z)' aria-label='Undo' disabled={!store.canUndo} onclick={() => store.undo()}>
-			<i class='fa-solid fa-rotate-left'></i>
-		</button>
-		<button type='button' class='tool-btn' title='Redo (Ctrl+Shift+Z)' aria-label='Redo' disabled={!store.canRedo} onclick={() => store.redo()}>
-			<i class='fa-solid fa-rotate-right'></i>
-		</button>
-		<button type='button' class='tool-btn' title='Preview' aria-label='Preview' onclick={preview}>
-			<i class='fa-solid fa-play'></i>
-		</button>
-		<button type='button' class='close-btn' title='Close editor' aria-label='Close editor' onclick={close}>
-			<i class='fa-solid fa-xmark'></i>
-		</button>
+		<div class='spacer'></div>
+		<button type='button' class='tool' title='Undo (Ctrl+Z)' aria-label='Undo' disabled={!model.canUndo} onclick={() => model.undo()}><i class='fa-solid fa-rotate-left'></i></button>
+		<button type='button' class='tool' title='Redo (Ctrl+Shift+Z)' aria-label='Redo' disabled={!model.canRedo} onclick={() => model.redo()}><i class='fa-solid fa-rotate-right'></i></button>
+		<button type='button' class='tool' title='Preview' aria-label='Preview' onclick={preview}><i class='fa-solid fa-play'></i></button>
 	</header>
 
-	<aside class='layers'>
-		<LayersPanel {store} {activeState} {selectedId} onSelect={id => (selectedId = id)} />
-	</aside>
+	<div class='workspace'>
+		<aside class='left'>
+			<div class='dock objects'><ObjectsPanel {model} /></div>
+			<div class='dock states'><StatesPanel {model} /></div>
+		</aside>
 
-	<aside class='inspector'>
-		{#if selectedId}
-			<Inspector {store} {selectedId} {activeState} />
-		{:else}
-			<SplashSettings {store} {activeState} />
-		{/if}
-	</aside>
+		<CanvasFrame {model} />
+
+		<aside class='right'>
+			<Sidebar {model} />
+		</aside>
+	</div>
 </div>
 
 <style lang='scss'>
-	:global(#splash-editor) {
-		position: fixed;
-		inset: 0;
-		margin: 0;
-		padding: 0;
-		border: none;
-		background: none;
-		// Above Foundry's interface layers (hotbar, sidebar) but below tooltips/notifications.
-		z-index: 9000;
+	// No z-index hack: the editor is a normal Foundry window, so pop-outs (file pickers, dialogs)
+	// opened from it stack above it naturally. The content fills the window with no padding.
+	:global(.splash-editor-content) {
+		padding: 0 !important;
+		overflow: hidden;
 	}
 
 	:global(#splash-application.splash-preview) {
@@ -120,41 +97,39 @@
 	}
 
 	.splash-editor {
-		position: absolute;
-		inset: 0;
-		background: #00000080;
-		color: #fff;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		// Opaque so the scene behind never bleeds through and renders the UI illegible.
+		background: #1b1b1e;
+		color: #e6e6e6;
 
 		.toolbar {
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
 			display: flex;
 			align-items: center;
-			gap: 1rem;
-			padding: 0.5rem 1rem;
-			background: #000000d0;
-			z-index: 10;
+			gap: 8px;
+			padding: 6px 12px;
+			background: #141416;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+			flex: 0 0 auto;
 
-			.title {
-				flex: 0 0 auto;
-				margin: 0;
-				font-size: 1.1rem;
-				color: #fff;
-				border: none;
+			.spacer {
+				flex: 1;
 			}
 
-			.tool-btn,
-			.close-btn {
-				flex: 0 0 auto;
+			.tool {
 				width: 32px;
 				height: 32px;
 				background: transparent;
-				border: 1px solid #666;
+				border: 1px solid rgba(255, 255, 255, 0.15);
 				border-radius: 4px;
-				color: #fff;
+				color: inherit;
 				cursor: pointer;
+
+				&:hover:not(:disabled) {
+					border-color: rgba(255, 144, 0, 0.5);
+				}
 
 				&:disabled {
 					opacity: 0.35;
@@ -163,24 +138,44 @@
 			}
 		}
 
-		.layers {
-			position: absolute;
-			top: 4rem;
-			left: 1rem;
-			width: 220px;
-			max-height: 75vh;
-			overflow-y: auto;
-			z-index: 10;
+		.workspace {
+			flex: 1;
+			min-height: 0;
+			display: flex;
 		}
 
-		.inspector {
-			position: absolute;
-			top: 4rem;
-			right: 1rem;
-			width: 280px;
-			max-height: 75vh;
-			overflow-y: auto;
-			z-index: 10;
+		.left,
+		.right {
+			flex: 0 0 auto;
+			background: #202024;
+			display: flex;
+			flex-direction: column;
+			min-height: 0;
+		}
+
+		.left {
+			width: 240px;
+			border-right: 1px solid rgba(255, 255, 255, 0.08);
+
+			.dock {
+				display: flex;
+				flex-direction: column;
+				min-height: 0;
+
+				&.objects {
+					flex: 1 1 60%;
+					border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+				}
+
+				&.states {
+					flex: 1 1 40%;
+				}
+			}
+		}
+
+		.right {
+			width: 300px;
+			border-left: 1px solid rgba(255, 255, 255, 0.08);
 		}
 	}
 </style>

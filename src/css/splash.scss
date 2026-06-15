@@ -62,3 +62,117 @@ body.splash-hud-covered:not(.splash-peeking) {
 		}
 	}
 }
+
+/* Read-only HTML preview for splash.preset journal pages. Scoped to .splash-preset-body because the
+   journal embeds that section and discards any outer wrapper. */
+.splash-preset-body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+
+	.preset-kind {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 12px;
+		text-transform: uppercase;
+		letter-spacing: 0.4px;
+		opacity: 0.7;
+	}
+
+	.preset-demo-wrap,
+	.preset-image-wrap,
+	.preset-text-wrap {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 80px;
+		padding: 12px;
+		background: repeating-conic-gradient(rgba(0, 0, 0, 0.06) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+		border: 1px solid var(--color-border-light-tertiary, rgba(0, 0, 0, 0.15));
+		border-radius: 4px;
+	}
+
+	.preset-demo {
+		min-width: 120px;
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px 18px;
+		font-weight: 600;
+	}
+
+	.preset-image-wrap img {
+		max-width: 100%;
+		max-height: 200px;
+		object-fit: contain;
+	}
+
+	.preset-swatch-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 12px;
+	}
+
+	.preset-swatch {
+		width: 20px;
+		height: 20px;
+		border-radius: 3px;
+		border: 1px solid var(--color-border-light-tertiary, rgba(0, 0, 0, 0.2));
+	}
+
+	.preset-members {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.preset-member {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		width: 72px;
+		padding: 8px 4px;
+		border: 1px solid var(--color-border-light-tertiary, rgba(0, 0, 0, 0.15));
+		border-radius: 4px;
+		font-size: 11px;
+		text-align: center;
+
+		img {
+			width: 44px;
+			height: 44px;
+			object-fit: contain;
+		}
+
+		i {
+			font-size: 24px;
+			opacity: 0.7;
+		}
+
+		span {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			max-width: 100%;
+		}
+	}
+
+	.preset-rows {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 4px 16px;
+		margin: 0;
+		font-size: 13px;
+
+		dt {
+			opacity: 0.6;
+		}
+
+		dd {
+			margin: 0;
+		}
+	}
+}

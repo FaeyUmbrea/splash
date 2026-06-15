@@ -1,17 +1,24 @@
 <svelte:options runes={true} />
 <script lang='ts'>
+	import type { PresetPayload } from '../../utils/presets.ts';
 	import type { SelectItem } from '../ui';
-	import { CheckboxField, ColorField, Field, NumberField, Select, TextField } from '../ui';
+	import { promptAndSavePreset } from '../../utils/presets.ts';
+	import PresetPicker from '../presets/PresetPicker.svelte';
+	import { CheckboxField, ColorField, Field, IconButton, NumberField, Select } from '../ui';
+	import OriginEditor from './OriginEditor.svelte';
 
 	type Anim = Record<string, unknown> & { type?: string };
 
 	const {
 		value,
 		label,
+		width = 1920,
 		onChange,
 	}: {
 		value: Anim | null | undefined;
 		label: string;
+		/** Stage width for the visual origin editor. */
+		width?: number;
 		/** Replace the whole animation (or null to clear it). */
 		onChange: (animation: Anim | null) => void;
 	} = $props();
@@ -56,10 +63,25 @@
 	function patchGlitch(p: Record<string, unknown>) {
 		onChange({ ...value, props: { ...props, ...p } } as Anim);
 	}
+
+	let picking = $state(false);
+	const isGM = !!game.user?.isGM;
+
+	function applyPreset(payload: PresetPayload) {
+		if (payload.type === 'animation') onChange(payload.value as Anim);
+	}
 </script>
 
 <div class='animation-editor'>
-	<span class='sublabel'>{label}</span>
+	<div class='label-row'>
+		<span class='sublabel'>{label}</span>
+		<span class='preset-actions'>
+			<IconButton icon='fa-solid fa-folder-open' title='Apply animation preset' onclick={() => (picking = true)} />
+			{#if isGM && value}
+				<IconButton icon='fa-solid fa-floppy-disk' title='Save as preset' onclick={() => promptAndSavePreset({ type: 'animation', value } as PresetPayload, 'Animation')} />
+			{/if}
+		</span>
+	</div>
 	<Select options={typeOptions} value={type} searchable={false} onChange={setType} />
 
 	{#if value}
@@ -74,10 +96,10 @@
 		{#if originType === 'randomOrigins'}
 			<NumberField label='Origin count' value={(origins.numOrigins as number) ?? 5} onChange={v => setOrigins(randomOrigins(v ?? 1))} />
 		{:else}
-			<TextField
-				label='Origin x-positions (comma-separated)'
-				value={((origins.origins as number[]) ?? []).join(', ')}
-				onChange={v => setOrigins({ type: 'fixedOrigins', origins: v.split(',').map(s => Number(s.trim())).filter(n => !Number.isNaN(n)) })}
+			<OriginEditor
+				origins={(origins.origins as number[]) ?? []}
+				{width}
+				onChange={o => setOrigins({ type: 'fixedOrigins', origins: o })}
 			/>
 		{/if}
 
@@ -92,6 +114,10 @@
 	{/if}
 </div>
 
+{#if picking}
+	<PresetPicker kind='animation' title='Apply animation preset' onPick={applyPreset} onClose={() => (picking = false)} />
+{/if}
+
 <style lang='scss'>
 	.animation-editor {
 		display: flex;
@@ -104,6 +130,17 @@
 		text-transform: uppercase;
 		letter-spacing: 0.4px;
 		opacity: 0.6;
+	}
+
+	.label-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.preset-actions {
+		display: flex;
+		gap: 2px;
 	}
 
 	.grid {

@@ -60,10 +60,12 @@
 		await runtime.initialize({ skipAnimations });
 		await sync?.connect();
 		loading = false;
+		// Play the splash out before the app tears down (unless an emergency close passes skipOutro).
+		foundryApp.onPreClose = () => runtime?.playOut();
 	});
 
-	const closeHook = Hooks.on('splash.close-splash', () => {
-		foundryApp.close();
+	const closeHook = Hooks.on('splash.close-splash', (opts?: { skipOutro?: boolean }) => {
+		foundryApp.close({ skipOutro: !!opts?.skipOutro });
 	});
 
 	const changeStatesHook = Hooks.on(

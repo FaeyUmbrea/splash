@@ -49,7 +49,8 @@
 	},
 	"documentTypes": {
 		"JournalEntryPage": {
-			"splash": {}
+			"splash": {},
+			"preset": {}
 		},
 		"RegionBehavior": {
 			"launchSplash": {}

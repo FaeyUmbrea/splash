@@ -3,6 +3,7 @@ import type { ActiveSplash, SplashLayer } from '../utils/settings.ts';
 import { ID } from '../utils/const.js';
 import { isSplashPage } from '../utils/launch.ts';
 import { getActiveSplash, SETTING_ACTIVE_SPLASH } from '../utils/settings.ts';
+import { broadcastCloseSplash } from '../utils/socket.ts';
 import { closeSplashOverlay, getSplashOverlay, openSplashOverlay } from './overlay.ts';
 
 let peeking = false;
@@ -11,6 +12,7 @@ let peeking = false;
 export async function applyActiveSplash(value: ActiveSplash | null, { restore = false }: { restore?: boolean } = {}): Promise<void> {
 	peeking = false;
 	document.body.classList.remove('splash-peeking');
+	Hooks.callAll('splash.peek-changed', false);
 	if (value) {
 		const page = await fromUuid(value.uuid);
 		if (!isSplashPage(page)) return;
@@ -32,6 +34,18 @@ export async function killGlobalSplash(): Promise<void> {
 	await game.settings?.set(ID, SETTING_ACTIVE_SPLASH, null);
 }
 
+/**
+ * GM emergency stop: tear down EVERY splash on EVERY client — not just the global one. Broadcasts a
+ * close to all other clients (overlays and handouts alike), closes the GM's own, and nulls the world
+ * setting so nothing restores on reload. For "someone fucked up" — a stuck or rogue local splash that
+ * killing the global setting alone wouldn't touch.
+ */
+export async function forceCloseAllSplashes(): Promise<void> {
+	broadcastCloseSplash(undefined, true);
+	Hooks.call('splash.close-splash', { skipOutro: true });
+	await killGlobalSplash();
+}
+
 /** GM: locally hide/show the splash to work behind it; nobody else is affected. */
 export function togglePeek(): boolean {
 	const element = getSplashOverlay()?.element;
@@ -43,6 +57,7 @@ export function togglePeek(): boolean {
 	element.style.visibility = peeking ? 'hidden' : 'visible';
 	// Peeking also needs the scene chrome back that hud mode hides.
 	document.body.classList.toggle('splash-peeking', peeking);
+	Hooks.callAll('splash.peek-changed', peeking);
 	return peeking;
 }
 

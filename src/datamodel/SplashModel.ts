@@ -49,7 +49,7 @@ function BaseSpriteSchemaCreator(choice: string) {
 
 export type BaseSprite = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof BaseSpriteSchemaCreator>>;
 
-function ButtonLabelSchemaCreator() {
+export function ButtonLabelSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
 		text: new fields.StringField({ required: true }),
@@ -64,7 +64,7 @@ export type ButtonLabelInitialized = foundry.data.fields.SchemaField.Initialized
 export type ButtonLabelCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof ButtonLabelSchemaCreator>>;
 export type ButtonLabel = ButtonLabelCreate | ButtonLabelInitialized;
 
-function ButtonImageSchemaCreator() {
+export function ButtonImageSchemaCreator() {
 	const fields = foundry.data.fields;
 	return {
 		url: new fields.StringField({ required: true }),
@@ -174,7 +174,7 @@ export type VoteActionCreate = foundry.data.fields.SchemaField.CreateData<Return
 export type VoteActionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof VoteActionSchemaCreator>>;
 export type VoteAction = VoteActionCreate | VoteActionInitialized;
 
-function ActionFieldCreator() {
+export function ActionFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
 		'macro': new fields.SchemaField(MacroActionSchemaCreator()),
@@ -190,7 +190,7 @@ export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitia
 export type ActionCreate = MacroActionCreate | ChangeStateActionCreate | CloseActionCreate | SetValueActionCreate | IncrementValueActionCreate | VoteActionCreate;
 export type Action = ActionCreate | ActionInitialized;
 
-function ButtonSpriteSchemaCreator() {
+export function ButtonSpriteSchemaCreator() {
 	const fields = foundry.data.fields;
 	const base = BaseSpriteSchemaCreator('button');
 	return {
@@ -244,7 +244,7 @@ export type TextSpriteCreate = foundry.data.fields.SchemaField.CreateData<Return
 export type TextSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof TextSpriteSchemaCreator>>;
 export type TextSprite = TextSpriteCreate | TextSpriteInitialized;
 
-function SpriteFieldCreator() {
+export function SpriteFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
 		button: ButtonSpriteSchemaCreator(),
@@ -318,7 +318,7 @@ export type GlitchAnimationCreate = foundry.data.fields.SchemaField.CreateData<R
 export type GlitchAnimationInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof GlitchAnimationSchemaCreator>>;
 export type GlitchAnimation = GlitchAnimationCreate | GlitchAnimationInitialized;
 
-function AnimationFieldCreator() {
+export function AnimationFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
 		dissolve: DissolveAnimationSchemaCreator(),

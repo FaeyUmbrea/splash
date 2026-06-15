@@ -5,6 +5,7 @@
 	import type { ContextMenuItem, Tab } from './ui';
 	import { onDestroy, onMount } from 'svelte';
 	import { SplashAPI } from '../api/api.ts';
+	import { forceCloseAllSplashes, isPeeking, togglePeek } from '../apps/controller.ts';
 	import { openSplashManager } from '../apps/SplashManager.ts';
 	import { openSplashEditor, previewSplash } from '../sheet/splashActions.ts';
 	import { allSplashPages } from '../utils/discovery.ts';
@@ -16,7 +17,14 @@
 	let tab = $state<'pinned' | 'global'>('pinned');
 	let pages = $state<SplashPage[]>(allSplashPages());
 	let active = $state<ActiveSplash | null>(getActiveSplash());
+	let peeking = $state(isPeeking());
 	let sceneId = $state<string | null>(canvas?.scene?.id ?? null);
+
+	const activeName = $derived.by(() => {
+		if (!active) return '';
+		const page = fromUuidSync(active.uuid) as { name?: string } | null;
+		return page?.name ?? 'Splash';
+	});
 	let menu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
 
 	// Scene control only imposes FULLSCREEN splashes on the table — handouts are excluded.
@@ -41,6 +49,7 @@
 		['createJournalEntryPage', refresh],
 		['deleteJournalEntryPage', refresh],
 		['splash.active-changed', (v: unknown) => (active = v as ActiveSplash | null)],
+		['splash.peek-changed', (v: unknown) => (peeking = v as boolean)],
 		['canvasReady', () => (sceneId = canvas?.scene?.id ?? null)],
 	];
 	const ids: number[] = [];
@@ -72,6 +81,25 @@
 </script>
 
 <div class='scene-launcher'>
+	{#if active}
+		<div class='live-banner'>
+			<span class='live-dot' class:peeking></span>
+			<span class='live-name'>{peeking ? 'Hidden' : 'Live'}: {activeName}</span>
+			<IconButton
+				icon={peeking ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'}
+				title={peeking ? 'Show splash again' : 'Minimize (hide for me, keep it running)'}
+				active={peeking}
+				onclick={() => togglePeek()}
+			/>
+			<IconButton
+				icon='fa-solid fa-circle-xmark'
+				title='Force-close every splash for everyone'
+				danger
+				onclick={() => void forceCloseAllSplashes()}
+			/>
+		</div>
+	{/if}
+
 	<Tabs {tabs} bind:value={tab} />
 
 	<div class='list'>
@@ -107,6 +135,37 @@
 		flex-direction: column;
 		gap: 8px;
 		padding: 8px;
+	}
+
+	.live-banner {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 5px 6px 5px 10px;
+		border-radius: 4px;
+		background: rgba(229, 57, 53, 0.12);
+		border: 1px solid rgba(229, 57, 53, 0.4);
+	}
+
+	.live-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #e53935;
+		box-shadow: 0 0 6px #e53935;
+
+		&.peeking {
+			background: #888;
+			box-shadow: none;
+		}
+	}
+
+	.live-name {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 12px;
 	}
 
 	.list {
