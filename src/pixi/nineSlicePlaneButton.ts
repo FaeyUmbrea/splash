@@ -29,7 +29,8 @@ export default class NineSlicePlaneButton extends PIXI.NineSlicePlane {
 	private currentImage: ButtonImage;
 
 	constructor(settings: NineSlicePlaneButtonSettings) {
-		const texture: PIXI.Texture = PIXI.Texture.from(settings.image.url);
+		// Empty url = an asset-free (solid, tintable) button; PIXI.Texture.from('') would throw.
+		const texture: PIXI.Texture = settings.image.url ? PIXI.Texture.from(settings.image.url) : PIXI.Texture.WHITE;
 		super(
 			texture,
 			settings.image.leftWidth ?? 0,
@@ -135,7 +136,7 @@ export default class NineSlicePlaneButton extends PIXI.NineSlicePlane {
 
 	updateImage(image: ButtonImage) {
 		if (this.currentImage.url !== image.url) {
-			this.texture = PIXI.Texture.from(image.url);
+			this.texture = image.url ? PIXI.Texture.from(image.url) : PIXI.Texture.WHITE;
 			this.currentImage = image;
 			this.leftWidth = image.leftWidth ?? 0;
 			this.rightWidth = image.rightWidth ?? 0;

@@ -4,8 +4,13 @@ import type {
 	SpriteInitialized,
 	StateInitialized,
 } from '../datamodel/SplashModel.ts';
-import type { RenderedSprite, SplashRenderer, SplashValues } from './SplashRenderer.ts';
+import type { RenderedSprite, SplashRenderer, SplashValues, SpriteOverrides } from './SplashRenderer.ts';
+import type { SpriteNode, SpriteTree } from './spriteTree.ts';
 import { getChildrenWithState } from '../utils/helpers.ts';
+import { interpolate } from '../utils/interpolate.ts';
+import { buildSpriteTree } from './spriteTree.ts';
+
+const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...args: string[]) => (...args: unknown[]) => Promise<unknown>;
 
 /** Notification of state lifecycle events; the Foundry layer maps these onto Hooks. */
 export type SplashEventSink = (event: string, ...args: unknown[]) => void;
@@ -14,6 +19,8 @@ export type SplashEventSink = (event: string, ...args: unknown[]) => void;
 export interface RuntimeSnapshot {
 	loadedStates: string[];
 	values: SplashValues;
+	/** Ephemeral per-sprite property overrides set by inline macros (e.g. a dialed letter). */
+	overrides: Record<string, SpriteOverrides>;
 }
 
 export interface SplashRuntimeOptions {
@@ -23,9 +30,11 @@ export interface SplashRuntimeOptions {
 	 * Pre-empts action handling; returning true consumes the action. Synced
 	 * players use this to forward intents to the GM instead of acting locally.
 	 */
-	interceptAction?: (action: ActionInitialized) => Promise<boolean> | boolean;
+	interceptAction?: (action: ActionInitialized, sourceId?: string) => Promise<boolean> | boolean;
 	/** Notified after loaded states or values change (used to persist shared state). */
 	onChanged?: (snapshot: RuntimeSnapshot) => void;
+	/** What launched this splash (e.g. `{ door }`), exposed to inline macros as `api.trigger`. */
+	trigger?: Record<string, unknown>;
 }
 
 /**
@@ -38,7 +47,7 @@ export class SplashRuntime {
 	#renderer: SplashRenderer;
 	#events: SplashEventSink;
 	#externalAction: (action: ActionInitialized) => Promise<void> | void;
-	#interceptAction: (action: ActionInitialized) => Promise<boolean> | boolean;
+	#interceptAction: (action: ActionInitialized, sourceId?: string) => Promise<boolean> | boolean;
 	#onChanged: (snapshot: RuntimeSnapshot) => void;
 
 	#rendered: Map<string, RenderedSprite> = new Map();
@@ -47,12 +56,16 @@ export class SplashRuntime {
 	#suppressAnimIn = false;
 	#mirroring = false;
 	#values: SplashValues = {};
+	#overrides: Record<string, SpriteOverrides> = {};
+	#trigger: Record<string, unknown>;
+	// The materialized tree for the current loaded-state composition. Built lazily, invalidated on load/unload.
+	#treeCache: SpriteTree | null = null;
 
 	constructor(
 		splash: SplashInitialized,
 		renderer: SplashRenderer,
 		events: SplashEventSink = () => {},
-		{ externalAction = () => {}, interceptAction = () => false, onChanged = () => {} }: SplashRuntimeOptions = {},
+		{ externalAction = () => {}, interceptAction = () => false, onChanged = () => {}, trigger = {} }: SplashRuntimeOptions = {},
 	) {
 		this.#splash = splash;
 		this.#renderer = renderer;
@@ -60,6 +73,7 @@ export class SplashRuntime {
 		this.#externalAction = externalAction;
 		this.#interceptAction = interceptAction;
 		this.#onChanged = onChanged;
+		this.#trigger = trigger;
 		this.#values = { ...(splash.values ?? {}) };
 	}
 
@@ -68,7 +82,26 @@ export class SplashRuntime {
 	}
 
 	get snapshot(): RuntimeSnapshot {
-		return { loadedStates: [...this.#loadedStates], values: { ...this.#values } };
+		const overrides: Record<string, SpriteOverrides> = {};
+		for (const [id, o] of Object.entries(this.#overrides)) overrides[id] = { ...o };
+		return { loadedStates: [...this.#loadedStates], values: { ...this.#values }, overrides };
+	}
+
+	/**
+	 * Set an ephemeral property override on a sprite (e.g. a dialed letter's `text`) — applied over the
+	 * sprite's stored data, synced to the table, never persisted to the document. The inline-macro setter
+	 * routes here. `value === undefined` clears the one property.
+	 */
+	setOverride(spriteId: string, property: string, value: unknown): void {
+		const current = this.#overrides[spriteId] ?? {};
+		// null and undefined both mean "clear" (the renderers already treat null as no-override).
+		if (value === undefined || value === null) delete current[property];
+		else current[property] = value;
+		// Drop empty bags so a cleared override leaves no trace in the synced snapshot.
+		if (Object.keys(current).length === 0) delete this.#overrides[spriteId];
+		else this.#overrides[spriteId] = current;
+		this.#rendered.get(spriteId)?.applyOverrides({ ...(this.#overrides[spriteId] ?? {}) });
+		if (!this.#mirroring) this.#onChanged(this.snapshot);
 	}
 
 	/**
@@ -87,6 +120,19 @@ export class SplashRuntime {
 			}
 			for (const stateId of [...this.#loadedStates]) {
 				if (!snapshot.loadedStates.includes(stateId)) await this.unloadState(stateId);
+			}
+			// Reconcile overrides to the authoritative snapshot EXACTLY — adopt present, clear absent — so a
+			// reset/cleared dial on the executor reverts on followers instead of diverging forever. Runs after
+			// states load so the target sprites exist. Union of local + incoming sprite ids (object spread
+			// avoids a Set so the lint stays happy).
+			const incomingAll = (snapshot.overrides ?? {}) as Record<string, Record<string, unknown>>;
+			for (const spriteId of Object.keys({ ...this.#overrides, ...incomingAll })) {
+				const incoming = incomingAll[spriteId] ?? {};
+				const local = this.#overrides[spriteId] ?? {};
+				for (const property of Object.keys({ ...local, ...incoming })) {
+					const value = property in incoming ? incoming[property] : undefined;
+					if (local[property] !== value) this.setOverride(spriteId, property, value);
+				}
 			}
 		} finally {
 			this.#mirroring = false;
@@ -115,9 +161,12 @@ export class SplashRuntime {
 	 * in-instance (so multiple open splashes never cross-talk); everything else
 	 * is delegated to the external executor.
 	 */
-	async handleAction(action: ActionInitialized): Promise<void> {
-		if (await this.#interceptAction(action)) return;
+	async handleAction(action: ActionInitialized, sourceId?: string): Promise<void> {
+		if (await this.#interceptAction(action, sourceId)) return;
 		switch (action.type) {
+			case 'script':
+				await this.#runScript((action as { source?: string }).source ?? '', sourceId);
+				break;
 			case 'set-value':
 				this.#setValue(action.key ?? '', action.value ?? '');
 				break;
@@ -144,6 +193,68 @@ export class SplashRuntime {
 				break;
 			default:
 				await this.#externalAction(action);
+		}
+	}
+
+	// --- inline-macro execution (materialized tree + scope) ------------------
+
+	/** The materialized tree for the rendered sprites, with live accessors bound. Built once per state load. */
+	#tree(): SpriteTree {
+		if (this.#treeCache) return this.#treeCache;
+		const inState = (this.#splash.children ?? []).filter(c => c?.id && this.#rendered.has(c.id)) as SpriteInitialized[];
+		const tree = buildSpriteTree(inState);
+		const walk = (node: SpriteNode) => {
+			this.#bindNode(node);
+			node.children.forEach(walk);
+		};
+		walk(tree.root);
+		this.#treeCache = tree;
+		return tree;
+	}
+
+	/** Bind live override-backed accessors onto a node so macros can read/write `node.text`. */
+	#bindNode(node: SpriteNode): void {
+		node.get = property => this.#readProperty(node, property);
+		node.set = (property, value) => {
+			if (node.id) this.setOverride(node.id, property, value);
+		};
+		Object.defineProperty(node, 'text', {
+			configurable: true,
+			get: () => this.#readProperty(node, 'text'),
+			set: (value) => {
+				if (node.id) this.setOverride(node.id, 'text', value);
+			},
+		});
+	}
+
+	/** Read a property override-then-data; `text` falls back to the interpolated stored text. */
+	#readProperty(node: SpriteNode, property: string): unknown {
+		const override = node.id ? this.#overrides[node.id]?.[property] : undefined;
+		if (override !== undefined) return override;
+		const sprite = node.sprite as Record<string, unknown> | null;
+		if (property === 'text') return interpolate((sprite?.text as string) ?? '', this.#values);
+		return sprite?.[property];
+	}
+
+	/** Run an inline-macro source with `scope` = the firing sprite's node and `context` = its data bag. */
+	async #runScript(source: string, sourceId?: string): Promise<void> {
+		if (!source.trim()) return;
+		const tree = this.#tree();
+		const scope = (sourceId ? tree.byId.get(sourceId) : undefined) ?? tree.root;
+		// Runtime hooks a macro needs beyond the tree: change this splash's state, set a value, close it,
+		// read what triggered it, or ask a door to open (routed via the GM when the player can't write walls).
+		const api = {
+			trigger: this.#trigger,
+			changeState: (load?: string[], unload?: string[]) => this.changeStates({ load, unload }),
+			setValue: (key: string, value: unknown) => this.#setValue(key, value),
+			close: () => this.#events('splash.close-requested'),
+			unlockDoor: (uuid?: string) => this.#events('splash.unlock-door', uuid ?? this.#trigger.door),
+		};
+		try {
+			const fn = new AsyncFunction('scope', 'context', 'api', source);
+			await fn(scope, scope.context, api);
+		} catch (error) {
+			console.error('Splash | inline script failed', error);
 		}
 	}
 
@@ -188,11 +299,15 @@ export class SplashRuntime {
 		if (!state) return 0;
 		const animation = this.#suppressAnimIn ? null : (state.animIn ?? child.animIn ?? this.#splash.animIn);
 		const sprite = await this.#renderer.addSprite(child, state, animation, {
-			onAction: action => this.handleAction(action),
+			// child.id is closed over so a script action knows which sprite fired it (its `scope`).
+			onAction: action => this.handleAction(action, child.id),
 		});
 		if (!sprite) return 0;
 		sprite.updateValues(this.#values);
+		// A sprite added while an override already exists (e.g. a restoring/synced client) adopts it.
+		if (this.#overrides[child.id]) sprite.applyOverrides({ ...this.#overrides[child.id] });
 		this.#rendered.set(child.id, sprite);
+		this.#treeCache = null; // the rendered set changed
 		return this.#renderer.animationDuration(animation);
 	}
 
@@ -244,11 +359,15 @@ export class SplashRuntime {
 					setTimeout(() => {
 						rendered.destroy();
 						this.#rendered.delete(child.id);
+						delete this.#overrides[child.id]; // a re-instantiated sprite resets, not resurrects
+						this.#treeCache = null;
 					}, timeout);
 					longestTimeout = Math.max(longestTimeout, timeout);
 				} else {
 					rendered.destroy();
 					this.#rendered.delete(child.id);
+					delete this.#overrides[child.id];
+					this.#treeCache = null;
 				}
 			}
 		}

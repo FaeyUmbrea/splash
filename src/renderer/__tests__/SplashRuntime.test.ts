@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SplashRuntime } from '../SplashRuntime.ts';
 
 function fakeRenderer() {
-	const handles: Array<RenderedSprite & { transition: ReturnType<typeof vi.fn>; updateValues: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> }> = [];
+	const handles: Array<RenderedSprite & { transition: ReturnType<typeof vi.fn>; updateValues: ReturnType<typeof vi.fn>; applyOverrides: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> }> = [];
 	const contexts: Array<{ onAction: (action: unknown) => Promise<void> | void }> = [];
 	const renderer = {
 		preload: vi.fn(async () => {}),
 		addSprite: vi.fn(async (_sprite, _state, _animIn, context) => {
-			const handle = { transition: vi.fn(), updateValues: vi.fn(), destroy: vi.fn() };
+			const handle = { transition: vi.fn(), updateValues: vi.fn(), applyOverrides: vi.fn(), destroy: vi.fn() };
 			handles.push(handle);
 			contexts.push(context);
 			return handle;
@@ -301,9 +301,9 @@ describe('splashRuntime', () => {
 		await runtime.initialize();
 		changed.mockClear();
 
-		await runtime.applyShared({ loadedStates: ['initial', 'second'], values: { d: 5 } });
+		await runtime.applyShared({ loadedStates: ['initial', 'second'], values: { d: 5 }, overrides: {} });
 
-		expect(runtime.snapshot).toEqual({ loadedStates: ['initial', 'second'], values: { d: 5 } });
+		expect(runtime.snapshot).toEqual({ loadedStates: ['initial', 'second'], values: { d: 5 }, overrides: {} });
 		// Mirrors never execute side effects or echo authoritative state back.
 		expect(external).not.toHaveBeenCalled();
 		expect(changed).not.toHaveBeenCalled();
@@ -316,7 +316,50 @@ describe('splashRuntime', () => {
 		await runtime.initialize();
 
 		await runtime.loadState('second');
-		expect(changed).toHaveBeenLastCalledWith({ loadedStates: ['initial', 'second'], values: {} });
+		expect(changed).toHaveBeenLastCalledWith({ loadedStates: ['initial', 'second'], values: {}, overrides: {} });
+	});
+
+	it('setOverride applies to the rendered sprite, lands in the snapshot, and syncs', async () => {
+		const { renderer, handles } = fakeRenderer();
+		const changed = vi.fn();
+		const runtime = new SplashRuntime(fixture(), renderer, () => {}, { onChanged: changed });
+		await runtime.initialize(); // renders img-1 (initial state)
+		changed.mockClear();
+
+		runtime.setOverride('img-1', 'text', 'Z');
+		expect(handles[0].applyOverrides).toHaveBeenLastCalledWith({ text: 'Z' });
+		expect(runtime.snapshot.overrides).toEqual({ 'img-1': { text: 'Z' } });
+		expect(changed).toHaveBeenCalledOnce();
+
+		runtime.setOverride('img-1', 'text', undefined);
+		expect(handles[0].applyOverrides).toHaveBeenLastCalledWith({});
+		expect(runtime.snapshot.overrides).toEqual({}); // empty bag is dropped, leaving no trace in the snapshot
+	});
+
+	it('applyShared adopts overrides from an authoritative snapshot without echoing back', async () => {
+		const { renderer, handles } = fakeRenderer();
+		const changed = vi.fn();
+		const runtime = new SplashRuntime(fixture(), renderer, () => {}, { onChanged: changed });
+		await runtime.initialize();
+		changed.mockClear();
+
+		await runtime.applyShared({ loadedStates: ['initial'], values: {}, overrides: { 'img-1': { text: 'Q' } } });
+		expect(handles[0].applyOverrides).toHaveBeenLastCalledWith({ text: 'Q' });
+		expect(changed).not.toHaveBeenCalled();
+	});
+
+	it('applyShared reconciles REMOVED overrides — a follower clears what the authority dropped', async () => {
+		const { renderer, handles } = fakeRenderer();
+		const runtime = new SplashRuntime(fixture(), renderer);
+		await runtime.initialize(); // renders img-1
+		await runtime.applyShared({ loadedStates: ['initial'], values: {}, overrides: { 'img-1': { text: 'A' } } });
+		expect(runtime.snapshot.overrides).toEqual({ 'img-1': { text: 'A' } });
+
+		// the authority later resets/clears the override — the follower must revert, not keep the stale letter
+		handles[0].applyOverrides.mockClear();
+		await runtime.applyShared({ loadedStates: ['initial'], values: {}, overrides: {} });
+		expect(runtime.snapshot.overrides).toEqual({});
+		expect(handles[0].applyOverrides).toHaveBeenLastCalledWith({});
 	});
 
 	it('destroy clears the stage via the renderer', async () => {

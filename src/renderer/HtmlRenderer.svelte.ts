@@ -5,7 +5,7 @@ import type {
 	SpriteInitialized,
 	StateInitialized,
 } from '../datamodel/SplashModel.ts';
-import type { RenderedSprite, SplashRenderer, SplashValues, SpriteContext } from './SplashRenderer.ts';
+import type { RenderedSprite, SplashRenderer, SplashValues, SpriteContext, SpriteOverrides } from './SplashRenderer.ts';
 import * as svelte from 'svelte';
 import BaseSprite from '../svelte/components/BaseSprite.svelte';
 import { spriteComponents } from '../svelte/components/index.ts';
@@ -15,6 +15,7 @@ interface HtmlSpriteProps {
 	state: StateInitialized;
 	component: svelte.Component<any>;
 	values: SplashValues;
+	overrides: SpriteOverrides;
 	context: SpriteContext;
 }
 
@@ -24,7 +25,7 @@ class HtmlRenderedSprite implements RenderedSprite {
 	#destroyed = false;
 
 	constructor(target: HTMLElement, sprite: SpriteInitialized, state: StateInitialized, component: svelte.Component<any>, context: SpriteContext) {
-		this.#props = $state({ sprite, state, component, values: {}, context });
+		this.#props = $state({ sprite, state, component, values: {}, overrides: {}, context });
 		this.#mounted = svelte.mount(BaseSprite, { target, props: this.#props });
 	}
 
@@ -34,6 +35,10 @@ class HtmlRenderedSprite implements RenderedSprite {
 
 	updateValues(values: SplashValues): void {
 		this.#props.values = { ...values };
+	}
+
+	applyOverrides(overrides: SpriteOverrides): void {
+		this.#props.overrides = { ...overrides };
 	}
 
 	destroy(): void {

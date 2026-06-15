@@ -2,6 +2,7 @@ import { SplashAPI } from './api/api.js';
 import { registerControllerHooks } from './apps/controller.ts';
 import { registerGmControls } from './apps/gmControls.ts';
 
+import { registerBuiltinBehaviors } from './behaviors/index.ts';
 import { PresetModel } from './datamodel/PresetModel.js';
 import { SplashModel } from './datamodel/SplashModel.js';
 import { PresetSheet } from './sheet/PresetSheet.ts';
@@ -42,6 +43,7 @@ Hooks.once('init', () => {
 	registerPresenceSocket();
 	registerControllerHooks();
 	registerGmControls();
+	void registerBuiltinBehaviors();
 
 	const api = SplashAPI.getInstance();
 

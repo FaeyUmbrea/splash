@@ -45,6 +45,11 @@
 	}
 
 	function onKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && !isTyping() && model.activeGroup) {
+			event.preventDefault();
+			model.exitGroup();
+			return;
+		}
 		if ((event.key === 'Delete' || event.key === 'Backspace') && !isTyping() && model.selectedIds.length) {
 			event.preventDefault();
 			model.deleteSelected();

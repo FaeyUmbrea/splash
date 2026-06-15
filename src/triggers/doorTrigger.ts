@@ -1,6 +1,7 @@
 import type { TriggerBinding, TriggerOptions } from './types.ts';
 import { SplashAPI } from '../api/api.ts';
 import { ID } from '../utils/const.js';
+import { setPendingTrigger } from './context.ts';
 
 interface LibWrapper { register: (id: string, target: string, fn: (...a: unknown[]) => unknown, type: string) => void }
 
@@ -20,6 +21,8 @@ export function registerDoorWrap(): void {
 			const doc = this.wall?.document;
 			const uuid = doc?.getFlag(ID, 'launchSplash') as string | undefined;
 			if (doc?.ds === CONST.WALL_DOOR_STATES.LOCKED && uuid && !game.user?.isGM) {
+				// Hand the door's uuid to the splash so a "solved" macro can unlock it.
+				setPendingTrigger({ door: (this.wall as { document?: { uuid?: string } })?.document?.uuid });
 				void SplashAPI.getInstance().launch(uuid);
 			}
 			return wrapped(...args);

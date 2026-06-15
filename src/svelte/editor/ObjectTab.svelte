@@ -1,6 +1,6 @@
 <svelte:options runes={true} />
 <script lang='ts'>
-	import type { ButtonSpriteCreate, ImageSpriteCreate, SpriteCreate, TextSpriteCreate } from '../../datamodel/SplashModel.ts';
+	import type { ButtonSpriteCreate, ImageSpriteCreate, PanelSpriteCreate, SpriteCreate, TextSpriteCreate } from '../../datamodel/SplashModel.ts';
 	import type { PresetPayload } from '../../utils/presets.ts';
 	import type { SelectItem } from '../ui';
 	import type { EditorModel } from './editorModel.svelte.ts';
@@ -45,6 +45,36 @@
 	}
 	function applySpritePreset(payload: PresetPayload) {
 		if (payload.type === 'sprite') model.applySpritePreset(payload.value);
+	}
+
+	// --- macro context editor (free-form per-button data) --------------------
+	const ctxData = $derived(((obj?.raw as { context?: Record<string, unknown> })?.context) ?? {});
+	let newContextKey = $state('');
+
+	/** Parse a typed value from text: JSON where possible (numbers, arrays, booleans), else a raw string. */
+	function parseContext(raw: string): unknown {
+		try {
+			return JSON.parse(raw);
+		} catch {
+			return raw;
+		}
+	}
+	function displayContext(value: unknown): string {
+		return typeof value === 'string' ? value : JSON.stringify(value);
+	}
+	function setContext(key: string, value: unknown) {
+		if (obj) model.replaceObjectField(obj.id, 'context', { ...ctxData, [key]: value });
+	}
+	function removeContext(key: string) {
+		const next = { ...ctxData };
+		delete next[key];
+		if (obj) model.replaceObjectField(obj.id, 'context', next);
+	}
+	function addContext() {
+		const key = newContextKey.trim();
+		if (!key || !obj) return;
+		setContext(key, '');
+		newContextKey = '';
 	}
 </script>
 
@@ -109,12 +139,35 @@
 				<ActionEditor action={btn.onClick} {states} onChange={a => model.replaceObjectField(obj.id, 'onClick', a)} />
 			</div>
 
+			<div class='subsection'>
+				<span class='sublabel'>Macro context</span>
+				{#each Object.entries(ctxData) as [key, value] (key)}
+					<div class='ctx-row'>
+						<span class='ctx-key' title={key}>{key}</span>
+						<TextField value={displayContext(value)} onChange={v => setContext(key, parseContext(v))} />
+						<button type='button' class='x' title='Remove' aria-label='Remove' onclick={() => removeContext(key)}><i class='fa-solid fa-trash'></i></button>
+					</div>
+				{/each}
+				<div class='ctx-add'>
+					<TextField bind:value={newContextKey} placeholder='context key' />
+					<button type='button' class='x' title='Add' aria-label='Add' onclick={addContext}><i class='fa-solid fa-plus'></i></button>
+				</div>
+			</div>
+
 			<div class='preset-bar'>
 				<button type='button' class='preset-btn' onclick={() => (buttonPicking = true)}><i class='fa-solid fa-folder-open'></i> Apply button preset</button>
 				{#if isGM}
 					<button type='button' class='preset-btn' onclick={() => promptAndSavePreset(buttonSpriteToPreset(btn), btn.label?.text || 'Button')}><i class='fa-solid fa-floppy-disk'></i> Save as preset</button>
 				{/if}
 			</div>
+		{:else if obj.type === 'panel'}
+			{@const panel = raw as PanelSpriteCreate}
+			<ColorField label='Fill' value={panel.fill ?? '#222831'} onChange={v => setContent({ fill: v })} />
+			<div class='grid'>
+				<ColorField label='Border color' value={panel.borderColor ?? '#000000'} onChange={v => setContent({ borderColor: v })} />
+				<NumberField label='Border width' value={panel.borderWidth ?? 0} min={0} onChange={v => setContent({ borderWidth: v })} />
+			</div>
+			<NumberField label='Corner radius' value={panel.radius ?? 0} min={0} onChange={v => setContent({ radius: v })} />
 		{/if}
 
 		<div class='subsection'>
@@ -245,6 +298,27 @@
 		border-radius: 4px;
 		color: inherit;
 		cursor: pointer;
+	}
+
+	.ctx-row {
+		display: grid;
+		grid-template-columns: 70px 1fr 30px;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.ctx-key {
+		font-size: 12px;
+		opacity: 0.8;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.ctx-add {
+		display: grid;
+		grid-template-columns: 1fr 30px;
+		gap: 6px;
 	}
 
 	.preset-bar {

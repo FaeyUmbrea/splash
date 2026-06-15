@@ -50,6 +50,8 @@ export class EditorModel {
 	readonly store: DocumentStore;
 	activeState = $state('');
 	selectedIds = $state<string[]>([]);
+	/** The group currently "entered" for member-level editing (Figma-style isolation). null = top level. */
+	activeGroup = $state<string | null>(null);
 
 	constructor(page: SplashPage) {
 		this.store = new DocumentStore(page);
@@ -175,28 +177,87 @@ export class EditorModel {
 		);
 	}
 
+	// --- grouping & isolation ------------------------------------------------
+
+	/** The ids that selecting `id` should grab: its whole group (top level) or just itself (when isolated). */
+	#selectionFor(id: string): string[] {
+		const sprite = (this.data.children ?? []).find(c => c?.id === id) as SpriteCreate | undefined;
+		const groupId = sprite?.groupId;
+		if (groupId && this.activeGroup !== groupId) {
+			return (this.data.children ?? []).filter(c => (c as SpriteCreate)?.groupId === groupId).map(c => c?.id).filter(Boolean) as string[];
+		}
+		return [id];
+	}
+
+	/** Enter a group for member-level editing (double-click). */
+	enterGroup(groupId: string | null) {
+		this.activeGroup = groupId;
+	}
+
+	/** Pop back out to top-level selection (Esc / click empty space). */
+	exitGroup() {
+		this.activeGroup = null;
+	}
+
+	/** Group the current selection under a fresh shared id; clears isolation. */
+	group() {
+		const ids = this.selectedIds;
+		if (ids.length < 2) return;
+		const groupId = nanoid();
+		this.#mutateChildren((next) => {
+			for (const sprite of next) {
+ if (ids.includes(sprite.id ?? '')) sprite.groupId = groupId;
+}
+		});
+		this.activeGroup = null;
+	}
+
+	/** Ungroup every group the selection touches. */
+	ungroup() {
+		const groupIds = (this.data.children ?? [])
+			.filter(c => this.selectedIds.includes(c?.id ?? ''))
+			.map(c => (c as SpriteCreate)?.groupId)
+			.filter(Boolean) as string[];
+		if (!groupIds.length) return;
+		this.#mutateChildren((next) => {
+			for (const sprite of next) {
+				if (sprite.groupId && groupIds.includes(sprite.groupId)) sprite.groupId = null;
+			}
+		});
+		this.activeGroup = null;
+	}
+
+	/** Whether the selection spans a group (so "Ungroup" is offered) or ≥2 loose objects ("Group"). */
+	get selectionGrouped(): boolean {
+		return (this.data.children ?? []).some(c => this.selectedIds.includes(c?.id ?? '') && (c as SpriteCreate)?.groupId);
+	}
+
 	// --- object operations ---------------------------------------------------
 
-	/** Select one object, replacing the selection — or, additively, toggle it in the selection. */
+	/** Select one object — group-aware: at top level a grouped object selects its whole group. */
 	select(id: string | null, additive = false) {
 		if (id === null) {
 			this.selectedIds = [];
 			return;
 		}
+		const ids = this.#selectionFor(id);
 		if (additive) {
-			this.selectedIds = this.selectedIds.includes(id)
-				? this.selectedIds.filter(x => x !== id)
-				: [...this.selectedIds, id];
+			const allSelected = ids.every(x => this.selectedIds.includes(x));
+			this.selectedIds = allSelected
+				? this.selectedIds.filter(x => !ids.includes(x))
+				: [...this.selectedIds, ...ids.filter(x => !this.selectedIds.includes(x))];
 		} else {
-			this.selectedIds = [id];
+			this.selectedIds = ids;
 		}
 	}
 
-	/** Replace (or extend) the selection with a set of ids — used by the lasso. */
+	/** Replace (or extend) the selection with a set of ids — used by the lasso. Group-aware like select(). */
 	selectMany(ids: string[], additive = false) {
+		const expanded = ids.flatMap(id => this.#selectionFor(id));
+		const unique = expanded.filter((id, i) => expanded.indexOf(id) === i);
 		this.selectedIds = additive
-			? [...this.selectedIds, ...ids.filter(i => !this.selectedIds.includes(i))]
-			: ids;
+			? [...this.selectedIds, ...unique.filter(i => !this.selectedIds.includes(i))]
+			: unique;
 	}
 
 	clearSelection() {
@@ -235,6 +296,14 @@ export class EditorModel {
 		this.#mutateChildren(next => void next.push(sprite));
 		this.selectedIds = sprite.id ? [sprite.id] : [];
 		return sprite.id ?? '';
+	}
+
+	/** Append a batch of pre-built sprites (e.g. a behavior's generated prefab) and select them. */
+	addObjects(sprites: SpriteCreate[]) {
+		this.#mutateChildren((next) => {
+			for (const sprite of sprites) next.push(sprite);
+		});
+		this.selectedIds = sprites.map(s => s.id).filter(Boolean) as string[];
 	}
 
 	deleteObject(id: string) {
@@ -283,9 +352,34 @@ export class EditorModel {
 		return placed.id ?? '';
 	}
 
-	/** Spawn every sprite in a group preset, fanned out in the active state, and select them all. */
+	/**
+	 * Stamp a group prefab: preserve each sprite's arrangement (its `states`) and wiring (`onClick`),
+	 * regenerate ids, and remap groupIds to fresh ones so the prefab's internal grouping survives without
+	 * colliding with — or merging into — anything already in the splash. A prefab saved from loose objects
+	 * (no groups) is wrapped into one fresh group so it lands as a cohesive unit.
+	 */
 	applySpriteGroupPreset(sprites: SpriteCreate[]) {
-		const placed = sprites.map((s, i) => materializeSprite(s, this.activeState, { x: 100 + i * 24, y: 100 + i * 24 }));
+		const remap: Record<string, string> = {};
+		const wrapper = sprites.every(s => !(s as { groupId?: string }).groupId) ? nanoid() : null;
+		const placed = sprites.map((s) => {
+			const copy = foundry.utils.deepClone(s) as Record<string, unknown>;
+			copy.id = nanoid();
+			if (!Array.isArray(copy.effects)) copy.effects = [];
+			const gid = copy.groupId as string | null | undefined;
+			copy.groupId = gid ? (remap[gid] ??= nanoid()) : wrapper;
+			return copy as SpriteCreate;
+		});
+		// Second pass (remap fully populated): rewrite any groupId references the prefab carries in
+		// `context` — e.g. a lock's Unlock button stores `Wheels: [groupId,…]`, which must follow the remap.
+		const remapRef = (v: unknown) => (typeof v === 'string' && remap[v]) ? remap[v] : v;
+		for (const p of placed) {
+			const context = (p as { context?: Record<string, unknown> }).context;
+			if (context && typeof context === 'object') {
+				for (const [key, value] of Object.entries(context)) {
+					context[key] = Array.isArray(value) ? value.map(remapRef) : remapRef(value);
+				}
+			}
+		}
 		this.#mutateChildren((next) => {
 			for (const p of placed) next.push(p);
 		});

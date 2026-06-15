@@ -113,10 +113,21 @@ export function materializeSprite(sprite: SpriteCreate, stateKey: string, at?: {
 	return copy as SpriteCreate;
 }
 
-/** Normalize a payload for storage — only sprite/group kinds need id/placement scrubbing. */
+/**
+ * A sprite stored in a GROUP prefab. Unlike a single style preset, a prefab is an assembled thing —
+ * keep its placement (the arrangement) and its onClick (the wiring); the editor regenerates ids and
+ * remaps groupIds on apply. Just guarantee a valid effects array.
+ */
+export function normalizeGroupSprite(sprite: SpriteCreate): SpriteCreate {
+	const copy = foundry.utils.deepClone(sprite) as Record<string, unknown>;
+	if (!Array.isArray(copy.effects)) copy.effects = [];
+	return copy as SpriteCreate;
+}
+
+/** Normalize a payload for storage — single sprites are stripped to style; groups keep their layout. */
 export function normalizePresetPayload(payload: PresetPayload): PresetPayload {
 	if (payload.type === 'sprite') return { type: 'sprite', value: normalizeSpriteForPreset(payload.value) };
-	if (payload.type === 'spriteGroup') return { type: 'spriteGroup', value: payload.value.map(normalizeSpriteForPreset) };
+	if (payload.type === 'spriteGroup') return { type: 'spriteGroup', value: payload.value.map(normalizeGroupSprite) };
 	return payload;
 }
 

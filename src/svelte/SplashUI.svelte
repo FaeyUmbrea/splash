@@ -9,6 +9,7 @@
 	import { PixiRenderer } from '../renderer/PixiRenderer.ts';
 	import { selectRenderer } from '../renderer/selectRenderer.ts';
 	import { SplashRuntime } from '../renderer/SplashRuntime.ts';
+	import { consumePendingTrigger } from '../triggers/context.ts';
 	import { createPresenceReporter } from '../utils/presence.ts';
 	import { createSyncDriver, registerRuntime, unregisterRuntime } from '../utils/sync.ts';
 
@@ -47,6 +48,7 @@
 		// Players on local splashes report their position so the GM can follow along.
 		const reportsPresence = splashConfig.mode === 'local' && !!pageUuid && !game.user?.isGM;
 		runtime = new SplashRuntime(splashConfig, renderer, emitEvent, {
+			trigger: consumePendingTrigger() ?? undefined,
 			externalAction: action => SplashAPI.getInstance().processAction(action),
 			interceptAction: action => sync?.interceptAction(action) ?? false,
 			onChanged: (snapshot) => {

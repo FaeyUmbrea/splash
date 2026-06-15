@@ -8,6 +8,9 @@ import type {
 /** Current runtime values, fed into text interpolation and condition checks. */
 export type SplashValues = Record<string, unknown>;
 
+/** Ephemeral per-property overrides for a single sprite (e.g. `{ text: 'A' }`), set by inline macros. */
+export type SpriteOverrides = Record<string, unknown>;
+
 /** Per-sprite wiring back into the owning runtime, so actions stay instance-scoped. */
 export interface SpriteContext {
 	onAction: (action: ActionInitialized) => Promise<void> | void;
@@ -19,6 +22,8 @@ export interface RenderedSprite {
 	transition: (state: StateInitialized) => void;
 	/** Re-render value-bound content (e.g. `{key}` text interpolation). */
 	updateValues: (values: SplashValues) => void;
+	/** Apply ephemeral property overrides (override-then-data); `{}` clears them. */
+	applyOverrides: (overrides: SpriteOverrides) => void;
 	/** Remove the sprite from the stage and free its resources. */
 	destroy: () => void;
 }

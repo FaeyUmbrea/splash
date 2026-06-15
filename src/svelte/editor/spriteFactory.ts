@@ -1,7 +1,7 @@
 import type { SpriteCreate } from '../../datamodel/SplashModel.ts';
 import { nanoid } from 'nanoid';
 
-export type SpriteType = 'image' | 'text' | 'button';
+export type SpriteType = 'image' | 'text' | 'button' | 'panel';
 
 function basePlacement(): Record<string, unknown> {
 	return { x: 100, y: 100, zIndex: 0, priority: 0, name: '' };
@@ -17,6 +17,9 @@ export function createSprite(type: SpriteType, stateKey: string): SpriteCreate {
 	}
 	if (type === 'text') {
 		return { type, id, name: 'Text', text: 'Text', font: 'Arial', size: 34, fillColor: '#ffffff', align: 'center', effects: [], states } as SpriteCreate;
+	}
+	if (type === 'panel') {
+		return { type, id, name: 'Panel', fill: '#222831', borderColor: '#000000', borderWidth: 0, radius: 0, effects: [], states } as SpriteCreate;
 	}
 	return {
 		type: 'button',

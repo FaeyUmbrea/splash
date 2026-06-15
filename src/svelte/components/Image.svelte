@@ -2,6 +2,8 @@
 	import type { ImageSpriteInitialized } from '../../datamodel/SplashModel.ts';
 
 	export let sprite: ImageSpriteInitialized;
+	// Accepted (unused) so BaseSprite passes the same prop set to every sprite component.
+	export const overrides: Record<string, unknown> = {};
 </script>
 
 <img src={sprite.img} alt={sprite.name} />

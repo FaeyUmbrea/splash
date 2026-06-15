@@ -5,12 +5,14 @@ import type {
 	ChangeStateActionInitialized,
 	ImageSpriteInitialized,
 	MacroActionInitialized,
+	PanelSpriteInitialized,
 	State,
 	TextSpriteInitialized,
 } from '../datamodel/SplashModel.ts';
 import type { SpriteContext } from '../renderer/SplashRenderer.ts';
 import type { DissolveFilterProps } from '../shaders/dissolve/dissolve.js';
 import NineSlicePlaneButton from '../pixi/nineSlicePlaneButton.js';
+import PanelGraphics from '../pixi/panelGraphics.js';
 import { transitionState } from '../pixi/transitionState.ts';
 import DissolveFilter from '../shaders/dissolve/dissolve.js';
 import GlitchFilter from '../shaders/glitch/glitch.ts';
@@ -23,6 +25,7 @@ export function setupAPI(api: SplashAPI) {
 	api.registerSprite('text', 'Text', instantiateText);
 	api.registerSprite('image', 'Image', instantiateImage);
 	api.registerSprite('button', 'Button', instantiateButton);
+	api.registerSprite('panel', 'Panel', instantiatePanel);
 	api.registerAction('macro', 'Macro', executeMacro);
 	api.registerAction('change-state', 'Change State', changeState);
 	api.registerAction('close', 'Close Splash', () => {
@@ -98,6 +101,18 @@ async function instantiateText(text: TextSpriteInitialized, state: State, _conte
 	});
 	transitionState(sprite, state);
 	return sprite;
+}
+
+async function instantiatePanel(panel: PanelSpriteInitialized, state: State, _context: SpriteContext) {
+	if (panel.type !== 'panel') throw new Error('Panel type is not \'panel\'');
+	const graphics = new PanelGraphics({
+		fill: panel.fill,
+		borderColor: panel.borderColor,
+		borderWidth: panel.borderWidth,
+		radius: panel.radius,
+	});
+	transitionState(graphics, state);
+	return graphics;
 }
 
 async function instantiateButton(button: ButtonSpriteInitialized, state: State, context: SpriteContext) {

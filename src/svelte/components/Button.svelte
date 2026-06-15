@@ -4,6 +4,8 @@
 
 	export let sprite: ButtonSpriteInitialized;
 	export let context: SpriteContext = { onAction: () => {} };
+	// Accepted (unused) so BaseSprite passes the same prop set to every sprite component.
+	export const overrides: Record<string, unknown> = {};
 
 	let hover = false;
 	let active = false;
@@ -16,9 +18,11 @@
      carve the texture into corners/edges/center exactly like the GL renderer. -->
 <button
 	type='button'
-	style:border-image-source='url({image.url})'
+	style:border-image-source={image.url ? `url(${image.url})` : undefined}
 	style:border-image-slice='{image.topHeight} {image.rightWidth} {image.bottomHeight} {image.leftWidth} fill'
 	style:border-width='{image.topHeight}px {image.rightWidth}px {image.bottomHeight}px {image.leftWidth}px'
+	style:background={image.url ? undefined : (sprite.tint || '#ffffff')}
+	style:border-radius={image.url ? undefined : '4px'}
 	on:mouseenter={() => hover = true}
 	on:mouseleave={() => {
 		hover = false;

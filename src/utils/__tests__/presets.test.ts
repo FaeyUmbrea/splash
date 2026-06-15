@@ -98,13 +98,15 @@ describe('preset pure transforms', () => {
 		expect(presetThumb({ type: 'animation', value: { type: 'glitch' } } as unknown as PresetPayload)).toContain('icons/svg/');
 	});
 
-	it('normalizePresetPayload scrubs sprite/group payloads and passes others through', () => {
+	it('normalizePresetPayload strips a single sprite to style but keeps a group prefab\'s layout', () => {
+		// a single sprite preset is content/style → placement stripped, id regenerated
 		const sprite = normalizePresetPayload({ type: 'sprite', value: { type: 'image', id: 'a', img: 'x.png', states: { initial: {} } } as never });
 		expect((sprite as { value: Record<string, unknown> }).value.states).toEqual({});
 		expect((sprite as { value: Record<string, unknown> }).value.id).not.toBe('a');
 
-		const group = normalizePresetPayload({ type: 'spriteGroup', value: [{ type: 'image', id: 'a', img: 'x.png', states: { initial: {} } } as never] });
-		expect((group as { value: Record<string, unknown>[] }).value[0].states).toEqual({});
+		// a group prefab is an assembled thing → keep placement (arrangement); ids/groups are remapped on apply
+		const group = normalizePresetPayload({ type: 'spriteGroup', value: [{ type: 'image', id: 'a', img: 'x.png', states: { initial: { x: 5 } } } as never] });
+		expect((group as { value: Record<string, unknown>[] }).value[0].states).toEqual({ initial: { x: 5 } });
 
 		const anim = { type: 'animation', value: { type: 'dissolve', duration: 1, delay: 0, props: {} } } as unknown as PresetPayload;
 		expect(normalizePresetPayload(anim)).toBe(anim); // passthrough (same reference)

@@ -17,6 +17,7 @@
 		onPointerDown,
 		onResizeStart,
 		onContext,
+		onDblClick,
 	}: {
 		sprite: SpriteCreate;
 		placement: Placement;
@@ -30,6 +31,7 @@
 		onPointerDown: (event: PointerEvent) => void;
 		onResizeStart: (event: PointerEvent) => void;
 		onContext: (event: MouseEvent) => void;
+		onDblClick?: (event: MouseEvent) => void;
 	} = $props();
 
 	const Component = $derived(spriteComponents[sprite.type ?? '']);
@@ -54,6 +56,7 @@
 	style:z-index={(placement.zIndex ?? 0) + 1000}
 	onpointerdown={onPointerDown}
 	oncontextmenu={onContext}
+	ondblclick={onDblClick}
 >
 	<div class='content'>
 		{#if Component}<Component {sprite} />{/if}

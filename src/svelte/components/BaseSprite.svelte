@@ -8,6 +8,7 @@
 	export let state: StateInitialized;
 	export let component: Component<any>;
 	export let values: SplashValues = {};
+	export let overrides: Record<string, unknown> = {};
 	export let context: SpriteContext = { onAction: () => {} };
 
 	$: fallback = spriteDefaultSize(sprite.type);
@@ -21,8 +22,9 @@
 	style:width={(state.width ?? fallback.width) ? `${state.width ?? fallback.width}px` : 'auto'}
 	style:height={(state.height ?? fallback.height) ? `${state.height ?? fallback.height}px` : 'auto'}
 	style:z-index={state.zIndex ?? 0}
+	style:transform={(state.skewX ?? 0) || (state.skewY ?? 0) ? `skew(${state.skewX ?? 0}deg, ${state.skewY ?? 0}deg)` : undefined}
 >
-	<svelte:component this={component} {sprite} {values} {context} />
+	<svelte:component this={component} {sprite} {values} {overrides} {context} />
 </div>
 
 <style>

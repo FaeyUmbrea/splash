@@ -5,12 +5,15 @@ import type {
 	SpriteInitialized,
 	StateInitialized,
 } from '../datamodel/SplashModel.ts';
-import type { RenderedSprite, SplashRenderer, SplashValues, SpriteContext } from './SplashRenderer.ts';
+import type { RenderedSprite, SplashRenderer, SplashValues, SpriteContext, SpriteOverrides } from './SplashRenderer.ts';
 import { SplashAPI } from '../api/api.ts';
 import { transitionState } from '../pixi/transitionState.ts';
 import { interpolate } from '../utils/interpolate.ts';
 
 class PixiRenderedSprite implements RenderedSprite {
+	#values: SplashValues = {};
+	#overrides: SpriteOverrides = {};
+
 	constructor(
 		readonly object: PIXI.DisplayObject,
 		readonly stage: PIXI.Container,
@@ -22,8 +25,20 @@ class PixiRenderedSprite implements RenderedSprite {
 	}
 
 	updateValues(values: SplashValues): void {
+		this.#values = values;
+		this.#refresh();
+	}
+
+	applyOverrides(overrides: SpriteOverrides): void {
+		this.#overrides = overrides;
+		this.#refresh();
+	}
+
+	/** Override-then-data: an inline macro's `text` override wins; otherwise interpolate the stored text. */
+	#refresh(): void {
 		if (this.sprite.type === 'text') {
-			(this.object as PIXI.Text).text = interpolate(this.sprite.text ?? '', values);
+			const override = this.#overrides.text;
+			(this.object as PIXI.Text).text = override != null ? String(override) : interpolate(this.sprite.text ?? '', this.#values);
 		}
 	}
 

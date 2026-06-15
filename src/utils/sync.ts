@@ -13,7 +13,7 @@ import { getSharedStates, SETTING_SHARED_STATE } from './settings.ts';
 interface ActionIntentEvent {
 	eventType: 'splashActionIntent';
 	senderId: string;
-	payload: { uuid: string; action: ActionInitialized };
+	payload: { uuid: string; action: ActionInitialized; sourceId?: string };
 }
 
 /** Runtimes currently open on this client, by page uuid (synced and local alike). */
@@ -96,7 +96,7 @@ export async function clearVotes(uuid: string): Promise<void> {
 }
 
 export interface SyncDriver {
-	interceptAction: (action: ActionInitialized) => boolean;
+	interceptAction: (action: ActionInitialized, sourceId?: string) => boolean;
 	onChanged: (snapshot: RuntimeSnapshot) => void;
 	/** Call after runtime.initialize(): adopts existing shared state and goes live. */
 	connect: () => Promise<void>;
@@ -129,7 +129,7 @@ export function createSyncDriver(uuid: string, splash: SplashInitialized, runtim
 	};
 
 	return {
-		interceptAction: (action) => {
+		interceptAction: (action, sourceId) => {
 			if (isExecutor()) {
 				// Votes need attribution, which the runtime doesn't know about.
 				if (action.type === 'vote') {
@@ -138,10 +138,11 @@ export function createSyncDriver(uuid: string, splash: SplashInitialized, runtim
 				}
 				return false;
 			}
+			// Forward the firing sprite id so the GM runs the macro with the right `scope`, not the tree root.
 			game.socket?.emit(`module.${ID}`, {
 				eventType: 'splashActionIntent',
 				senderId: game.userId,
-				payload: { uuid, action },
+				payload: { uuid, action, sourceId },
 			} satisfies ActionIntentEvent);
 			return true;
 		},
@@ -176,7 +177,7 @@ export function registerSyncSocket(): void {
 	game.socket?.on(`module.${ID}`, async (event: ActionIntentEvent) => {
 		if (event?.eventType !== 'splashActionIntent') return;
 		if (game.users?.activeGM?.id !== game.userId) return;
-		const { uuid, action } = event.payload ?? {};
+		const { uuid, action, sourceId } = event.payload ?? {};
 		if (!uuid || !action) return;
 		const runtime = openRuntimes.get(uuid);
 		if (!runtime) return;
@@ -188,6 +189,7 @@ export function registerSyncSocket(): void {
 			await recordVote(uuid, event.senderId, action.optionId ?? '', splash, runtime);
 			return;
 		}
-		await runtime.handleAction(action);
+		// Pass the forwarded sprite id so script macros resolve `scope` to the firing element on the GM.
+		await runtime.handleAction(action, sourceId);
 	});
 }

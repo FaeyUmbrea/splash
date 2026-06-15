@@ -22,6 +22,7 @@
 		{ value: 'set-value', label: 'Set value', icon: 'fa-solid fa-equals' },
 		{ value: 'increment-value', label: 'Increment value', icon: 'fa-solid fa-plus-minus' },
 		{ value: 'vote', label: 'Vote', icon: 'fa-solid fa-check-to-slot' },
+		{ value: 'script', label: 'Script (inline macro)', icon: 'fa-solid fa-code' },
 		{ value: 'close', label: 'Close splash', icon: 'fa-solid fa-xmark' },
 	];
 
@@ -39,6 +40,7 @@
 		'set-value': { type: 'set-value', key: '', value: '' },
 		'increment-value': { type: 'increment-value', key: '', step: 1, min: null, max: null, wrap: false },
 		'vote': { type: 'vote', optionId: '' },
+		'script': { type: 'script', source: '' },
 		'close': { type: 'close' },
 	};
 
@@ -102,6 +104,14 @@
 		<CheckboxField label='Wrap min↔max (tumbler digit)' value={(action?.wrap as boolean) ?? false} onChange={v => patch({ wrap: v })} />
 	{:else if type === 'vote'}
 		<TextField label='Vote option id' value={(action?.optionId as string) ?? ''} onChange={v => patch({ optionId: v })} />
+	{:else if type === 'script'}
+		<span class='sublabel'>Inline macro — globals: <code>scope</code> (this element's node), <code>context</code> (its data), <code>api</code> (changeState / setValue / close)</span>
+		<textarea
+			class='script-source'
+			spellcheck='false'
+			value={(action?.source as string) ?? ''}
+			oninput={e => patch({ source: (e.currentTarget as HTMLTextAreaElement).value })}
+		></textarea>
 	{/if}
 </div>
 
@@ -110,6 +120,32 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+
+		> .sublabel {
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: 0.4px;
+			opacity: 0.6;
+
+			code {
+				text-transform: none;
+				opacity: 0.9;
+			}
+		}
+	}
+
+	.script-source {
+		min-height: 120px;
+		resize: vertical;
+		padding: 6px 8px;
+		background: rgba(0, 0, 0, 0.3);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		color: inherit;
+		font-family: monospace;
+		font-size: 12px;
+		line-height: 1.4;
+		white-space: pre;
 	}
 
 	.grid {

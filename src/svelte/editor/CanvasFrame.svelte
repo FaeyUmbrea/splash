@@ -209,9 +209,20 @@
 
 	// --- lasso marquee -------------------------------------------------------
 
+	/** Double-click a grouped object to "enter" its group and edit members individually. */
+	function onSpriteDblClick(obj: EditorObject) {
+		const groupId = (obj.raw as { groupId?: string | null }).groupId ?? null;
+		if (!groupId) return;
+		model.enterGroup(groupId);
+		model.select(obj.id); // now isolated → selects just this member
+	}
+
 	function onRegionPointerDown(event: PointerEvent) {
 		if (event.button !== 0) return;
-		if (!event.shiftKey) model.clearSelection();
+		if (!event.shiftKey) {
+			model.clearSelection();
+			model.exitGroup(); // clicking empty space pops back to the top level
+		}
 		const p = toStage(event.clientX, event.clientY);
 		marquee = { x0: p.x, y0: p.y, x1: p.x, y1: p.y };
 		addListeners();
@@ -329,6 +340,7 @@
 				onPointerDown={e => onSpritePointerDown(e, obj)}
 				onResizeStart={e => onResizeStart(e, obj)}
 				onContext={e => spriteMenu(e, obj)}
+				onDblClick={() => onSpriteDblClick(obj)}
 			/>
 		{/each}
 

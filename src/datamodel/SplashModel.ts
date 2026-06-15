@@ -34,6 +34,12 @@ function BaseSpriteSchemaCreator(choice: string) {
 		// Sprites need distinct ids: the runtime tracks rendered sprites by this key.
 		id: new fields.StringField({ required: true, blank: false, initial: () => nanoid() }),
 		name: new fields.StringField({ required: true }),
+		// Grouping tag: sprites sharing a groupId move/select as a unit and form a node in the runtime
+		// tree. null = ungrouped. Purely a tag — no nested container type.
+		groupId: new fields.StringField({ required: false, nullable: true, initial: null }),
+		// Free-form per-element data handed to inline macros as `scope.context` (e.g. {Keyword, Position}).
+		// ObjectField = arbitrary JSON, since context shape is behavior-specific.
+		context: new fields.ObjectField({ required: false }),
 		animIn: AnimationFieldCreator(),
 		animOut: AnimationFieldCreator(),
 		// Persistent (non-transition) effects, applied for the sprite's whole life. GL-only.
@@ -170,6 +176,25 @@ function VoteActionSchemaCreator() {
 	};
 }
 
+/**
+ * An INLINE macro carried on the action itself (vs the `macro` action's reference to a world-local Macro
+ * document). The source runs with `scope` = the firing sprite's node in the materialized tree, so it
+ * navigates relatively (`scope.parent.child.get("Top").text = "A"`) and reads `scope.context`. Inline =
+ * travels with a prefab; the trust surface is Foundry's existing macro model.
+ */
+function ScriptActionSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseActionSchemaCreator('script');
+	return {
+		...base,
+		source: new fields.StringField({ required: true, initial: '' }),
+	};
+}
+
+export type ScriptActionCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof ScriptActionSchemaCreator>>;
+export type ScriptActionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof ScriptActionSchemaCreator>>;
+export type ScriptAction = ScriptActionCreate | ScriptActionInitialized;
+
 export type VoteActionCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof VoteActionSchemaCreator>>;
 export type VoteActionInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof VoteActionSchemaCreator>>;
 export type VoteAction = VoteActionCreate | VoteActionInitialized;
@@ -183,11 +208,12 @@ export function ActionFieldCreator() {
 		'set-value': new fields.SchemaField(SetValueActionSchemaCreator()),
 		'increment-value': new fields.SchemaField(IncrementValueActionSchemaCreator()),
 		'vote': new fields.SchemaField(VoteActionSchemaCreator()),
+		'script': new fields.SchemaField(ScriptActionSchemaCreator()),
 	});
 }
 
-export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitialized | CloseActionInitialized | SetValueActionInitialized | IncrementValueActionInitialized | VoteActionInitialized;
-export type ActionCreate = MacroActionCreate | ChangeStateActionCreate | CloseActionCreate | SetValueActionCreate | IncrementValueActionCreate | VoteActionCreate;
+export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitialized | CloseActionInitialized | SetValueActionInitialized | IncrementValueActionInitialized | VoteActionInitialized | ScriptActionInitialized;
+export type ActionCreate = MacroActionCreate | ChangeStateActionCreate | CloseActionCreate | SetValueActionCreate | IncrementValueActionCreate | VoteActionCreate | ScriptActionCreate;
 export type Action = ActionCreate | ActionInitialized;
 
 export function ButtonSpriteSchemaCreator() {
@@ -244,17 +270,36 @@ export type TextSpriteCreate = foundry.data.fields.SchemaField.CreateData<Return
 export type TextSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof TextSpriteSchemaCreator>>;
 export type TextSprite = TextSpriteCreate | TextSpriteInitialized;
 
+/** A flat fill/border/radius surface — the asset-free building block (tumbler bodies, backing plates). */
+export function PanelSpriteSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseSpriteSchemaCreator('panel');
+	return {
+		...base,
+		// Empty string = transparent (no fill / no border).
+		fill: new fields.StringField({ required: true, initial: '#222831' }),
+		borderColor: new fields.StringField({ required: true, initial: '#000000' }),
+		borderWidth: new fields.NumberField({ required: true, initial: 0 }),
+		radius: new fields.NumberField({ required: true, initial: 0 }),
+	};
+}
+
+export type PanelSpriteCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof PanelSpriteSchemaCreator>>;
+export type PanelSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof PanelSpriteSchemaCreator>>;
+export type PanelSprite = PanelSpriteCreate | PanelSpriteInitialized;
+
 export function SpriteFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
 		button: ButtonSpriteSchemaCreator(),
 		image: ImageSpriteSchemaCreator(),
 		text: TextSpriteSchemaCreator(),
+		panel: PanelSpriteSchemaCreator(),
 	});
 }
 
-export type SpriteInitialized = ButtonSpriteInitialized | ImageSpriteInitialized | TextSpriteInitialized;
-export type SpriteCreate = ButtonSpriteCreate | ImageSpriteCreate | TextSpriteCreate;
+export type SpriteInitialized = ButtonSpriteInitialized | ImageSpriteInitialized | TextSpriteInitialized | PanelSpriteInitialized;
+export type SpriteCreate = ButtonSpriteCreate | ImageSpriteCreate | TextSpriteCreate | PanelSpriteCreate;
 export type Sprite = SpriteCreate | SpriteInitialized;
 
 function BaseAnimationModelSchemaCreator(choice: string, props) {
@@ -397,6 +442,9 @@ function StateSchemaCreator() {
 		// null means "keep the sprite's current/natural size" — 0 would collapse it.
 		width: new fields.NumberField({ nullable: true, initial: null }),
 		height: new fields.NumberField({ nullable: true, initial: null }),
+		// Faux-3D tilt, in degrees (CSS uses deg directly; the Pixi path converts to radians).
+		skewX: new fields.NumberField({ required: true, initial: 0 }),
+		skewY: new fields.NumberField({ required: true, initial: 0 }),
 		animIn: AnimationFieldCreator(),
 		animOut: AnimationFieldCreator(),
 	};

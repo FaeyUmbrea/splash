@@ -1,30 +1,78 @@
 <svelte:options runes={true} />
 <script lang='ts'>
+	import type { PresetPayload } from '../../utils/presets.ts';
 	import type { ContextMenuItem } from '../ui';
 	import type { EditorModel, EditorObject } from './editorModel.svelte.ts';
 	import type { SpriteType } from './spriteFactory.ts';
+	import { allBehaviors, getBehavior } from '../../behaviors/index.ts';
+	import { promptAndSavePreset } from '../../utils/presets.ts';
+	import PresetPicker from '../presets/PresetPicker.svelte';
 	import { ContextMenu, IconButton } from '../ui';
 
 	const { model }: { model: EditorModel } = $props();
+
+	let addMenu = $state<{ x: number; y: number } | null>(null);
+	let rowMenu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
+	let prefabPicking = $state(false);
+
+	function openPrefabPicker() {
+		addMenu = null;
+		prefabPicking = true;
+	}
+	function savePrefab() {
+		const sprites = model.selectedObjects.map(o => o.raw);
+		if (sprites.length) promptAndSavePreset({ type: 'spriteGroup', value: sprites } as PresetPayload, 'Prefab');
+	}
+	function applyPrefab(payload: PresetPayload) {
+		if (payload.type === 'spriteGroup') model.applySpriteGroupPreset(payload.value);
+	}
 
 	const typeIcon: Record<string, string> = {
 		image: 'fa-solid fa-image',
 		text: 'fa-solid fa-font',
 		button: 'fa-solid fa-hand-pointer',
+		panel: 'fa-solid fa-square',
 	};
 
-	let addMenu = $state<{ x: number; y: number } | null>(null);
-	let rowMenu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
-
-	const addItems: ContextMenuItem[] = [
+	const addItems = $derived<ContextMenuItem[]>([
 		{ label: 'Image', icon: 'fa-solid fa-image', action: () => add('image') },
 		{ label: 'Text', icon: 'fa-solid fa-font', action: () => add('text') },
 		{ label: 'Button', icon: 'fa-solid fa-hand-pointer', action: () => add('button') },
-	];
+		{ label: 'Panel', icon: 'fa-solid fa-square', action: () => add('panel') },
+		{ separator: true } as ContextMenuItem,
+		{ label: 'Prefab…', icon: 'fa-solid fa-cubes', action: openPrefabPicker },
+		...allBehaviors().map(b => ({ label: b.label, icon: b.icon, action: () => placeBehavior(b.key) })),
+	]);
 
 	function add(type: SpriteType) {
 		model.addObject(type);
 		addMenu = null;
+	}
+
+	async function placeBehavior(key: string) {
+		addMenu = null;
+		const behavior = getBehavior(key);
+		if (!behavior) return;
+		const content = behavior.fields
+			.map(f => `<div class="form-group"><label>${f.label}</label><input type="${f.type === 'number' ? 'number' : 'text'}" name="${f.key}" value="${f.default ?? ''}" /></div>`)
+			.join('');
+		const config = await foundry.applications.api.DialogV2.prompt({
+			window: { title: behavior.label },
+			content,
+			ok: {
+				label: 'Place',
+				callback: (_event: unknown, button: { form: HTMLFormElement }) => {
+					const data: Record<string, unknown> = {};
+					for (const field of behavior.fields) {
+						const input = button.form.elements.namedItem(field.key) as HTMLInputElement | null;
+						data[field.key] = field.type === 'number' ? Number(input?.value) : (input?.value ?? '');
+					}
+					return data;
+				},
+			},
+		}).catch(() => null);
+		if (!config) return;
+		model.addObjects(behavior.build(config as Record<string, unknown>, { stateKey: model.activeState }));
 	}
 
 	function onDragStart(event: DragEvent, obj: EditorObject) {
@@ -59,6 +107,17 @@
 <section class='objects-panel'>
 	<header>
 		<span class='title'>Objects</span>
+		{#if model.activeGroup}
+			<IconButton icon='fa-solid fa-arrow-up-from-bracket' title='Exit group' onclick={() => model.exitGroup()} />
+		{/if}
+		{#if model.selectionGrouped}
+			<IconButton icon='fa-solid fa-object-ungroup' title='Ungroup' onclick={() => model.ungroup()} />
+		{:else if model.selectedIds.length > 1}
+			<IconButton icon='fa-solid fa-object-group' title='Group selection' onclick={() => model.group()} />
+		{/if}
+		{#if model.selectedIds.length > 1}
+			<IconButton icon='fa-solid fa-floppy-disk' title='Save selection as prefab' onclick={savePrefab} />
+		{/if}
 		<IconButton icon='fa-solid fa-plus' title='Add object' onclick={e => (addMenu = { x: e.clientX, y: e.clientY })} />
 	</header>
 
@@ -102,6 +161,9 @@
 {/if}
 {#if rowMenu}
 	<ContextMenu x={rowMenu.x} y={rowMenu.y} items={rowMenu.items} onClose={() => (rowMenu = null)} />
+{/if}
+{#if prefabPicking}
+	<PresetPicker kind='spriteGroup' title='Place prefab' onPick={applyPrefab} onClose={() => (prefabPicking = false)} />
 {/if}
 
 <style lang='scss'>
