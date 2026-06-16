@@ -1,10 +1,10 @@
 import type { SplashLayer } from './settings.ts';
 import { openSplashOverlay } from '../apps/overlay.ts';
 import { ID } from './const.js';
-import { canTriggerSplash, isSplashPage } from './launch.ts';
+import { canTriggerSplash, canViewSplash, isSplashPage } from './launch.ts';
 
 interface SplashSocketEvent {
-	eventType: 'showSplash' | 'closeSplash' | 'unlockDoor';
+	eventType: 'showSplash' | 'closeSplash' | 'openHandout' | 'closeHandout' | 'unlockDoor';
 	/** Restrict the event to a single user; undefined means everyone. */
 	targetUser?: string;
 	senderId: string;
@@ -38,6 +38,15 @@ async function handleEvent({ eventType, targetUser, senderId, payload }: SplashS
 	} else if (eventType === 'closeSplash') {
 		if (!sender.isGM) return;
 		Hooks.call('splash.close-splash', { skipOutro: payload.skipOutro });
+	} else if (eventType === 'openHandout') {
+		const page = await fromUuid(payload.uuid ?? '');
+		if (!sender.isGM || !isSplashPage(page) || !canViewSplash(page, game.user)) return;
+		const { openHandout } = await import('../apps/handout.ts');
+		await openHandout(page);
+	} else if (eventType === 'closeHandout') {
+		const page = await fromUuid(payload.uuid ?? '') as JournalEntryPage | null;
+		if (!sender.isGM || !page) return;
+		await foundry.applications.instances.get(`splash-handout-${page.id}`)?.close();
 	} else if (eventType === 'unlockDoor') {
 		await unlockWall(payload.doorUuid);
 	}
@@ -58,6 +67,26 @@ export function broadcastCloseSplash(targetUser?: string, skipOutro = false): vo
 		targetUser,
 		senderId: game.userId,
 		payload: { skipOutro },
+	} satisfies SplashSocketEvent);
+}
+
+/** Open a handout on one user's client (the OBS user, for the Director's stream view). GM-only. */
+export function broadcastOpenHandout(uuid: string, targetUser: string): void {
+	game.socket?.emit(`module.${ID}`, {
+		eventType: 'openHandout',
+		targetUser,
+		senderId: game.userId,
+		payload: { uuid },
+	} satisfies SplashSocketEvent);
+}
+
+/** Close a handout on one user's client. GM-only. */
+export function broadcastCloseHandout(uuid: string, targetUser: string): void {
+	game.socket?.emit(`module.${ID}`, {
+		eventType: 'closeHandout',
+		targetUser,
+		senderId: game.userId,
+		payload: { uuid },
 	} satisfies SplashSocketEvent);
 }
 

@@ -5,12 +5,12 @@ import { SvelteRenderer } from './SvelteRenderer.ts';
 class HandoutApplication extends SvelteRenderer {
 	#title: string;
 
-	constructor(page: SplashPage) {
+	constructor(page: SplashPage, spectate = false) {
 		// Not resizable: the runtime renderer draws sprites at raw coordinates, so resizing only clips.
 		const size = (page.system as { handoutSize?: { width?: number; height?: number } | null }).handoutSize;
 		super(
 			SplashUI,
-			{ splashConfig: page.system, pageUuid: page.uuid },
+			{ splashConfig: page.system, pageUuid: page.uuid, spectate },
 			{
 				id: `splash-handout-${page.id}`,
 				classes: ['splash-handout'],
@@ -33,11 +33,11 @@ class HandoutApplication extends SvelteRenderer {
 	}
 }
 
-export async function openHandout(page: SplashPage): Promise<void> {
+export async function openHandout(page: SplashPage, spectate = false): Promise<void> {
 	const existing = foundry.applications.instances.get(`splash-handout-${page.id}`);
 	if (existing) {
 		existing.bringToFront();
 		return;
 	}
-	new HandoutApplication(page).render(true);
+	new HandoutApplication(page, spectate).render(true);
 }

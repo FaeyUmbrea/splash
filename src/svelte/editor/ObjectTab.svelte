@@ -1,12 +1,12 @@
 <svelte:options runes={true} />
 <script lang='ts'>
-	import type { ButtonSpriteCreate, ImageSpriteCreate, PanelSpriteCreate, SpriteCreate, TextSpriteCreate } from '../../datamodel/SplashModel.ts';
+	import type { ButtonSpriteCreate, DraggableSpriteCreate, DropZoneSpriteCreate, GaugeSpriteCreate, HotspotSpriteCreate, ImageSpriteCreate, PanelSpriteCreate, SpriteCreate, TextInputSpriteCreate, TextSpriteCreate, VideoSpriteCreate } from '../../datamodel/SplashModel.ts';
 	import type { PresetPayload } from '../../utils/presets.ts';
 	import type { SelectItem } from '../ui';
 	import type { EditorModel } from './editorModel.svelte.ts';
 	import { buttonSpriteToPreset, promptAndSavePreset } from '../../utils/presets.ts';
 	import PresetPicker from '../presets/PresetPicker.svelte';
-	import { ColorField, Field, ImageField, NumberField, Select, TextField } from '../ui';
+	import { CheckboxField, ColorField, Field, ImageField, NumberField, Select, TextField } from '../ui';
 	import ActionEditor from './ActionEditor.svelte';
 	import AnimationEditor from './AnimationEditor.svelte';
 	import EffectsEditor from './EffectsEditor.svelte';
@@ -168,6 +168,64 @@
 				<NumberField label={game.i18n.localize('splash.editor.objectTab.borderWidth')} value={panel.borderWidth ?? 0} min={0} onChange={v => setContent({ borderWidth: v })} />
 			</div>
 			<NumberField label={game.i18n.localize('splash.editor.objectTab.cornerRadius')} value={panel.radius ?? 0} min={0} onChange={v => setContent({ radius: v })} />
+		{:else if obj.type === 'gauge'}
+			{@const gauge = raw as GaugeSpriteCreate}
+			<TextField label={game.i18n.localize('splash.editor.objectTab.valueKey')} value={gauge.valueKey ?? ''} onChange={v => setContent({ valueKey: v })} />
+			<div class='grid'>
+				<NumberField label={game.i18n.localize('splash.editor.objectTab.min')} value={gauge.min ?? 0} onChange={v => setContent({ min: v })} />
+				<NumberField label={game.i18n.localize('splash.editor.objectTab.max')} value={gauge.max ?? 100} onChange={v => setContent({ max: v })} />
+			</div>
+			<div class='grid'>
+				<ColorField label={game.i18n.localize('splash.editor.objectTab.fillColor')} value={gauge.fillColor ?? '#4caf50'} onChange={v => setContent({ fillColor: v })} />
+				<ColorField label={game.i18n.localize('splash.editor.objectTab.bgColor')} value={gauge.bgColor ?? '#222831'} onChange={v => setContent({ bgColor: v })} />
+			</div>
+			<CheckboxField label={game.i18n.localize('splash.editor.objectTab.vertical')} value={gauge.vertical ?? false} onChange={v => setContent({ vertical: v })} />
+		{:else if obj.type === 'hotspot'}
+			{@const hotspot = raw as HotspotSpriteCreate}
+			<div class='subsection'>
+				<span class='sublabel'>{game.i18n.localize('splash.editor.objectTab.onClick')}</span>
+				<ActionEditor action={hotspot.onClick} {states} onChange={a => model.replaceObjectField(obj.id, 'onClick', a)} />
+			</div>
+		{:else if obj.type === 'video'}
+			{@const video = raw as VideoSpriteCreate}
+			<ImageField label={game.i18n.localize('splash.editor.objectTab.videoSource')} value={video.src ?? ''} onChange={v => setContent({ src: v })} />
+			<CheckboxField label={game.i18n.localize('splash.editor.objectTab.loop')} value={video.loop ?? true} onChange={v => setContent({ loop: v })} />
+			<CheckboxField label={game.i18n.localize('splash.editor.objectTab.muted')} value={video.muted ?? true} onChange={v => setContent({ muted: v })} />
+			<CheckboxField label={game.i18n.localize('splash.editor.objectTab.autoplay')} value={video.autoplay ?? true} onChange={v => setContent({ autoplay: v })} />
+		{:else if obj.type === 'text-input'}
+			{@const textInput = raw as TextInputSpriteCreate}
+			<TextField label={game.i18n.localize('splash.editor.objectTab.valueKey')} value={textInput.valueKey ?? ''} onChange={v => setContent({ valueKey: v })} />
+			<TextField label={game.i18n.localize('splash.editor.objectTab.placeholder')} value={textInput.placeholder ?? ''} onChange={v => setContent({ placeholder: v })} />
+			<NumberField label={game.i18n.localize('splash.editor.objectTab.fontSize')} value={textInput.fontSize ?? 18} onChange={v => setContent({ fontSize: v })} />
+			<div class='grid'>
+				<ColorField label={game.i18n.localize('splash.editor.objectTab.color')} value={textInput.color ?? '#ffffff'} onChange={v => setContent({ color: v })} />
+				<ColorField label={game.i18n.localize('splash.editor.objectTab.bgColor')} value={textInput.bgColor ?? '#1b1b1e'} onChange={v => setContent({ bgColor: v })} />
+			</div>
+		{:else if obj.type === 'draggable'}
+			{@const drag = raw as DraggableSpriteCreate}
+			<TextField label={game.i18n.localize('splash.editor.objectTab.valueKey')} value={drag.valueKey ?? ''} onChange={v => setContent({ valueKey: v })} />
+			<TextField label={game.i18n.localize('splash.editor.objectTab.tag')} value={drag.tag ?? ''} onChange={v => setContent({ tag: v })} />
+			<ImageField label={game.i18n.localize('splash.editor.objectTab.image')} value={drag.img ?? ''} onChange={v => setContent({ img: v })} />
+			<div class='grid'>
+				<ColorField label={game.i18n.localize('splash.editor.objectTab.fill')} value={drag.fill ?? ''} onChange={v => setContent({ fill: v })} />
+				<NumberField label={game.i18n.localize('splash.editor.objectTab.cornerRadius')} value={drag.radius ?? 0} min={0} onChange={v => setContent({ radius: v })} />
+			</div>
+		{:else if obj.type === 'drop-zone'}
+			{@const zone = raw as DropZoneSpriteCreate}
+			<TextField label={game.i18n.localize('splash.editor.objectTab.accepts')} value={zone.accepts ?? ''} onChange={v => setContent({ accepts: v })} />
+			<ColorField label={game.i18n.localize('splash.editor.objectTab.fill')} value={zone.fill ?? '#22283155'} onChange={v => setContent({ fill: v })} />
+			<div class='grid'>
+				<ColorField label={game.i18n.localize('splash.editor.objectTab.borderColor')} value={zone.borderColor ?? '#ffffff'} onChange={v => setContent({ borderColor: v })} />
+				<NumberField label={game.i18n.localize('splash.editor.objectTab.borderWidth')} value={zone.borderWidth ?? 2} min={0} onChange={v => setContent({ borderWidth: v })} />
+			</div>
+			<div class='grid'>
+				<ColorField label={game.i18n.localize('splash.editor.objectTab.highlightColor')} value={zone.highlightColor ?? '#4caf50'} onChange={v => setContent({ highlightColor: v })} />
+				<NumberField label={game.i18n.localize('splash.editor.objectTab.cornerRadius')} value={zone.radius ?? 8} min={0} onChange={v => setContent({ radius: v })} />
+			</div>
+			<div class='subsection'>
+				<span class='sublabel'>{game.i18n.localize('splash.editor.objectTab.onDrop')}</span>
+				<ActionEditor action={zone.onDrop} {states} onChange={a => model.replaceObjectField(obj.id, 'onDrop', a)} />
+			</div>
 		{/if}
 
 		<div class='subsection'>

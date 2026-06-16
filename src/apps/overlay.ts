@@ -8,6 +8,7 @@ const OVERLAY_ID = 'splash-application';
 export interface SplashOptions {
 	layer?: SplashLayer;
 	skipAnimations?: boolean;
+	spectate?: boolean;
 }
 
 /** hud mode hides Foundry's scene navigation and control bars, which would otherwise reveal the upcoming map. */
@@ -24,13 +25,13 @@ class SplashOverlayApplication extends SvelteRenderer {
 }
 
 /** Open the splash-mode overlay for a page, replacing any active one. */
-export async function openSplashOverlay(page: SplashPage, { layer = 'full', skipAnimations = false }: SplashOptions = {}): Promise<void> {
+export async function openSplashOverlay(page: SplashPage, { layer = 'full', skipAnimations = false, spectate = false }: SplashOptions = {}): Promise<void> {
 	// skipOutro: the outgoing outro would otherwise delay the incoming splash.
 	await closeSplashOverlay({ skipOutro: true });
 	applyLayerClasses(layer);
 	new SplashOverlayApplication(
 		SplashUI,
-		{ splashConfig: page.system, pageUuid: page.uuid, skipAnimations },
+		{ splashConfig: page.system, pageUuid: page.uuid, skipAnimations, spectate },
 		{ id: OVERLAY_ID, classes: ['splash-overlay', `splash-layer-${layer}`] },
 	).render(true);
 }

@@ -3,14 +3,18 @@ import type {
 	AnimationInitialized,
 	ButtonSpriteInitialized,
 	ChangeStateActionInitialized,
+	GaugeSpriteInitialized,
+	HotspotSpriteInitialized,
 	ImageSpriteInitialized,
 	MacroActionInitialized,
 	PanelSpriteInitialized,
 	State,
 	TextSpriteInitialized,
+	VideoSpriteInitialized,
 } from '../datamodel/SplashModel.ts';
 import type { SpriteContext } from '../renderer/SplashRenderer.ts';
 import type { DissolveFilterProps } from '../shaders/dissolve/dissolve.js';
+import GaugeGraphics from '../pixi/gaugeGraphics.js';
 import NineSlicePlaneButton from '../pixi/nineSlicePlaneButton.js';
 import PanelGraphics from '../pixi/panelGraphics.js';
 import { transitionState } from '../pixi/transitionState.ts';
@@ -26,6 +30,9 @@ export function setupAPI(api: SplashAPI) {
 	api.registerSprite('image', 'Image', instantiateImage);
 	api.registerSprite('button', 'Button', instantiateButton);
 	api.registerSprite('panel', 'Panel', instantiatePanel);
+	api.registerSprite('gauge', 'Gauge', instantiateGauge);
+	api.registerSprite('hotspot', 'Hotspot', instantiateHotspot);
+	api.registerSprite('video', 'Video', instantiateVideo);
 	api.registerAction('macro', 'Macro', executeMacro);
 	api.registerAction('change-state', 'Change State', changeState);
 	api.registerAction('close', 'Close Splash', () => {
@@ -84,7 +91,8 @@ async function instantiateGlitch(
 async function instantiateImage(image: ImageSpriteInitialized, state: State, _context: SpriteContext) {
 	if (image.type !== 'image') throw new Error('Image type is not \'image\'');
 
-	const sprite = PIXI.Sprite.from(image.img);
+	// An unset source must not throw (PIXI.Sprite.from('') does); an empty placeholder keeps the splash rendering.
+	const sprite = image.img ? PIXI.Sprite.from(image.img) : new PIXI.Sprite(PIXI.Texture.EMPTY);
 	transitionState(sprite, state);
 	return sprite;
 }
@@ -111,6 +119,51 @@ async function instantiatePanel(panel: PanelSpriteInitialized, state: State, _co
 	});
 	transitionState(graphics, state);
 	return graphics;
+}
+
+async function instantiateGauge(gauge: GaugeSpriteInitialized, state: State, _context: SpriteContext) {
+	if (gauge.type !== 'gauge') throw new Error('Gauge type is not \'gauge\'');
+	const graphics = new GaugeGraphics({
+		fillColor: gauge.fillColor,
+		bgColor: gauge.bgColor,
+		vertical: gauge.vertical,
+	});
+	transitionState(graphics, state);
+	return graphics;
+}
+
+async function instantiateHotspot(hotspot: HotspotSpriteInitialized, state: State, context: SpriteContext) {
+	if (hotspot.type !== 'hotspot') throw new Error('Hotspot type is not \'hotspot\'');
+	// A transparent, hit-testable rectangle: no fill, but a drawn shape so the hit area exists.
+	const graphics = new PIXI.Graphics();
+	graphics.beginFill(0, 0.0001);
+	graphics.drawRect(0, 0, state.width ?? 200, state.height ?? 200);
+	graphics.endFill();
+	graphics.eventMode = 'static';
+	graphics.cursor = 'pointer';
+	graphics.on('pointertap', () => {
+		// Routed through the owning runtime to stay instance-scoped.
+		void context.onAction(hotspot.onClick);
+	});
+	transitionState(graphics, state);
+	return graphics;
+}
+
+async function instantiateVideo(video: VideoSpriteInitialized, state: State, _context: SpriteContext) {
+	if (video.type !== 'video') throw new Error('Video type is not \'video\'');
+	// An unset source must not throw; an empty placeholder keeps the splash rendering.
+	const texture = video.src
+		? PIXI.Texture.from(video.src, {
+				resourceOptions: {
+					autoPlay: video.autoplay ?? true,
+					muted: video.muted ?? true,
+					loop: video.loop ?? true,
+				},
+			})
+		: PIXI.Texture.EMPTY;
+	const sprite = new PIXI.Sprite(texture);
+	transitionState(sprite, state);
+	return sprite;
 }
 
 async function instantiateButton(button: ButtonSpriteInitialized, state: State, context: SpriteContext) {

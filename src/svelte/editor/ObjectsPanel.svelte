@@ -33,10 +33,16 @@
 	}
 
 	const typeIcon: Record<string, string> = {
-		image: 'fa-solid fa-image',
-		text: 'fa-solid fa-font',
-		button: 'fa-solid fa-hand-pointer',
-		panel: 'fa-solid fa-square',
+		'image': 'fa-solid fa-image',
+		'text': 'fa-solid fa-font',
+		'button': 'fa-solid fa-hand-pointer',
+		'panel': 'fa-solid fa-square',
+		'gauge': 'fa-solid fa-bars-progress',
+		'hotspot': 'fa-solid fa-arrow-pointer',
+		'video': 'fa-solid fa-film',
+		'text-input': 'fa-solid fa-keyboard',
+		'draggable': 'fa-solid fa-hand-back-fist',
+		'drop-zone': 'fa-solid fa-bullseye',
 	};
 
 	const addItems = $derived<ContextMenuItem[]>([
@@ -44,6 +50,12 @@
 		{ label: game.i18n.localize('splash.editor.objectsPanel.addText'), icon: 'fa-solid fa-font', action: () => add('text') },
 		{ label: game.i18n.localize('splash.editor.objectsPanel.addButton'), icon: 'fa-solid fa-hand-pointer', action: () => add('button') },
 		{ label: game.i18n.localize('splash.editor.objectsPanel.addPanel'), icon: 'fa-solid fa-square', action: () => add('panel') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addGauge'), icon: 'fa-solid fa-bars-progress', action: () => add('gauge') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addHotspot'), icon: 'fa-solid fa-arrow-pointer', action: () => add('hotspot') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addVideo'), icon: 'fa-solid fa-film', action: () => add('video') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addTextInput'), icon: 'fa-solid fa-keyboard', action: () => add('text-input') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addDraggable'), icon: 'fa-solid fa-hand-back-fist', action: () => add('draggable') },
+		{ label: game.i18n.localize('splash.editor.objectsPanel.addDropZone'), icon: 'fa-solid fa-bullseye', action: () => add('drop-zone') },
 		{ separator: true } as ContextMenuItem,
 		{ label: game.i18n.localize('splash.editor.objectsPanel.addPrefab'), icon: 'fa-solid fa-cubes', action: openPrefabPicker },
 	]);

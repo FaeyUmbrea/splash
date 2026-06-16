@@ -7,6 +7,7 @@ import type {
 	StateInitialized as State,
 } from '../datamodel/SplashModel.ts';
 import type { SpriteContext } from '../renderer/SplashRenderer.ts';
+import type { RuntimeSnapshot } from '../renderer/SplashRuntime.ts';
 import type { TriggerBinding, TriggerDefinition, TriggerOptions } from '../triggers/types.ts';
 import type { SplashLayer } from '../utils/settings.ts';
 
@@ -208,6 +209,48 @@ export class SplashAPI {
 		}
 		const { openHandout } = await import('../apps/handout.ts');
 		await openHandout(page);
+	}
+
+	/** The current runtime snapshot of an open splash on this client, or null if it isn't open. */
+	public async getSplashState(uuid: string): Promise<RuntimeSnapshot | null> {
+		const { getRuntime } = await import('../utils/sync.ts');
+		return getRuntime(uuid)?.snapshot ?? null;
+	}
+
+	/** Apply a runtime snapshot to an open splash on this client, mirroring another client's state. */
+	public async applySplashState(uuid: string, snapshot: RuntimeSnapshot): Promise<void> {
+		const { getRuntime } = await import('../utils/sync.ts');
+		await getRuntime(uuid)?.applyShared(snapshot);
+	}
+
+	/** Open a splash on this client as a passive spectator mirror: no input, no presence, driven by applySplashState. */
+	public async openSpectator(uuid: string): Promise<void> {
+		const { isSplashPage } = await import('../utils/launch.ts');
+		const page = await fromUuid(uuid);
+		if (!isSplashPage(page)) return;
+		const layer = (page.system as SplashInitialized).layer;
+		if (layer === 'handout') {
+			const { openHandout } = await import('../apps/handout.ts');
+			await openHandout(page, true);
+		} else {
+			const { openSplashOverlay } = await import('../apps/overlay.ts');
+			await openSplashOverlay(page, { layer: layer as SplashLayer, skipAnimations: true, spectate: true });
+		}
+		// The Svelte mount that registers the runtime is async; wait so a following applySplashState lands.
+		const { getRuntime } = await import('../utils/sync.ts');
+		for (let i = 0; i < 50 && !getRuntime(uuid); i++) {
+			await new Promise((resolve) => {
+				setTimeout(resolve, 20);
+			});
+		}
+	}
+
+	/** Close a spectator mirror opened with openSpectator. */
+	public async closeSpectator(uuid: string): Promise<void> {
+		const { closeSplashOverlay } = await import('../apps/overlay.ts');
+		await closeSplashOverlay({ skipOutro: true });
+		const page = await fromUuid(uuid) as JournalEntryPage | null;
+		if (page) await foundry.applications.instances.get(`splash-handout-${page.id}`)?.close();
 	}
 
 	/** Close the active splash locally; `global` (GM only) kills it for the whole table. */

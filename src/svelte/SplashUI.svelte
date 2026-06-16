@@ -23,6 +23,9 @@
 	/** Restored splashes appear instantly so nothing behind them is glimpsed. */
 	export let skipAnimations: boolean = false;
 
+	/** Passive mirror of another client's local splash (the OBS stream view). No presence, no sync, no local input. */
+	export let spectate: boolean = false;
+
 	const rendererKind = selectRenderer();
 
 	let view: HTMLCanvasElement;
@@ -43,13 +46,14 @@
 
 	onMount(async () => {
 		const renderer = rendererKind === 'webgl' ? new PixiRenderer(view) : new HtmlRenderer(htmlStage);
-		const synced = splashConfig.mode === 'synced' && !!pageUuid;
+		const synced = splashConfig.mode === 'synced' && !!pageUuid && !spectate;
 		// Players on local splashes report their position so the GM can follow along.
-		const reportsPresence = splashConfig.mode === 'local' && !!pageUuid && !game.user?.isGM;
+		const reportsPresence = splashConfig.mode === 'local' && !!pageUuid && !game.user?.isGM && !spectate;
 		runtime = new SplashRuntime(splashConfig, renderer, emitEvent, {
 			trigger: consumePendingTrigger() ?? undefined,
 			externalAction: action => SplashAPI.getInstance().processAction(action),
-			interceptAction: action => sync?.interceptAction(action) ?? false,
+			// A spectator consumes local input so its state comes only from applied snapshots.
+			interceptAction: action => spectate || (sync?.interceptAction(action) ?? false),
 			onChanged: (snapshot) => {
 				sync?.onChanged(snapshot);
 				presence?.onChanged(snapshot);

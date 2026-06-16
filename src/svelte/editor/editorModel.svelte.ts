@@ -43,9 +43,15 @@ export interface EditorLeafNode {
 export type EditorTreeNode = EditorGroupNode | EditorLeafNode;
 
 const TYPE_LABEL: Record<string, string> = {
-	image: 'splash.editor.editorModel.typeImage',
-	text: 'splash.editor.editorModel.typeText',
-	button: 'splash.editor.editorModel.typeButton',
+	'image': 'splash.editor.editorModel.typeImage',
+	'text': 'splash.editor.editorModel.typeText',
+	'button': 'splash.editor.editorModel.typeButton',
+	'gauge': 'splash.editor.editorModel.typeGauge',
+	'hotspot': 'splash.editor.editorModel.typeHotspot',
+	'video': 'splash.editor.editorModel.typeVideo',
+	'text-input': 'splash.editor.editorModel.typeTextInput',
+	'draggable': 'splash.editor.editorModel.typeDraggable',
+	'drop-zone': 'splash.editor.editorModel.typeDropZone',
 };
 
 /** Delete a dotted-path leaf from a plain object, mirroring a server-side `-=` field deletion. */
@@ -488,6 +494,16 @@ export class EditorModel {
 		this.#mutateChildren((next) => {
 			const placement = next.find(c => c?.id === id)?.states?.[stateKey];
 			if (placement) foundry.utils.mergeObject(placement, patch);
+		});
+	}
+
+	/** Patch several objects' placements in the active state in one atomic write (group resize). */
+	setPlacements(updates: { id: string; patch: Record<string, unknown> }[], stateKey = this.activeState) {
+		this.#mutateChildren((next) => {
+			for (const u of updates) {
+				const placement = next.find(c => c?.id === u.id)?.states?.[stateKey];
+				if (placement) foundry.utils.mergeObject(placement, u.patch);
+			}
 		});
 	}
 

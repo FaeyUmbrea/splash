@@ -1,4 +1,5 @@
 import type { State } from '../datamodel/SplashModel.ts';
+import GaugeGraphics from './gaugeGraphics.js';
 import NineSlicePlaneButton from './nineSlicePlaneButton.js';
 import PanelGraphics from './panelGraphics.js';
 
@@ -11,6 +12,8 @@ export function transitionState(child: PIXI.DisplayObject, state: State) {
 		});
 	} else if (child instanceof PanelGraphics) {
 		child.resize(state.width ?? 200, state.height ?? 200);
+	} else if (child instanceof GaugeGraphics) {
+		child.resize(state.width ?? 300, state.height ?? 40);
 	} else if (child instanceof PIXI.Text) {
 		// Left natural: text auto-sizes to its glyphs.
 	} else if (child instanceof PIXI.Container) {

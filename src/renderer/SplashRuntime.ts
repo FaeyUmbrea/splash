@@ -176,9 +176,25 @@ export class SplashRuntime {
 			case 'close':
 				this.#events('splash.close-requested');
 				break;
+			case 'drop':
+				await this.#handleDrop(sourceId, (action as { zone?: string }).zone ?? '');
+				break;
 			default:
 				await this.#externalAction(action);
 		}
+	}
+
+	/**
+	 * Settle a dropped draggable: record which zone it now occupies in its value (so every client snaps it there),
+	 * then run that zone's onDrop reaction. Occupancy lives entirely in the value system, so conditions and sync work unchanged.
+	 */
+	async #handleDrop(draggableId: string | undefined, zoneId: string): Promise<void> {
+		const children = (this.#splash.children ?? []) as SpriteInitialized[];
+		const draggable = children.find(c => c?.id === draggableId) as { valueKey?: string } | undefined;
+		if (draggable?.valueKey) this.#setValue(draggable.valueKey, zoneId);
+		if (!zoneId) return;
+		const zone = children.find(c => c?.id === zoneId) as { onDrop?: ActionInitialized | null } | undefined;
+		if (zone?.onDrop) await this.handleAction(zone.onDrop, zoneId);
 	}
 
 	// --- inline-macro execution (materialized tree + scope) ------------------

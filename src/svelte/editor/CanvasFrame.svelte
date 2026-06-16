@@ -22,7 +22,8 @@
 	let menu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
 
 	interface Snap { pi: number; line: number }
-	type Gesture = { kind: 'move' | 'resize'; startX: number; startY: number; ids: string[]; primaryId: string; baseW: number; baseH: number; dx: number; dy: number; dw: number; dh: number; snapX: Snap | null; snapY: Snap | null; locked: 'x' | 'y' | null };
+	// move: drag the whole selection. resize: scale the selection box from its corner; members scale proportionally about the box's top-left.
+	type Gesture = { kind: 'move' | 'resize'; startX: number; startY: number; ids: string[]; primaryId: string; dx: number; dy: number; snapX: Snap | null; snapY: Snap | null; locked: 'x' | 'y' | null; box?: { x: number; y: number; w: number; h: number }; sx?: number; sy?: number };
 	let gesture = $state<Gesture | null>(null);
 	let marquee = $state<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
 
@@ -123,16 +124,19 @@
 		if (additive) model.select(obj.id, true);
 		else if (!model.isSelected(obj.id)) model.select(obj.id);
 		if (!model.isSelected(obj.id)) return;
-		gesture = { kind: 'move', startX: event.clientX, startY: event.clientY, ids: [...model.selectedIds], primaryId: obj.id, baseW: 0, baseH: 0, dx: 0, dy: 0, dw: 0, dh: 0, snapX: null, snapY: null, locked: null };
+		gesture = { kind: 'move', startX: event.clientX, startY: event.clientY, ids: [...model.selectedIds], primaryId: obj.id, dx: 0, dy: 0, snapX: null, snapY: null, locked: null };
 		resetVelocity(event);
 		addListeners();
 	}
 
-	function onResizeStart(event: PointerEvent, obj: EditorObject) {
+	/** Resize the selection from the bounding box's corner handle; every member scales proportionally about the box's top-left. */
+	function onResizeStart(event: PointerEvent) {
 		event.preventDefault();
 		event.stopPropagation();
-		const r = rectOf(obj);
-		gesture = { kind: 'resize', startX: event.clientX, startY: event.clientY, ids: [obj.id], primaryId: obj.id, baseW: r.w, baseH: r.h, dx: 0, dy: 0, dw: 0, dh: 0, snapX: null, snapY: null, locked: null };
+		if (event.button !== 0) return;
+		const box = boundingBox(model.selectedIds);
+		if (!box) return;
+		gesture = { kind: 'resize', startX: event.clientX, startY: event.clientY, ids: [...model.selectedIds], primaryId: '', dx: 0, dy: 0, snapX: null, snapY: null, locked: null, box, sx: 1, sy: 1 };
 		resetVelocity(event);
 		addListeners();
 	}
@@ -146,31 +150,34 @@
 		if (!gesture) return;
 		const rdx = (event.clientX - gesture.startX) / scale;
 		const rdy = (event.clientY - gesture.startY) / scale;
-		const prim = model.objectsInState.find(o => o.id === gesture!.primaryId);
-		const r = prim ? rectOf(prim) : { x: 0, y: 0, w: 0, h: 0 };
 		const dt = event.timeStamp - lastPT;
 		const speed = dt > 0 ? Math.hypot(event.clientX - lastPX, event.clientY - lastPY) / dt : 0;
 		lastPX = event.clientX;
 		lastPY = event.clientY;
 		lastPT = event.timeStamp;
-		const snapping = !event.altKey && !!prim && speed < MAX_SNAP_SPEED;
+		const snapping = !event.altKey && speed < MAX_SNAP_SPEED;
 
-		if (gesture.kind === 'resize') {
-			let dw = rdx;
-			let dh = rdy;
+		if (gesture.kind === 'resize' && gesture.box) {
+			const box = gesture.box;
+			let newW = Math.max(20, box.w + rdx);
+			let newH = Math.max(20, box.h + rdy);
 			let snapX: Snap | null = null;
 			let snapY: Snap | null = null;
+			// Snap the dragged (bottom-right) corner to guides, so a resize aligns its outer edge.
 			if (snapping) {
-				const sx = snap1D([r.x + r.w + dw], snapLines('x'), gesture.snapX);
-				const sy = snap1D([r.y + r.h + dh], snapLines('y'), gesture.snapY);
-				dw += sx.offset;
-				dh += sy.offset;
+				const sx = snap1D([box.x + newW], snapLines('x'), gesture.snapX);
+				const sy = snap1D([box.y + newH], snapLines('y'), gesture.snapY);
+				newW = Math.max(20, newW + sx.offset);
+				newH = Math.max(20, newH + sy.offset);
 				snapX = sx.snap;
 				snapY = sy.snap;
 			}
-			gesture = { ...gesture, dw, dh, snapX, snapY };
+			gesture = { ...gesture, sx: newW / box.w, sy: newH / box.h, snapX, snapY };
 			return;
 		}
+
+		const prim = model.objectsInState.find(o => o.id === gesture!.primaryId);
+		const r = prim ? rectOf(prim) : { x: 0, y: 0, w: 0, h: 0 };
 
 		// Ctrl locks movement to whichever axis the cursor has travelled furthest along.
 		let axis: 'x' | 'y' | null = null;
@@ -212,9 +219,22 @@
 		const g = gesture;
 		gesture = null;
 		if (!g) return;
-		if (g.kind === 'resize') {
-			model.setPlacement(g.primaryId, { width: Math.round(Math.max(10, g.baseW + g.dw)), height: Math.round(Math.max(10, g.baseH + g.dh)) });
-		} else if (g.dx || g.dy) {
+		if (g.kind === 'resize' && g.box && g.sx != null && g.sy != null) {
+			const { box, sx, sy } = g;
+			const updates: { id: string; patch: Record<string, unknown> }[] = [];
+			for (const id of g.ids) {
+				const o = model.objectsInState.find(p => p.id === id);
+				if (!o) continue;
+				const r = rectOf(o);
+				updates.push({ id, patch: {
+					x: Math.round(box.x + (r.x - box.x) * sx),
+					y: Math.round(box.y + (r.y - box.y) * sy),
+					width: Math.round(Math.max(10, r.w * sx)),
+					height: Math.round(Math.max(10, r.h * sy)),
+				} });
+			}
+			if (updates.length) model.setPlacements(updates);
+		} else if (g.kind === 'move' && (g.dx || g.dy)) {
 			model.moveObjects(g.ids, g.dx, g.dy);
 		}
 	}
@@ -315,20 +335,36 @@
 		return gesture?.kind === 'move' && gesture.ids.includes(id) ? gesture.dy : 0;
 	}
 
+	/** Live per-member offsets while the selection box is being resized, so each member previews its scaled rect. */
+	function resizeOffset(id: string) {
+		if (gesture?.kind !== 'resize' || !gesture.box || gesture.sx == null || gesture.sy == null) return null;
+		const o = model.objectsInState.find(p => p.id === id);
+		if (!o) return null;
+		const r = rectOf(o);
+		const { box, sx, sy } = gesture;
+		return { dx: (r.x - box.x) * (sx - 1), dy: (r.y - box.y) * (sy - 1), dw: r.w * (sx - 1), dh: r.h * (sy - 1) };
+	}
+
 	const primaryRect = $derived.by(() => {
-		if (!gesture) return null;
+		if (gesture?.kind !== 'move') return null;
 		const o = model.objectsInState.find(p => p.id === gesture!.primaryId);
 		return o ? rectOf(o) : null;
 	});
 
-	/** When a whole group is selected, draw one bounding box instead of a box per member. Null for a single or loose selection. */
-	const groupSelectionBox = $derived.by(() => {
+	/**
+	 * The single selection frame for the whole selection, of any size. For one object it equals that object's
+	 * rect and carries its skew so the frame matches a skewed sprite; for several it is the axis-aligned bounding box.
+	 */
+	const selectionBox = $derived.by(() => {
 		const ids = model.selectedIds;
-		if (ids.length < 2) return null;
-		const objs = model.objectsInState.filter(o => ids.includes(o.id));
-		const gid = objs[0] ? (objs[0].raw as { groupId?: string | null }).groupId : null;
-		if (!gid || !objs.every(o => (o.raw as { groupId?: string | null }).groupId === gid)) return null;
-		return boundingBox(ids);
+		if (!ids.length) return null;
+		const box = boundingBox(ids);
+		if (!box) return null;
+		if (ids.length === 1) {
+			const p = model.objectsInState.find(o => o.id === ids[0])?.placement ?? {};
+			return { ...box, skewX: (p as { skewX?: number }).skewX ?? 0, skewY: (p as { skewY?: number }).skewY ?? 0 };
+		}
+		return { ...box, skewX: 0, skewY: 0 };
 	});
 </script>
 
@@ -350,48 +386,51 @@
 		style={`left:${offsetX}px;top:${offsetY}px;width:${stageW}px;height:${stageH}px;transform:scale(${scale});`}
 	>
 		{#each model.objectsInState as obj (obj.id)}
+			{@const gr = resizeOffset(obj.id)}
 			<EditorSprite
 				sprite={obj.raw}
 				placement={obj.placement ?? {}}
 				fallback={spriteDefaultSize(obj.type)}
-				selected={model.isSelected(obj.id) && !groupSelectionBox}
-				dx={moveDx(obj.id)}
-				dy={moveDy(obj.id)}
-				dw={gesture?.kind === 'resize' && gesture.primaryId === obj.id ? gesture.dw : 0}
-				dh={gesture?.kind === 'resize' && gesture.primaryId === obj.id ? gesture.dh : 0}
+				highlighted={model.isSelected(obj.id)}
+				dx={gr ? gr.dx : moveDx(obj.id)}
+				dy={gr ? gr.dy : moveDy(obj.id)}
+				dw={gr ? gr.dw : 0}
+				dh={gr ? gr.dh : 0}
 				onPointerDown={e => onSpritePointerDown(e, obj)}
-				onResizeStart={e => onResizeStart(e, obj)}
 				onContext={e => spriteMenu(e, obj)}
 				onDblClick={() => onSpriteDblClick(obj)}
 			/>
 		{/each}
 
-		{#if groupSelectionBox}
+		{#if selectionBox}
 			{@const gdx = gesture?.kind === 'move' ? gesture.dx : 0}
 			{@const gdy = gesture?.kind === 'move' ? gesture.dy : 0}
-			<div class='group-box' style={`left:${groupSelectionBox.x + gdx}px;top:${groupSelectionBox.y + gdy}px;width:${groupSelectionBox.w}px;height:${groupSelectionBox.h}px;`}></div>
+			{@const gsx = gesture?.kind === 'resize' && gesture.sx != null ? gesture.sx : 1}
+			{@const gsy = gesture?.kind === 'resize' && gesture.sy != null ? gesture.sy : 1}
+			{@const skew = (selectionBox.skewX || selectionBox.skewY) ? `transform:skew(${selectionBox.skewX}deg, ${selectionBox.skewY}deg);` : ''}
+			<div class='selection-box' style={`left:${selectionBox.x + gdx}px;top:${selectionBox.y + gdy}px;width:${selectionBox.w * gsx}px;height:${selectionBox.h * gsy}px;${skew}`}>
+				<div class='resize-handle' role='button' tabindex='-1' aria-label={game.i18n.localize('splash.ui.editorSprite.resize')} onpointerdown={onResizeStart}></div>
+			</div>
 		{/if}
 
 		{#if marqueeRect && (marqueeRect.w > 2 || marqueeRect.h > 2)}
 			<div class='marquee' style={`left:${marqueeRect.x}px;top:${marqueeRect.y}px;width:${marqueeRect.w}px;height:${marqueeRect.h}px;`}></div>
 		{/if}
 
-		{#if gesture && primaryRect}
-			{#if gesture.snapX}
-				<div class='snap-line vert' style={`left:${gesture.snapX.line}px;`}></div>
-			{/if}
-			{#if gesture.snapY}
-				<div class='snap-line horz' style={`top:${gesture.snapY.line}px;`}></div>
-			{/if}
-			{#if gesture.locked}
-				{@const cx = primaryRect.x + primaryRect.w / 2}
-				{@const cy = primaryRect.y + primaryRect.h / 2}
-				<div class='drag-pip' style={`left:${cx}px;top:${cy}px;`}></div>
-				{#if gesture.locked === 'x'}
-					<div class='drag-line' style={`left:${Math.min(cx, cx + gesture.dx)}px;top:${cy - 1}px;width:${Math.abs(gesture.dx)}px;height:2px;`}></div>
-				{:else}
-					<div class='drag-line' style={`left:${cx - 1}px;top:${Math.min(cy, cy + gesture.dy)}px;width:2px;height:${Math.abs(gesture.dy)}px;`}></div>
-				{/if}
+		{#if gesture?.snapX}
+			<div class='snap-line vert' style={`left:${gesture.snapX.line}px;`}></div>
+		{/if}
+		{#if gesture?.snapY}
+			<div class='snap-line horz' style={`top:${gesture.snapY.line}px;`}></div>
+		{/if}
+		{#if gesture?.locked && primaryRect}
+			{@const cx = primaryRect.x + primaryRect.w / 2}
+			{@const cy = primaryRect.y + primaryRect.h / 2}
+			<div class='drag-pip' style={`left:${cx}px;top:${cy}px;`}></div>
+			{#if gesture.locked === 'x'}
+				<div class='drag-line' style={`left:${Math.min(cx, cx + gesture.dx)}px;top:${cy - 1}px;width:${Math.abs(gesture.dx)}px;height:2px;`}></div>
+			{:else}
+				<div class='drag-line' style={`left:${cx - 1}px;top:${Math.min(cy, cy + gesture.dy)}px;width:2px;height:${Math.abs(gesture.dy)}px;`}></div>
 			{/if}
 		{/if}
 	</div>
@@ -437,11 +476,23 @@
 		z-index: 100000;
 	}
 
-	.group-box {
+	.selection-box {
 		position: absolute;
 		outline: 2px solid #ff9800;
 		pointer-events: none;
 		z-index: 99999;
+
+		.resize-handle {
+			position: absolute;
+			right: -6px;
+			bottom: -6px;
+			width: 12px;
+			height: 12px;
+			background: #ff9800;
+			border: 1px solid #000;
+			cursor: nwse-resize;
+			pointer-events: auto;
+		}
 	}
 
 	.snap-line {

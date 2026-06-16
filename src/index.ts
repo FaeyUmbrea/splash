@@ -17,6 +17,14 @@ import { registerSocket } from './utils/socket.ts';
 import { registerSyncHooks, registerSyncSocket } from './utils/sync.ts';
 import './css/splash.scss';
 
+let obsCompatLoaded = false;
+/** OBS Utils is optional. Its compat bundle is code-split and only imported once OBS Utils is present. */
+function loadObsUtilsCompat(): void {
+	if (obsCompatLoaded || !game.modules?.get('obs-utils')?.api) return;
+	obsCompatLoaded = true;
+	void import('./compat/obsUtils.ts').then(m => m.registerObsUtilsCompat());
+}
+
 Hooks.once('init', () => {
 	Object.assign(CONFIG.JournalEntryPage.dataModels, {
 		'splash.splash': SplashModel,
@@ -55,6 +63,10 @@ Hooks.once('init', () => {
 
 	setupAPI(api);
 	setupTriggers();
+
+	// Catch OBS Utils whether it initializes before or after us.
+	Hooks.once('obs-utils.init', loadObsUtilsCompat);
+	if (game.modules?.get('obs-utils')?.active) Hooks.once('ready', loadObsUtilsCompat);
 
 	Hooks.call('splash.init');
 });

@@ -1,11 +1,38 @@
+import { execSync } from 'node:child_process';
 import process from 'node:process';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
  * E2E config for the Splash module, modelled on the obs-utils setup. Tests run against a live Foundry
- * world (the dev server on :30001 by default, which serves the module from `src/`). The world is seeded
- * once by `globalSetup`; individual tests must restore anything they change (see tests/fixtures.ts).
+ * world; the world is seeded once by `globalSetup` and tests must restore anything they change.
+ *
+ * Server selection: the :30001 dev server serves the module from `src/` live, so prefer it. If it is down,
+ * fall back to :30000 (which serves the built `dist/`) after a forced `yarn build`. If neither is up, fail.
+ * Override with TEST_URL.
  */
+function isUp(url: string): boolean {
+	try {
+		const code = execSync(`curl -s -o /dev/null -w "%{http_code}" --max-time 2 ${url}/`, { encoding: 'utf8' }).trim();
+		return code !== '' && code !== '000';
+	} catch {
+		return false;
+	}
+}
+
+function resolveTestUrl(): string {
+	if (process.env.TEST_URL) return process.env.TEST_URL;
+	if (isUp('http://localhost:30001')) return 'http://localhost:30001';
+	if (isUp('http://localhost:30000')) {
+		console.warn('[splash e2e] :30001 unavailable; using :30000 (built dist). Building first…');
+		execSync('yarn build', { stdio: 'inherit' });
+		return 'http://localhost:30000';
+	}
+	throw new Error('[splash e2e] No Foundry server reachable on :30001 or :30000.');
+}
+
+const TEST_URL = resolveTestUrl();
+process.env.TEST_URL = TEST_URL; // globalSetup reads the same resolved URL
+
 export default defineConfig({
 	testDir: './tests',
 	globalSetup: './tests/globalSetup.ts',
@@ -23,7 +50,7 @@ export default defineConfig({
 	],
 	outputDir: 'test-results/playwright',
 	use: {
-		baseURL: process.env.TEST_URL ?? 'http://localhost:30001',
+		baseURL: TEST_URL,
 		actionTimeout: 0,
 		trace: 'retain-on-failure',
 		headless: true,

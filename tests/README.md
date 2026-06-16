@@ -17,7 +17,9 @@ The HTML report lands in `test-results/playwright-report/`.
 ### Prerequisites
 
 1. Foundry is running with the test world **active**, and the **`splash`** + **`lib-wrapper`** modules are
-   enabled in it.
+   enabled in it. The OBS Utils integration spec (`obs-compat.spec.ts`) additionally needs **`obs-utils`**
+   enabled; it uses the three-context `obsTest` fixture (GM, an OBS client with `window.obsstudio` faked via
+   `tests/initScripts/fakeobs.js`, and a player).
 2. The suite talks to the dev server on **`http://localhost:30001`** by default (it serves the module from
    `src/`, so no build step is needed). Point it elsewhere with `TEST_URL`, e.g. the built module on the
    Foundry server: `TEST_URL=http://localhost:30000 yarn test:e2e`.

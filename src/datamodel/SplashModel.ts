@@ -205,7 +205,10 @@ export function ActionFieldCreator() {
 	});
 }
 
-export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitialized | CloseActionInitialized | SetValueActionInitialized | IncrementValueActionInitialized | VoteActionInitialized | ScriptActionInitialized;
+/** Fired by a draggable when released, never authored, so it has no schema in ActionFieldCreator. `zone` is the target drop zone id, '' for a miss. */
+export interface DropActionInitialized { type: 'drop'; zone: string }
+
+export type ActionInitialized = MacroActionInitialized | ChangeStateActionInitialized | CloseActionInitialized | SetValueActionInitialized | IncrementValueActionInitialized | VoteActionInitialized | ScriptActionInitialized | DropActionInitialized;
 export type ActionCreate = MacroActionCreate | ChangeStateActionCreate | CloseActionCreate | SetValueActionCreate | IncrementValueActionCreate | VoteActionCreate | ScriptActionCreate;
 export type Action = ActionCreate | ActionInitialized;
 
@@ -279,18 +282,131 @@ export type PanelSpriteCreate = foundry.data.fields.SchemaField.CreateData<Retur
 export type PanelSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof PanelSpriteSchemaCreator>>;
 export type PanelSprite = PanelSpriteCreate | PanelSpriteInitialized;
 
+export function GaugeSpriteSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseSpriteSchemaCreator('gauge');
+	return {
+		...base,
+		// Runtime value name; the fill fraction reads from values[valueKey].
+		valueKey: new fields.StringField({ required: true, initial: '' }),
+		min: new fields.NumberField({ required: true, initial: 0 }),
+		max: new fields.NumberField({ required: true, initial: 100 }),
+		fillColor: new fields.StringField({ required: true, initial: '#4caf50' }),
+		bgColor: new fields.StringField({ required: true, initial: '#222831' }),
+		// Horizontal fills left to right; vertical fills bottom to top.
+		vertical: new fields.BooleanField({ required: true, initial: false }),
+	};
+}
+
+export type GaugeSpriteCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof GaugeSpriteSchemaCreator>>;
+export type GaugeSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof GaugeSpriteSchemaCreator>>;
+export type GaugeSprite = GaugeSpriteCreate | GaugeSpriteInitialized;
+
+export function HotspotSpriteSchemaCreator() {
+	const base = BaseSpriteSchemaCreator('hotspot');
+	return {
+		...base,
+		onClick: ActionFieldCreator(),
+	};
+}
+
+export type HotspotSpriteCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof HotspotSpriteSchemaCreator>>;
+export type HotspotSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof HotspotSpriteSchemaCreator>>;
+export type HotspotSprite = HotspotSpriteCreate | HotspotSpriteInitialized;
+
+export function VideoSpriteSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseSpriteSchemaCreator('video');
+	return {
+		...base,
+		src: new fields.StringField({ required: true }),
+		loop: new fields.BooleanField({ required: true, initial: true }),
+		muted: new fields.BooleanField({ required: true, initial: true }),
+		autoplay: new fields.BooleanField({ required: true, initial: true }),
+	};
+}
+
+export type VideoSpriteCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof VideoSpriteSchemaCreator>>;
+export type VideoSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof VideoSpriteSchemaCreator>>;
+export type VideoSprite = VideoSpriteCreate | VideoSpriteInitialized;
+
+export function TextInputSpriteSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseSpriteSchemaCreator('text-input');
+	return {
+		...base,
+		// Runtime value name the typed text writes to and reads back from.
+		valueKey: new fields.StringField({ required: true, initial: '' }),
+		placeholder: new fields.StringField({ required: true, initial: '' }),
+		fontSize: new fields.NumberField({ required: true, initial: 18 }),
+		color: new fields.StringField({ required: true, initial: '#ffffff' }),
+		bgColor: new fields.StringField({ required: true, initial: '#1b1b1e' }),
+	};
+}
+
+export type TextInputSpriteCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof TextInputSpriteSchemaCreator>>;
+export type TextInputSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof TextInputSpriteSchemaCreator>>;
+export type TextInputSprite = TextInputSpriteCreate | TextInputSpriteInitialized;
+
+export function DraggableSpriteSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseSpriteSchemaCreator('draggable');
+	return {
+		...base,
+		// Runtime value name; records the id of the drop zone this piece currently occupies, '' when at home.
+		valueKey: new fields.StringField({ required: true, initial: '' }),
+		// A piece carries this tag; a drop zone accepts it only when its `accepts` is blank or matches.
+		tag: new fields.StringField({ required: true, initial: '' }),
+		img: new fields.StringField({ required: true, initial: '' }),
+		fill: new fields.StringField({ required: true, initial: '' }),
+		radius: new fields.NumberField({ required: true, initial: 0 }),
+	};
+}
+
+export type DraggableSpriteCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof DraggableSpriteSchemaCreator>>;
+export type DraggableSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof DraggableSpriteSchemaCreator>>;
+export type DraggableSprite = DraggableSpriteCreate | DraggableSpriteInitialized;
+
+export function DropZoneSpriteSchemaCreator() {
+	const fields = foundry.data.fields;
+	const base = BaseSpriteSchemaCreator('drop-zone');
+	return {
+		...base,
+		// Blank accepts any draggable; otherwise only pieces whose `tag` matches.
+		accepts: new fields.StringField({ required: true, initial: '' }),
+		// Runs once a compatible piece is dropped here; gate it with conditions on the piece's value key.
+		onDrop: ActionFieldCreator(),
+		fill: new fields.StringField({ required: true, initial: '#22283155' }),
+		borderColor: new fields.StringField({ required: true, initial: '#ffffff' }),
+		borderWidth: new fields.NumberField({ required: true, initial: 2 }),
+		radius: new fields.NumberField({ required: true, initial: 8 }),
+		// Outline shown while a compatible piece hovers over the zone.
+		highlightColor: new fields.StringField({ required: true, initial: '#4caf50' }),
+	};
+}
+
+export type DropZoneSpriteCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof DropZoneSpriteSchemaCreator>>;
+export type DropZoneSpriteInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof DropZoneSpriteSchemaCreator>>;
+export type DropZoneSprite = DropZoneSpriteCreate | DropZoneSpriteInitialized;
+
 export function SpriteFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
-		button: ButtonSpriteSchemaCreator(),
-		image: ImageSpriteSchemaCreator(),
-		text: TextSpriteSchemaCreator(),
-		panel: PanelSpriteSchemaCreator(),
+		'button': ButtonSpriteSchemaCreator(),
+		'image': ImageSpriteSchemaCreator(),
+		'text': TextSpriteSchemaCreator(),
+		'panel': PanelSpriteSchemaCreator(),
+		'gauge': GaugeSpriteSchemaCreator(),
+		'hotspot': HotspotSpriteSchemaCreator(),
+		'video': VideoSpriteSchemaCreator(),
+		'text-input': TextInputSpriteSchemaCreator(),
+		'draggable': DraggableSpriteSchemaCreator(),
+		'drop-zone': DropZoneSpriteSchemaCreator(),
 	});
 }
 
-export type SpriteInitialized = ButtonSpriteInitialized | ImageSpriteInitialized | TextSpriteInitialized | PanelSpriteInitialized;
-export type SpriteCreate = ButtonSpriteCreate | ImageSpriteCreate | TextSpriteCreate | PanelSpriteCreate;
+export type SpriteInitialized = ButtonSpriteInitialized | ImageSpriteInitialized | TextSpriteInitialized | PanelSpriteInitialized | GaugeSpriteInitialized | HotspotSpriteInitialized | VideoSpriteInitialized | TextInputSpriteInitialized | DraggableSpriteInitialized | DropZoneSpriteInitialized;
+export type SpriteCreate = ButtonSpriteCreate | ImageSpriteCreate | TextSpriteCreate | PanelSpriteCreate | GaugeSpriteCreate | HotspotSpriteCreate | VideoSpriteCreate | TextInputSpriteCreate | DraggableSpriteCreate | DropZoneSpriteCreate;
 export type Sprite = SpriteCreate | SpriteInitialized;
 
 function BaseAnimationModelSchemaCreator(choice: string, props) {

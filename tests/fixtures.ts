@@ -33,4 +33,30 @@ export const test = base.extend<{ pages: { gmPage: Page; playerPage: Page } }>({
 	}, { scope: 'test', auto: false }],
 });
 
+/**
+ * Three sessions for the OBS Utils integration: a GM (director), an OBS client (Player2, with `window.obsstudio`
+ * injected so OBS Utils' isOBS() is true), and a player (Player3) whose local splash the OBS client mirrors.
+ * Requires obs-utils and lib-wrapper enabled in the world.
+ */
+export const obsTest = base.extend<{ pages: { gmPage: Page; obsPage: Page; playerPage: Page } }>({
+	pages: [async ({ browser }, use) => {
+		const gmContext = await browser.newContext();
+		const obsContext = await browser.newContext();
+		await obsContext.addInitScript({ path: 'tests/initScripts/fakeobs.js' });
+		const playerContext = await browser.newContext();
+		const gmPage = await gmContext.newPage();
+		const obsPage = await obsContext.newPage();
+		const playerPage = await playerContext.newPage();
+		await Promise.all([
+			login(gmPage, 'Gamemaster'),
+			login(obsPage, 'Player2'),
+			login(playerPage, 'Player3'),
+		]);
+		await use({ gmPage, obsPage, playerPage });
+		await gmContext.close();
+		await obsContext.close();
+		await playerContext.close();
+	}, { scope: 'test', auto: false }],
+});
+
 export { expect };
