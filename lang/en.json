@@ -179,6 +179,8 @@
 				"addEffect": "Add effect",
 				"glitch": "Glitch",
 				"pixelate": "Pixelate",
+				"curvature": "Curvature",
+				"scanlines": "Scanlines",
 				"removeEffect": "Remove effect",
 				"bands": "Bands",
 				"intensity": "Intensity",
@@ -186,7 +188,13 @@
 				"blockWidth": "Block W",
 				"blockHeight": "Block H",
 				"offsetX": "Offset X",
-				"offsetY": "Offset Y"
+				"offsetY": "Offset Y",
+				"strength": "Strength",
+				"curveStart": "Curve start",
+				"curveEnd": "Curve end",
+				"thickness": "Thickness",
+				"lineColor": "Line color",
+				"steps": "Steps"
 			},
 			"splashTab": {
 				"layerScene": "Scene (above canvas)",

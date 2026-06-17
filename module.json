@@ -7,7 +7,7 @@
 	"manifestPlusVersion": "1.2.0",
 	"compatibility": {
 		"minimum": 13.344,
-		"verified": 13,
+		"verified": 14,
 		"maximum": 14
 	},
 	"authors": [
@@ -17,8 +17,12 @@
 			"discord": "Faey#0001"
 		}
 	],
-	"esmodules": ["dist/splash.js"],
-	"styles": ["dist/splash.css"],
+	"esmodules": [
+		"dist/splash.js"
+	],
+	"styles": [
+		"dist/splash.css"
+	],
 	"languages": [
 		{
 			"lang": "en",

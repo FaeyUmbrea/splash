@@ -19,6 +19,7 @@
 	"scripts": {
 		"build": "vite build && yarn build:packs",
 		"build:packs": "node tools/buildPresets.mjs",
+		"scaffold": "node tools/scaffoldSchema.mjs",
 		"preview": "vite preview",
 		"watch": "vite build --watch",
 		"dev": "vite --host",

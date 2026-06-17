@@ -3,6 +3,7 @@ import type {
 	AnimationInitialized,
 	ButtonSpriteInitialized,
 	ChangeStateActionInitialized,
+	CurvatureEffectInitialized,
 	GaugeSpriteInitialized,
 	GlitchEffectInitialized,
 	HotspotSpriteInitialized,
@@ -10,6 +11,7 @@ import type {
 	MacroActionInitialized,
 	PanelSpriteInitialized,
 	PixelateEffectInitialized,
+	ScanlinesEffectInitialized,
 	State,
 	TextSpriteInitialized,
 	VideoSpriteInitialized,
@@ -20,11 +22,13 @@ import GaugeGraphics from '../pixi/gaugeGraphics.js';
 import NineSlicePlaneButton from '../pixi/nineSlicePlaneButton.js';
 import PanelGraphics from '../pixi/panelGraphics.js';
 import { transitionState } from '../pixi/transitionState.ts';
+import StaticCurvatureFilter from '../shaders/crt/staticCrt.ts';
 import DissolveFilter from '../shaders/dissolve/dissolve.js';
 import GlitchFilter from '../shaders/glitch/glitch.ts';
 import StaticGlitchFilter from '../shaders/glitch/staticGlitch.ts';
 import PixelateFilter from '../shaders/pixelate/pixelate.ts';
 import StaticPixelateFilter from '../shaders/pixelate/staticPixelate.ts';
+import StaticScanlinesFilter from '../shaders/scanlines/staticScanlines.ts';
 
 export function setupAPI(api: SplashAPI) {
 	// Names AND editor metadata (icon/defaults/fields) are registered here, so the editors render every
@@ -69,6 +73,23 @@ export function setupAPI(api: SplashAPI) {
 			{ type: 'number', key: 'blockY', label: 'splash.editor.effectsEditor.blockHeight', group: 'b' },
 			{ type: 'number', key: 'offsetX', label: 'splash.editor.effectsEditor.offsetX', group: 'o' },
 			{ type: 'number', key: 'offsetY', label: 'splash.editor.effectsEditor.offsetY', group: 'o' },
+		],
+	});
+	api.registerEffect('curvature', 'splash.editor.effectsEditor.curvature', (app, effect) => StaticCurvatureFilter(app, effect as CurvatureEffectInitialized), {
+		defaults: { strength: 0.1, start: 0.8, end: 2 },
+		fields: [
+			{ type: 'number', key: 'strength', label: 'splash.editor.effectsEditor.strength', step: 0.01 },
+			{ type: 'number', key: 'start', label: 'splash.editor.effectsEditor.curveStart', step: 0.01, group: 'c' },
+			{ type: 'number', key: 'end', label: 'splash.editor.effectsEditor.curveEnd', step: 0.01, group: 'c' },
+		],
+	});
+	api.registerEffect('scanlines', 'splash.editor.effectsEditor.scanlines', (app, effect) => StaticScanlinesFilter(app, effect as ScanlinesEffectInitialized), {
+		defaults: { intensity: 0.3, thickness: 4, lineColor: '#000000', steps: 1 },
+		fields: [
+			{ type: 'number', key: 'intensity', label: 'splash.editor.effectsEditor.intensity', step: 0.01, group: 's' },
+			{ type: 'number', key: 'thickness', label: 'splash.editor.effectsEditor.thickness', group: 's' },
+			{ type: 'color', key: 'lineColor', label: 'splash.editor.effectsEditor.lineColor' },
+			{ type: 'number', key: 'steps', label: 'splash.editor.effectsEditor.steps' },
 		],
 	});
 
