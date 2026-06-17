@@ -32,6 +32,35 @@ export type EffectBuilder<E extends Effect> = (
 	effect: E,
 ) => Promise<PIXI.Filter> | PIXI.Filter;
 
+export interface FieldOption { value: string; label: string }
+
+/**
+ * Declares one editable property of a registered effect/animation/action, so the editors can render it
+ * generically. First-party and third-party registrations go through the same descriptors — no privileged UI.
+ */
+export type FieldDef
+	= | { type: 'number'; key: string; label?: string; step?: number; group?: string }
+		| { type: 'text'; key: string; label?: string; group?: string }
+		| { type: 'color'; key: string; label?: string; group?: string }
+		| { type: 'checkbox'; key: string; label?: string; group?: string }
+		| { type: 'code'; key: string; label?: string; hint?: string }
+	// `source` pulls options live from the host (macros, or the splash's state keys); `options` is a static list.
+		| { type: 'select'; key: string; label?: string; placeholder?: string; multiple?: boolean; options?: FieldOption[]; source?: 'macros' | 'states' }
+	// A Record<string, string> editor keyed by value name (used by change-state conditions).
+		| { type: 'conditions'; key: string };
+
+/** Editor metadata carried alongside a registration so the built-in editors can render it with zero hardcoding. */
+export interface EditorMeta {
+	icon?: string;
+	defaults?: Record<string, unknown>;
+	fields?: FieldDef[];
+}
+
+export interface RegisteredType extends EditorMeta {
+	type: string;
+	name: string;
+}
+
 export class SplashAPI {
 	private animations: Map<string, AnimationBuilder<Animation>> = new Map();
 	private animationNames: Map<string, string> = new Map();
@@ -42,23 +71,31 @@ export class SplashAPI {
 	private effects: Map<string, EffectBuilder<Effect>> = new Map();
 	private effectNames: Map<string, string> = new Map();
 	private triggers: Map<string, TriggerDefinition> = new Map();
+	// Editor metadata (icon/defaults/fields) per registered type, so the editors render from the registry.
+	private animationMeta: Map<string, EditorMeta> = new Map();
+	private actionMeta: Map<string, EditorMeta> = new Map();
+	private effectMeta: Map<string, EditorMeta> = new Map();
 
 	public registerAnimation<A extends Animation>(
 		type: A['type'],
 		name: string,
 		builder: AnimationBuilder<A>,
+		meta: EditorMeta = {},
 	): void {
 		this.animationNames.set(type, name);
 		this.animations.set(type, builder as AnimationBuilder<Animation>);
+		this.animationMeta.set(type, meta);
 	}
 
 	public registerAction<A extends Action>(
 		type: A['type'],
 		name: string,
 		processor: ActionProcessor<A>,
+		meta: EditorMeta = {},
 	): void {
 		this.actions.set(type, processor as ActionProcessor<Action>);
 		this.actionNames.set(type, name);
+		this.actionMeta.set(type, meta);
 	}
 
 	public registerSprite<S extends Sprite>(
@@ -108,9 +145,11 @@ export class SplashAPI {
 		type: E['type'],
 		name: string,
 		builder: EffectBuilder<E>,
+		meta: EditorMeta = {},
 	): void {
 		this.effects.set(type, builder as EffectBuilder<Effect>);
 		this.effectNames.set(type, name);
+		this.effectMeta.set(type, meta);
 	}
 
 	public async buildEffect(app: PIXI.Application, effect: Effect): Promise<PIXI.Filter | undefined> {
@@ -122,16 +161,35 @@ export class SplashAPI {
 		return undefined;
 	}
 
-	public get registeredAnimations(): { type: string; name: string }[] {
-		return Array.from(this.animationNames.entries()).map(([type, name]) => ({ type, name }));
+	// Names/labels are stored as i18n keys (i18n isn't loaded when modules register at `init`); localize at
+	// read time, which the editors do per render. localize() returns its input unchanged for non-keys, so a
+	// third party may pass either an i18n key or a plain string.
+	private localizeType(type: string, name: string, meta: EditorMeta = {}): RegisteredType {
+		const loc = (s?: string) => (s == null ? s : game.i18n.localize(s));
+		return {
+			type,
+			name: game.i18n.localize(name),
+			icon: meta.icon,
+			defaults: meta.defaults,
+			fields: meta.fields?.map((f) => {
+				if (f.type === 'select') return { ...f, label: loc(f.label), placeholder: loc(f.placeholder), options: f.options?.map(o => ({ ...o, label: game.i18n.localize(o.label) })) };
+				if (f.type === 'code') return { ...f, label: loc(f.label), hint: loc(f.hint) };
+				if (f.type === 'conditions') return { ...f };
+				return { ...f, label: loc(f.label) };
+			}),
+		};
 	}
 
-	public get registeredEffects(): { type: string; name: string }[] {
-		return Array.from(this.effectNames.entries()).map(([type, name]) => ({ type, name }));
+	public get registeredAnimations(): RegisteredType[] {
+		return Array.from(this.animationNames.entries()).map(([type, name]) => this.localizeType(type, name, this.animationMeta.get(type)));
 	}
 
-	public get registeredActions(): { type: string; name: string }[] {
-		return Array.from(this.actionNames.entries()).map(([type, name]) => ({ type, name }));
+	public get registeredEffects(): RegisteredType[] {
+		return Array.from(this.effectNames.entries()).map(([type, name]) => this.localizeType(type, name, this.effectMeta.get(type)));
+	}
+
+	public get registeredActions(): RegisteredType[] {
+		return Array.from(this.actionNames.entries()).map(([type, name]) => this.localizeType(type, name, this.actionMeta.get(type)));
 	}
 
 	/** First-party triggers (door, region) register through this same API. */

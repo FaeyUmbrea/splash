@@ -4,10 +4,12 @@ import type {
 	ButtonSpriteInitialized,
 	ChangeStateActionInitialized,
 	GaugeSpriteInitialized,
+	GlitchEffectInitialized,
 	HotspotSpriteInitialized,
 	ImageSpriteInitialized,
 	MacroActionInitialized,
 	PanelSpriteInitialized,
+	PixelateEffectInitialized,
 	State,
 	TextSpriteInitialized,
 	VideoSpriteInitialized,
@@ -21,11 +23,55 @@ import { transitionState } from '../pixi/transitionState.ts';
 import DissolveFilter from '../shaders/dissolve/dissolve.js';
 import GlitchFilter from '../shaders/glitch/glitch.ts';
 import StaticGlitchFilter from '../shaders/glitch/staticGlitch.ts';
+import PixelateFilter from '../shaders/pixelate/pixelate.ts';
+import StaticPixelateFilter from '../shaders/pixelate/staticPixelate.ts';
 
 export function setupAPI(api: SplashAPI) {
-	api.registerAnimation('dissolve', 'Dissolve Animation', instantiateDissolve);
-	api.registerAnimation('glitch', 'Glitch Transition', instantiateGlitch);
-	api.registerEffect('glitch', 'Glitch', (app, effect) => StaticGlitchFilter(app, effect));
+	// Names AND editor metadata (icon/defaults/fields) are registered here, so the editors render every
+	// type straight from the API — first-party types use the exact same surface a third party would.
+	// Labels are i18n KEYS, not localized strings: i18n isn't loaded yet at `init`, so the registry
+	// getters localize them lazily at render time (plain third-party labels pass through unchanged).
+	const randomOrigins = (n: number) => ({ type: 'randomOrigins', randomOrigins: true, numOrigins: n });
+
+	api.registerAnimation('dissolve', 'splash.editor.animationEditor.typeDissolve', instantiateDissolve, {
+		defaults: { type: 'dissolve', duration: 1000, delay: 0, props: randomOrigins(5) },
+		fields: [],
+	});
+	api.registerAnimation('glitch', 'splash.editor.animationEditor.typeGlitch', instantiateGlitch, {
+		defaults: { type: 'glitch', duration: 1000, delay: 0, props: { origins: randomOrigins(5), bands: 20, intensity: 0.05, tint: '#0044ff', invert: false } },
+		fields: [
+			{ type: 'number', key: 'bands', label: 'splash.editor.animationEditor.bands', group: 'g' },
+			{ type: 'number', key: 'intensity', label: 'splash.editor.animationEditor.intensity', step: 0.01, group: 'g' },
+			{ type: 'color', key: 'tint', label: 'splash.editor.animationEditor.tint' },
+			{ type: 'checkbox', key: 'invert', label: 'splash.editor.animationEditor.invert' },
+		],
+	});
+	api.registerAnimation('pixelate', 'splash.editor.animationEditor.typePixelate', instantiatePixelate, {
+		defaults: { type: 'pixelate', duration: 1000, delay: 0, props: { origins: randomOrigins(5), block: 32, invert: false } },
+		fields: [
+			{ type: 'number', key: 'block', label: 'splash.editor.animationEditor.block' },
+			{ type: 'checkbox', key: 'invert', label: 'splash.editor.animationEditor.invert' },
+		],
+	});
+
+	api.registerEffect('glitch', 'splash.editor.effectsEditor.glitch', (app, effect) => StaticGlitchFilter(app, effect as GlitchEffectInitialized), {
+		defaults: { bands: 8, intensity: 0.01, tint: '#0044ff' },
+		fields: [
+			{ type: 'number', key: 'bands', label: 'splash.editor.effectsEditor.bands', group: 'g' },
+			{ type: 'number', key: 'intensity', label: 'splash.editor.effectsEditor.intensity', step: 0.01, group: 'g' },
+			{ type: 'color', key: 'tint', label: 'splash.editor.effectsEditor.tint' },
+		],
+	});
+	api.registerEffect('pixelate', 'splash.editor.effectsEditor.pixelate', (app, effect) => StaticPixelateFilter(app, effect as PixelateEffectInitialized), {
+		defaults: { blockX: 8, blockY: 8, offsetX: 0, offsetY: 0 },
+		fields: [
+			{ type: 'number', key: 'blockX', label: 'splash.editor.effectsEditor.blockWidth', group: 'b' },
+			{ type: 'number', key: 'blockY', label: 'splash.editor.effectsEditor.blockHeight', group: 'b' },
+			{ type: 'number', key: 'offsetX', label: 'splash.editor.effectsEditor.offsetX', group: 'o' },
+			{ type: 'number', key: 'offsetY', label: 'splash.editor.effectsEditor.offsetY', group: 'o' },
+		],
+	});
+
 	api.registerSprite('text', 'Text', instantiateText);
 	api.registerSprite('image', 'Image', instantiateImage);
 	api.registerSprite('button', 'Button', instantiateButton);
@@ -33,15 +79,56 @@ export function setupAPI(api: SplashAPI) {
 	api.registerSprite('gauge', 'Gauge', instantiateGauge);
 	api.registerSprite('hotspot', 'Hotspot', instantiateHotspot);
 	api.registerSprite('video', 'Video', instantiateVideo);
-	api.registerAction('macro', 'Macro', executeMacro);
-	api.registerAction('change-state', 'Change State', changeState);
-	api.registerAction('close', 'Close Splash', () => {
-		Hooks.call('splash.close-splash');
+
+	api.registerAction('macro', 'splash.editor.actionEditor.typeMacro', executeMacro, {
+		icon: 'fa-solid fa-scroll',
+		defaults: { type: 'macro', macro: null },
+		fields: [{ type: 'select', key: 'macro', source: 'macros', placeholder: 'splash.editor.actionEditor.pickMacro' }],
 	});
-	// Real handlers live per-runtime; this stub only registers the action so editors can list it.
-	const valueActionWarning = () => console.warn('Splash | Value actions only work inside a running splash.');
-	api.registerAction('set-value', 'Set Value', valueActionWarning);
-	api.registerAction('increment-value', 'Increment Value', valueActionWarning);
+	api.registerAction('change-state', 'splash.editor.actionEditor.typeChangeState', changeState, {
+		icon: 'fa-solid fa-right-left',
+		defaults: { type: 'change-state', load: [], unload: [], conditions: null },
+		fields: [
+			{ type: 'select', key: 'load', source: 'states', multiple: true, placeholder: 'splash.editor.actionEditor.loadStates' },
+			{ type: 'select', key: 'unload', source: 'states', multiple: true, placeholder: 'splash.editor.actionEditor.unloadStates' },
+			{ type: 'conditions', key: 'conditions' },
+		],
+	});
+	// Real handlers live per-runtime (or in the sync layer, for vote); these stubs only register the
+	// action so the editor lists it from the API instead of hardcoding.
+	const runtimeActionWarning = () => console.warn('Splash | This action only works inside a running splash.');
+	api.registerAction('set-value', 'splash.editor.actionEditor.typeSetValue', runtimeActionWarning, {
+		icon: 'fa-solid fa-equals',
+		defaults: { type: 'set-value', key: '', value: '' },
+		fields: [
+			{ type: 'text', key: 'key', label: 'splash.editor.actionEditor.key' },
+			{ type: 'text', key: 'value', label: 'splash.editor.actionEditor.value' },
+		],
+	});
+	api.registerAction('increment-value', 'splash.editor.actionEditor.typeIncrementValue', runtimeActionWarning, {
+		icon: 'fa-solid fa-plus-minus',
+		defaults: { type: 'increment-value', key: '', step: 1, min: null, max: null, wrap: false },
+		fields: [
+			{ type: 'text', key: 'key', label: 'splash.editor.actionEditor.key' },
+			{ type: 'number', key: 'step', label: 'splash.editor.actionEditor.step', group: 'n' },
+			{ type: 'number', key: 'min', label: 'splash.editor.actionEditor.min', group: 'n' },
+			{ type: 'number', key: 'max', label: 'splash.editor.actionEditor.max', group: 'n' },
+			{ type: 'checkbox', key: 'wrap', label: 'splash.editor.actionEditor.wrap' },
+		],
+	});
+	api.registerAction('vote', 'splash.editor.actionEditor.typeVote', runtimeActionWarning, {
+		icon: 'fa-solid fa-check-to-slot',
+		defaults: { type: 'vote', optionId: '' },
+		fields: [{ type: 'text', key: 'optionId', label: 'splash.editor.actionEditor.voteOptionId' }],
+	});
+	api.registerAction('script', 'splash.editor.actionEditor.typeScript', runtimeActionWarning, {
+		icon: 'fa-solid fa-code',
+		defaults: { type: 'script', source: '' },
+		fields: [{ type: 'code', key: 'source', hint: 'splash.editor.actionEditor.scriptHint' }],
+	});
+	api.registerAction('close', 'splash.editor.actionEditor.typeClose', () => {
+		Hooks.call('splash.close-splash');
+	}, { icon: 'fa-solid fa-xmark', defaults: { type: 'close' }, fields: [] });
 }
 
 async function instantiateDissolve(
@@ -78,6 +165,23 @@ async function instantiateGlitch(
 ) {
 	if (animation.type !== 'glitch') return;
 	const filter = await GlitchFilter(app, animation);
+	setTimeout(() => {
+		sprite.filters = [...(sprite.filters ?? []), filter];
+		setTimeout(() => {
+			if (sprite.filters) {
+				sprite.filters = sprite.filters.filter(item => item !== filter);
+			}
+		}, animation.duration ?? 3000);
+	}, animation.delay ?? 0);
+}
+
+async function instantiatePixelate(
+	animation: AnimationInitialized,
+	sprite: PIXI.DisplayObject,
+	app: PIXI.Application,
+) {
+	if (animation.type !== 'pixelate') return;
+	const filter = await PixelateFilter(app, animation);
 	setTimeout(() => {
 		sprite.filters = [...(sprite.filters ?? []), filter];
 		setTimeout(() => {

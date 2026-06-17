@@ -15,16 +15,34 @@ export type GlitchEffectCreate = foundry.data.fields.SchemaField.CreateData<Retu
 export type GlitchEffectInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof GlitchEffectSchemaCreator>>;
 export type GlitchEffect = GlitchEffectCreate | GlitchEffectInitialized;
 
+function PixelateEffectSchemaCreator() {
+	const fields = foundry.data.fields;
+	return {
+		type: new fields.StringField({ required: true, choices: ['pixelate'] }),
+		// Cell size in px; rectangular cells are allowed.
+		blockX: new fields.NumberField({ required: true, initial: 8 }),
+		blockY: new fields.NumberField({ required: true, initial: 8 }),
+		// Grid phase in px, to nudge the mosaic off an ugly seam.
+		offsetX: new fields.NumberField({ required: true, initial: 0 }),
+		offsetY: new fields.NumberField({ required: true, initial: 0 }),
+	};
+}
+
+export type PixelateEffectCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof PixelateEffectSchemaCreator>>;
+export type PixelateEffectInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof PixelateEffectSchemaCreator>>;
+export type PixelateEffect = PixelateEffectCreate | PixelateEffectInitialized;
+
 // Persistent effects with no transition timing, distinct from animIn/animOut.
 function EffectFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
 		glitch: new fields.SchemaField(GlitchEffectSchemaCreator()),
+		pixelate: new fields.SchemaField(PixelateEffectSchemaCreator()),
 	});
 }
 
-export type EffectInitialized = GlitchEffectInitialized;
-export type EffectCreate = GlitchEffectCreate;
+export type EffectInitialized = GlitchEffectInitialized | PixelateEffectInitialized;
+export type EffectCreate = GlitchEffectCreate | PixelateEffectCreate;
 export type Effect = EffectCreate | EffectInitialized;
 
 function BaseSpriteSchemaCreator(choice: string) {
@@ -469,16 +487,31 @@ export type GlitchAnimationCreate = foundry.data.fields.SchemaField.CreateData<R
 export type GlitchAnimationInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof GlitchAnimationSchemaCreator>>;
 export type GlitchAnimation = GlitchAnimationCreate | GlitchAnimationInitialized;
 
+function PixelateAnimationSchemaCreator() {
+	const fields = foundry.data.fields;
+	return BaseAnimationModelSchemaCreator('pixelate', new fields.SchemaField({
+		origins: OriginVariantsFieldCreator(),
+		// Peak cell size in px at the wave front; cells swell from sharp to this as the transition passes.
+		block: new fields.NumberField({ required: true, initial: 32 }),
+		invert: new fields.BooleanField({ required: true, initial: false }),
+	}, { required: true }));
+}
+
+export type PixelateAnimationCreate = foundry.data.fields.SchemaField.CreateData<ReturnType<typeof PixelateAnimationSchemaCreator>>;
+export type PixelateAnimationInitialized = foundry.data.fields.SchemaField.InitializedData<ReturnType<typeof PixelateAnimationSchemaCreator>>;
+export type PixelateAnimation = PixelateAnimationCreate | PixelateAnimationInitialized;
+
 export function AnimationFieldCreator() {
 	const fields = foundry.data.fields;
 	return new fields.TypedSchemaField({
 		dissolve: DissolveAnimationSchemaCreator(),
 		glitch: GlitchAnimationSchemaCreator(),
+		pixelate: PixelateAnimationSchemaCreator(),
 	}, { required: false });
 }
 
-export type AnimationInitialized = DissolveAnimationInitialized | GlitchAnimationInitialized;
-export type AnimationCreate = DissolveAnimationCreate | GlitchAnimationCreate;
+export type AnimationInitialized = DissolveAnimationInitialized | GlitchAnimationInitialized | PixelateAnimationInitialized;
+export type AnimationCreate = DissolveAnimationCreate | GlitchAnimationCreate | PixelateAnimationCreate;
 export type Animation = AnimationCreate | AnimationInitialized;
 
 function StateDefinitionSchemaCreator() {

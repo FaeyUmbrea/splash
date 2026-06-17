@@ -171,16 +171,22 @@
 				"scriptGlobals": "Inline macro — globals",
 				"scriptScope": "(this element's node)",
 				"scriptContext": "(its data)",
-				"scriptApi": "(changeState / setValue / close)"
+				"scriptApi": "(changeState / setValue / close)",
+				"scriptHint": "Inline macro — globals: scope (this element's node), context (its data), api (changeState / setValue / close)"
 			},
 			"effectsEditor": {
 				"heading": "Effects (WebGL only)",
 				"addEffect": "Add effect",
 				"glitch": "Glitch",
+				"pixelate": "Pixelate",
 				"removeEffect": "Remove effect",
 				"bands": "Bands",
 				"intensity": "Intensity",
-				"tint": "Tint"
+				"tint": "Tint",
+				"blockWidth": "Block W",
+				"blockHeight": "Block H",
+				"offsetX": "Offset X",
+				"offsetY": "Offset Y"
 			},
 			"splashTab": {
 				"layerScene": "Scene (above canvas)",
@@ -232,6 +238,7 @@
 				"typeNone": "None",
 				"typeDissolve": "Dissolve",
 				"typeGlitch": "Glitch",
+				"typePixelate": "Pixelate",
 				"originRandom": "Random",
 				"originFixed": "Fixed",
 				"applyPreset": "Apply animation preset",
@@ -244,7 +251,8 @@
 				"bands": "Bands",
 				"intensity": "Intensity",
 				"tint": "Tint",
-				"invert": "Invert"
+				"invert": "Invert",
+				"block": "Block size"
 			},
 			"objectTab": {
 				"alignLeft": "Left",

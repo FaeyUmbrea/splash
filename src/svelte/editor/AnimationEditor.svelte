@@ -2,9 +2,11 @@
 <script lang='ts'>
 	import type { PresetPayload } from '../../utils/presets.ts';
 	import type { SelectItem } from '../ui';
+	import { SplashAPI } from '../../api/api.ts';
 	import { promptAndSavePreset } from '../../utils/presets.ts';
 	import PresetPicker from '../presets/PresetPicker.svelte';
-	import { CheckboxField, ColorField, Field, IconButton, NumberField, Select } from '../ui';
+	import { Field, IconButton, NumberField, Select } from '../ui';
+	import FieldsEditor from './FieldsEditor.svelte';
 	import OriginEditor from './OriginEditor.svelte';
 
 	type Anim = Record<string, unknown> & { type?: string };
@@ -23,18 +25,20 @@
 		onChange: (animation: Anim | null) => void;
 	} = $props();
 
-	const typeOptions: SelectItem[] = [
+	const api = SplashAPI.getInstance();
+	const animTypes = $derived(api.registeredAnimations);
+	const metaFor = (type?: string) => animTypes.find(t => t.type === type);
+	const typeOptions = $derived<SelectItem[]>([
 		{ value: '', label: game.i18n.localize('splash.editor.animationEditor.typeNone') },
-		{ value: 'dissolve', label: game.i18n.localize('splash.editor.animationEditor.typeDissolve') },
-		{ value: 'glitch', label: game.i18n.localize('splash.editor.animationEditor.typeGlitch') },
-	];
+		...animTypes.map(t => ({ value: t.type, label: t.name })),
+	]);
 	const originTypeOptions: SelectItem[] = [
 		{ value: 'randomOrigins', label: game.i18n.localize('splash.editor.animationEditor.originRandom') },
 		{ value: 'fixedOrigins', label: game.i18n.localize('splash.editor.animationEditor.originFixed') },
 	];
 
 	const type = $derived(value?.type ?? '');
-	// Dissolve keeps the origin variant directly in `props`, glitch nests it under `props.origins`.
+	// Dissolve keeps the origin variant directly in `props`; every other transition nests it under `props.origins`.
 	const props = $derived((value?.props ?? {}) as Record<string, unknown>);
 	const origins = $derived((value?.type === 'dissolve' ? props : (props.origins ?? {})) as Record<string, unknown>);
 	const originType = $derived((origins.type as string) ?? 'randomOrigins');
@@ -42,16 +46,10 @@
 	function randomOrigins(n = 5) {
 		return { type: 'randomOrigins', randomOrigins: true, numOrigins: n };
 	}
-	function dissolveDefault(): Anim {
-		return { type: 'dissolve', duration: 1000, delay: 0, props: randomOrigins() };
-	}
-	function glitchDefault(): Anim {
-		return { type: 'glitch', duration: 1000, delay: 0, props: { origins: randomOrigins(), bands: 20, intensity: 0.05, tint: '#0044ff', invert: false } };
-	}
 
 	function setType(t: string | string[] | null) {
 		if (!t) onChange(null);
-		else onChange(t === 'dissolve' ? dissolveDefault() : glitchDefault());
+		else onChange(foundry.utils.deepClone(metaFor(t as string)?.defaults ?? { type: t }) as Anim);
 	}
 	function patchAnim(p: Partial<Anim>) {
 		onChange({ ...value, ...p } as Anim);
@@ -60,7 +58,7 @@
 		if (value?.type === 'dissolve') onChange({ ...value, props: o });
 		else onChange({ ...value, props: { ...props, origins: o } } as Anim);
 	}
-	function patchGlitch(p: Record<string, unknown>) {
+	function patchProps(p: Record<string, unknown>) {
 		onChange({ ...value, props: { ...props, ...p } } as Anim);
 	}
 
@@ -103,14 +101,7 @@
 			/>
 		{/if}
 
-		{#if value.type === 'glitch'}
-			<div class='grid'>
-				<NumberField label={game.i18n.localize('splash.editor.animationEditor.bands')} value={(props.bands as number) ?? 20} onChange={v => patchGlitch({ bands: v ?? 1 })} />
-				<NumberField label={game.i18n.localize('splash.editor.animationEditor.intensity')} step={0.01} value={(props.intensity as number) ?? 0.05} onChange={v => patchGlitch({ intensity: v ?? 0 })} />
-			</div>
-			<ColorField label={game.i18n.localize('splash.editor.animationEditor.tint')} value={(props.tint as string) ?? '#0044ff'} onChange={v => patchGlitch({ tint: v })} />
-			<CheckboxField label={game.i18n.localize('splash.editor.animationEditor.invert')} value={(props.invert as boolean) ?? false} onChange={v => patchGlitch({ invert: v })} />
-		{/if}
+		<FieldsEditor fields={metaFor(type)?.fields ?? []} value={props} onChange={patchProps} />
 	{/if}
 </div>
 

@@ -1,6 +1,9 @@
 <svelte:options runes={true} />
 <script lang='ts'>
-	import { ColorField, IconButton, NumberField } from '../ui';
+	import type { SelectItem } from '../ui';
+	import { SplashAPI } from '../../api/api.ts';
+	import { IconButton, Select } from '../ui';
+	import FieldsEditor from './FieldsEditor.svelte';
 
 	type Effect = Record<string, unknown> & { type?: string };
 
@@ -12,13 +15,25 @@
 		onChange: (effects: Effect[]) => void;
 	} = $props();
 
+	const api = SplashAPI.getInstance();
+	const types = $derived(api.registeredEffects);
+	const typeOptions = $derived<SelectItem[]>(types.map(t => ({ value: t.type, label: t.name })));
+	const metaFor = (type?: string) => types.find(t => t.type === type);
+
+	function create(type: string): Effect {
+		return { type, ...(metaFor(type)?.defaults ?? {}) };
+	}
 	function add() {
-		onChange([...effects, { type: 'glitch', bands: 8, intensity: 0.01, tint: '#0044ff' }]);
+		const first = types[0];
+		if (first) onChange([...effects, create(first.type)]);
 	}
 	function remove(index: number) {
 		onChange(effects.filter((_, i) => i !== index));
 	}
-	function patch(index: number, p: Partial<Effect>) {
+	function setType(index: number, type: string) {
+		onChange(effects.map((e, i) => (i === index ? create(type) : e)));
+	}
+	function patch(index: number, p: Record<string, unknown>) {
 		onChange(effects.map((e, i) => (i === index ? { ...e, ...p } : e)));
 	}
 </script>
@@ -31,14 +46,10 @@
 	{#each effects as effect, i (i)}
 		<div class='effect'>
 			<div class='effect-head'>
-				<span>{game.i18n.localize('splash.editor.effectsEditor.glitch')}</span>
+				<Select options={typeOptions} value={effect.type ?? ''} searchable={false} onChange={t => setType(i, t as string)} />
 				<IconButton icon='fa-solid fa-trash' title={game.i18n.localize('splash.editor.effectsEditor.removeEffect')} danger onclick={() => remove(i)} />
 			</div>
-			<div class='grid'>
-				<NumberField label={game.i18n.localize('splash.editor.effectsEditor.bands')} value={(effect.bands as number) ?? 8} onChange={v => patch(i, { bands: v ?? 8 })} />
-				<NumberField label={game.i18n.localize('splash.editor.effectsEditor.intensity')} step={0.01} value={(effect.intensity as number) ?? 0.01} onChange={v => patch(i, { intensity: v ?? 0.01 })} />
-			</div>
-			<ColorField label={game.i18n.localize('splash.editor.effectsEditor.tint')} value={(effect.tint as string) ?? '#0044ff'} onChange={v => patch(i, { tint: v })} />
+			<FieldsEditor fields={metaFor(effect.type)?.fields ?? []} value={effect} onChange={p => patch(i, p)} />
 		</div>
 	{/each}
 </div>
@@ -72,16 +83,10 @@
 		border-radius: 4px;
 
 		.effect-head {
-			display: flex;
+			display: grid;
+			grid-template-columns: 1fr auto;
 			align-items: center;
-			justify-content: space-between;
-			font-size: 12px;
+			gap: 6px;
 		}
-	}
-
-	.grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 6px;
 	}
 </style>
