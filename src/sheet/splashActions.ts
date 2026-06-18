@@ -4,6 +4,7 @@ import { SplashAPI } from '../api/api.ts';
 import { openSplashEditorApp } from '../apps/SplashEditorApplication.ts';
 import { openSplashTriggersApp } from '../apps/SplashTriggersApplication.ts';
 import { canTriggerSplash, canViewSplash } from '../utils/launch.ts';
+import { broadcastOpenHandout } from '../utils/socket.ts';
 
 export interface SplashActionDef {
 	action: string;
@@ -21,6 +22,10 @@ export function availableActions(page: SplashPage): SplashActionDef[] {
 
 	if (system.layer === 'handout') {
 		defs.push({ action: 'open-handout', icon: 'fa-solid fa-window-maximize', label: 'splash.actions.openHandout', disabled: !canView });
+		// Stream to OBS clients. Only offered when OBS Utils is present; the broadcast itself is splash-native.
+		if (game.modules?.get('obs-utils')?.active) {
+			defs.push({ action: 'stream', icon: 'fa-solid fa-tower-broadcast', label: 'splash.actions.stream', disabled: !canView });
+		}
 	} else {
 		defs.push({ action: 'launch', icon: 'fa-solid fa-play', label: 'splash.actions.launch', disabled: !canTrigger });
 		defs.push({ action: 'preview', icon: 'fa-solid fa-eye', label: 'splash.actions.preview', disabled: !canView });
@@ -43,6 +48,11 @@ export async function openHandoutSplash(page: SplashPage): Promise<void> {
 	await SplashAPI.getInstance().openHandout(page.uuid);
 }
 
+/** Broadcast this handout to the OBS/stream clients; only they act on it (they self-identify via isOBS). */
+export function streamHandout(page: SplashPage): void {
+	broadcastOpenHandout(page.uuid);
+}
+
 export function openSplashEditor(page: SplashPage): void {
 	openSplashEditorApp(page);
 }
@@ -61,6 +71,9 @@ export function runSplashAction(action: string, page: SplashPage): void {
 			break;
 		case 'open-handout':
 			void openHandoutSplash(page);
+			break;
+		case 'stream':
+			streamHandout(page);
 			break;
 		case 'edit':
 			openSplashEditor(page);

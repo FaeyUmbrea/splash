@@ -74,6 +74,7 @@
 			"launch": "Launch for players",
 			"preview": "Preview",
 			"openHandout": "Open handout",
+			"stream": "Show on stream",
 			"edit": "Open editor",
 			"triggers": "Triggers"
 		},
@@ -501,15 +502,11 @@
 		"director": {
 			"tabLabel": "Splash",
 			"handouts": "Handouts",
-			"showOnStream": "Show on stream",
-			"clearStream": "Clear stream",
-			"noHandouts": "No handouts in this world.",
-			"noObsUser": "No OBS user is set in OBS Utils.",
-			"streamingTo": "Streaming to {user}",
 			"spectate": "Spectate",
 			"spectateUser": "Spectate",
 			"stopSpectate": "Stop spectating",
-			"noPresence": "No players are interacting with a local splash."
+			"clearAll": "Clear all open splashes on stream",
+			"noPlayers": "No users in this world."
 		}
 	}
 }

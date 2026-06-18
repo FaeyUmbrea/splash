@@ -1,6 +1,15 @@
 # Changelog
 
-## Version 0.1.0
+## Version 1.1.0
+
+### Added
+
+- OBS Utils integration: a Director tab that mirrors a chosen player's or DM's live splash onto the stream — following their opens, closes, and state, for both local and synced splashes — plus a "Show on stream" action for handouts in the splash sheet and the manager. The stream client restores what it was showing after a reload.
+- Shader effects pixelate, CRT curvature, and scanlines, usable as persistent effects and as transitions.
+- More splash objects: gauges, hotspots, video, text inputs, and draggable pieces with drop zones for drag-and-drop puzzles.
+- Editors render from the public registration API, so objects, effects, actions, and animations registered by other modules get the same editor UI as the built-ins.
+
+## Version 1.0.0
 
 ### Added
 

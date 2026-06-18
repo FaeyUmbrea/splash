@@ -47,8 +47,9 @@
 	onMount(async () => {
 		const renderer = rendererKind === 'webgl' ? new PixiRenderer(view) : new HtmlRenderer(htmlStage);
 		const synced = splashConfig.mode === 'synced' && !!pageUuid && !spectate;
-		// Players on local splashes report their position so the GM can follow along.
-		const reportsPresence = splashConfig.mode === 'local' && !!pageUuid && !game.user?.isGM && !spectate;
+		// Any non-spectator client (players and DMs) reports presence so a spectator can follow it: local
+		// carries private state, synced just signals open/close (its shared state rides the sync flag).
+		const reportsPresence = !!pageUuid && !spectate;
 		runtime = new SplashRuntime(splashConfig, renderer, emitEvent, {
 			trigger: consumePendingTrigger() ?? undefined,
 			externalAction: action => SplashAPI.getInstance().processAction(action),

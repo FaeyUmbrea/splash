@@ -45,7 +45,7 @@ declare module 'fvtt-types/configuration' {
 			'obs-utils.init': () => void;
 			'obs-utils.director.stateChanged': (next: ObsUtilsDirectorState, prev?: ObsUtilsDirectorState) => void;
 			'splash.active-changed': (active: { uuid: string; layer: string } | null) => void;
-			'splash.presence-changed': () => void;
+			'splash.spectated-changed': () => void;
 			'splash.votes-changed': (uuid: string, tallies: Record<string, { count: number; voters: string[] }>) => void;
 			'splash.change-states': (action: ChangeStateAction) => void;
 			'splash.close-splash': () => void;

@@ -295,11 +295,17 @@ export class SplashAPI {
 			await openSplashOverlay(page, { layer: layer as SplashLayer, skipAnimations: true, spectate: true });
 		}
 		// The Svelte mount that registers the runtime is async; wait so a following applySplashState lands.
-		const { getRuntime } = await import('../utils/sync.ts');
+		const { getRuntime, getPageSnapshot } = await import('../utils/sync.ts');
 		for (let i = 0; i < 50 && !getRuntime(uuid); i++) {
 			await new Promise((resolve) => {
 				setTimeout(resolve, 20);
 			});
+		}
+		// Synced splashes: adopt the shared snapshot now so the mirror shows current state immediately, not
+		// only after the next change. registerSyncHooks keeps it current from here.
+		if ((page.system as SplashInitialized).mode === 'synced') {
+			const shared = getPageSnapshot(page as JournalEntryPage);
+			if (shared) await getRuntime(uuid)?.applyShared(shared);
 		}
 	}
 

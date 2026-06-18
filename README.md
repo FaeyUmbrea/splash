@@ -34,13 +34,13 @@ Create a journal page of type **Splash** and open the visual editor. Drop in obj
 
 Targets Foundry VTT v13, maximum v14.
 
-# Contributing
+## Contributing
 
-## Translation
+### Translation
 
 Splash currently ships English only. Translations are welcome — open a PR adding a `lang/<code>.json` and registering it in `module.json`.
 
-# Building
+## Building
 
 Only Node.js and Yarn are required.
 

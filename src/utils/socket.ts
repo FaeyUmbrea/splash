@@ -26,6 +26,11 @@ export function registerSocket(): void {
 	});
 }
 
+/** Handout stream events apply only on OBS/stream clients, which self-identify via OBS Utils. */
+function isObsClient(): boolean {
+	return game.modules?.get('obs-utils')?.api?.isOBS?.() ?? false;
+}
+
 async function handleEvent({ eventType, targetUser, senderId, payload }: SplashSocketEvent): Promise<void> {
 	if (!!targetUser && game.userId !== targetUser) return;
 	const sender = game.users?.get(senderId);
@@ -39,11 +44,13 @@ async function handleEvent({ eventType, targetUser, senderId, payload }: SplashS
 		if (!sender.isGM) return;
 		Hooks.call('splash.close-splash', { skipOutro: payload.skipOutro });
 	} else if (eventType === 'openHandout') {
+		if (!isObsClient()) return;
 		const page = await fromUuid(payload.uuid ?? '');
 		if (!sender.isGM || !isSplashPage(page) || !canViewSplash(page, game.user)) return;
 		const { openHandout } = await import('../apps/handout.ts');
 		await openHandout(page);
 	} else if (eventType === 'closeHandout') {
+		if (!isObsClient()) return;
 		const page = await fromUuid(payload.uuid ?? '') as JournalEntryPage | null;
 		if (!sender.isGM || !page) return;
 		await foundry.applications.instances.get(`splash-handout-${page.id}`)?.close();
@@ -70,21 +77,19 @@ export function broadcastCloseSplash(targetUser?: string, skipOutro = false): vo
 	} satisfies SplashSocketEvent);
 }
 
-/** Open a handout on one user's client (the OBS user, for the Director's stream view). GM-only. */
-export function broadcastOpenHandout(uuid: string, targetUser: string): void {
+/** Broadcast a handout open for the Director stream view. Only OBS-mode clients act on it. GM-only. */
+export function broadcastOpenHandout(uuid: string): void {
 	game.socket?.emit(`module.${ID}`, {
 		eventType: 'openHandout',
-		targetUser,
 		senderId: game.userId,
 		payload: { uuid },
 	} satisfies SplashSocketEvent);
 }
 
-/** Close a handout on one user's client. GM-only. */
-export function broadcastCloseHandout(uuid: string, targetUser: string): void {
+/** Broadcast a handout close. Only OBS-mode clients act on it. GM-only. */
+export function broadcastCloseHandout(uuid: string): void {
 	game.socket?.emit(`module.${ID}`, {
 		eventType: 'closeHandout',
-		targetUser,
 		senderId: game.userId,
 		payload: { uuid },
 	} satisfies SplashSocketEvent);

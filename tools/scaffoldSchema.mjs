@@ -53,11 +53,9 @@ if (fnNamed(creator)) {
 let bodyLines;
 if (category === 'effect') {
 	bodyLines = [`const fields = foundry.data.fields;`, `return {`, `type: new fields.StringField({ required: true, choices: ['${key}'] }),`, `// TODO: add fields`, `};`];
-}
-else if (category === 'animation') {
+} else if (category === 'animation') {
 	bodyLines = [`const fields = foundry.data.fields;`, `return ${cfg.base}('${key}', new fields.SchemaField({`, `// TODO: add fields`, `}, { required: true }));`];
-}
-else {
+} else {
 	bodyLines = [`const base = ${cfg.base}('${key}');`, `return {`, `...base,`, `// TODO: add fields`, `};`];
 }
 
@@ -126,6 +124,7 @@ const steps = {
 	],
 }[category];
 
+/* eslint-disable no-console */
 console.log(`\n✓ ${typeName} (${category}) added to the data model and formatted.\n`);
 console.log('Modified:');
 console.log(`  src/datamodel/schema/${cfg.file}   —   ${creator}, the ${cfg.fieldCreator} entry, and the ${cfg.suffix} unions\n`);

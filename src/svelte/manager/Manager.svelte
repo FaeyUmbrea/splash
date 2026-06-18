@@ -159,6 +159,11 @@
 		event.stopPropagation();
 		runSplashAction(page.system.layer === 'handout' ? 'open-handout' : 'launch', page);
 	}
+
+	function streamAction(event: MouseEvent, page: SplashPage) {
+		event.stopPropagation();
+		runSplashAction('stream', page);
+	}
 </script>
 
 <div class='manager'>
@@ -201,6 +206,9 @@
 							<span class='chip layer'>{layerMeta[page.system.layer]?.label ?? page.system.layer}</span>
 						</span>
 						<span class='row-actions'>
+							{#if page.system.layer === 'handout' && game.modules?.get('obs-utils')?.active}
+								<IconButton icon='fa-solid fa-tower-broadcast' title={game.i18n.localize('splash.actions.stream')} onclick={e => streamAction(e, page)} />
+							{/if}
 							<IconButton icon={page.system.layer === 'handout' ? 'fa-solid fa-window-maximize' : 'fa-solid fa-play'} title={game.i18n.localize('splash.manager.launch')} onclick={e => primaryAction(e, page)} />
 							<IconButton icon='fa-solid fa-ellipsis-vertical' title={game.i18n.localize('splash.manager.more')} onclick={e => rowMenu(e, page)} />
 						</span>

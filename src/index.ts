@@ -10,7 +10,6 @@ import { SplashSheet } from './sheet/SplashSheet.ts';
 import { setupTriggers } from './triggers/setup.ts';
 import { registerKeybindings } from './utils/keyboard.js';
 import { listTriggerableSplashPages } from './utils/launch.ts';
-import { registerPresenceSocket } from './utils/presence.ts';
 import { registerSettings } from './utils/settings.ts';
 import { setupAPI } from './utils/setup.js';
 import { registerSocket } from './utils/socket.ts';
@@ -49,7 +48,6 @@ Hooks.once('init', () => {
 	registerSocket();
 	registerSyncSocket();
 	registerSyncHooks();
-	registerPresenceSocket();
 	registerControllerHooks();
 	registerGmControls();
 	void registerBuiltinBehaviors();

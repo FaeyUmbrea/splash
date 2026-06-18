@@ -106,7 +106,7 @@ export interface SyncDriver {
 	dispose: () => void;
 }
 
-function getPageSnapshot(page: JournalEntryPage): RuntimeSnapshot | undefined {
+export function getPageSnapshot(page: JournalEntryPage): RuntimeSnapshot | undefined {
 	return page.getFlag(ID, FLAG_RUNTIME) as RuntimeSnapshot | undefined;
 }
 
