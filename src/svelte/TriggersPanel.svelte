@@ -10,7 +10,7 @@
 	const { splashUuid, splashName }: { splashUuid: string; splashName?: string } = $props();
 	const api = SplashAPI.getInstance();
 
-	let bindings = $state<TriggerBinding[]>(api.bindingsForSplash(splashUuid));
+	let bindings = $state<TriggerBinding[]>([]);
 	let addType = $state('');
 
 	const triggerTypes: SelectItem[] = api.registeredTriggers.map(t => ({ value: t.type, label: t.label, icon: t.icon }));
@@ -18,6 +18,10 @@
 	function refresh() {
 		bindings = api.bindingsForSplash(splashUuid);
 	}
+
+	$effect(() => {
+		refresh();
+	});
 
 	const hookNames = ['createRegionBehavior', 'deleteRegionBehavior', 'updateWallDocument', 'createWall', 'deleteWall', 'updateScene'];
 	const ids: number[] = [];
