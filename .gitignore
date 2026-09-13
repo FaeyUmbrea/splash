@@ -90,6 +90,8 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+.release/
+packs/
 
 # Gatsby files
 .cache/
@@ -133,9 +135,18 @@ coverage/*
 /playwright-report/
 /playwright/.cache/
 
-stats.html
+/stats.html
 
 .vite-cache/
+vite.config.js.timestamp-*
 
-# Compiled compendium LevelDBs — regenerated from src/packs/ by `yarn build:packs`
-/packs/
+# JetBrains / IntelliJ IDEA - ignore user-specific files and local workspace
+.idea/
+.idea/**/workspace.xml
+.idea/**/usage.statistics.xml
+.idea/**/tasks.xml
+.idea/**/shelf
+.idea/**/libraries
+.idea/**/runConfigurations
+*.iml
+*.iws

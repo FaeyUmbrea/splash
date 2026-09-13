@@ -34,7 +34,7 @@ export default antfu(
 			'svelte/valid-compile': 'warn',
 		},
 
-		ignores: [],
+		ignores: ['.copier-answers.yml', '.github/**'],
 	},
 	{
 		files: ['**/*.svelte'],

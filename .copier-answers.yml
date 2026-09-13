@@ -1,0 +1,48 @@
+# Changes here are managed by Copier. Re-answer questions with `copier update`.
+_commit: v1.0.4
+_src_path: /Volumes/USBSSD/Projects/obs-utils/module-template
+additional_languages: []
+adopt_existing_module: true
+author_discord: Faey#0001
+author_name: Faey Umbrea
+author_url: https://github.com/FaeyUmbrea
+browser_tests: true
+default_branch: master
+exports_api_types: false
+foundry_maximum: '14'
+foundry_minimum: '13.344'
+foundry_verified: '14'
+github_owner: FaeyUmbrea
+has_packs: true
+is_library: false
+localization: true
+module_description: 'Interactive fullscreen handouts: hide scene changes behind splash
+    screens, build clickable puzzles, votes, and branching story screens.'
+module_id: splash
+module_kind: code
+module_license: AGPL-3.0-only
+module_media:
+-   type: icon
+    url: https://avatars2.githubusercontent.com/u/71292812?s=400&u=ccdb4eeb7abf551ca8f314e5a9bfd0479a4d3d41&v=4
+module_packs:
+-   label: Splash Presets
+    name: splash-presets
+    ownership:
+        ASSISTANT: OWNER
+        PLAYER: NONE
+    path: packs/splash-presets
+    type: JournalEntry
+module_relationships:
+    requires:
+    -   id: lib-wrapper
+        manifest: https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json
+        type: module
+module_scripts: []
+module_title: 'Splash: Interactive Handouts'
+persistent_storage: false
+release_strategy: custom
+repository_name: splash
+unit_tests: true
+uses_socket: true
+uses_styles: true
+uses_svelte: true

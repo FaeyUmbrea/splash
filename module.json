@@ -2,13 +2,11 @@
 	"id": "splash",
 	"title": "Splash: Interactive Handouts",
 	"description": "Interactive fullscreen handouts: hide scene changes behind splash screens, build clickable puzzles, votes, and branching story screens.",
-	"version": "This is auto replaced",
-	"library": "false",
-	"manifestPlusVersion": "1.2.0",
+	"version": "0.0.0",
 	"compatibility": {
-		"minimum": 13.344,
-		"verified": 14,
-		"maximum": 14
+		"minimum": "13.344",
+		"verified": "14",
+		"maximum": "14"
 	},
 	"authors": [
 		{
@@ -17,6 +15,15 @@
 			"discord": "Faey#0001"
 		}
 	],
+	"relationships": {
+		"requires": [
+			{
+				"id": "lib-wrapper",
+				"manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json",
+				"type": "module"
+			}
+		]
+	},
 	"esmodules": [
 		"dist/splash.js"
 	],
@@ -30,46 +37,30 @@
 			"path": "lang/en.json"
 		}
 	],
-	"url": "This is auto replaced",
-	"socket": true,
-	"manifest": "This is auto replaced",
-	"download": "This is auto replaced",
-	"license": "AGPL-3.0-only",
+	"packs": [
+		{
+			"label": "Splash Presets",
+			"name": "splash-presets",
+			"ownership": {
+				"ASSISTANT": "OWNER",
+				"PLAYER": "NONE"
+			},
+			"path": "packs/splash-presets",
+			"type": "JournalEntry"
+		}
+	],
+	"url": "https://github.com/FaeyUmbrea/splash",
+	"manifest": "https://github.com/FaeyUmbrea/splash/releases/latest/download/module.json",
+	"download": "https://github.com/FaeyUmbrea/splash/releases/latest/download/module.zip",
 	"readme": "https://github.com/FaeyUmbrea/splash/blob/master/README.md",
+	"license": "AGPL-3.0-only",
+	"socket": true,
+	"persistentStorage": false,
+	"library": false,
 	"media": [
 		{
 			"type": "icon",
-			"url": "https://avatars2.githubusercontent.com/u/71292812?s=400&u=ccdb4eeb7abf551ca8f314e5a9bfd0479a4d3d41&v=4"
-		}
-	],
-	"relationships": {
-		"requires": [
-			{
-				"id": "lib-wrapper",
-				"type": "module",
-				"manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json"
-			}
-		]
-	},
-	"documentTypes": {
-		"JournalEntryPage": {
-			"splash": {},
-			"preset": {}
-		},
-		"RegionBehavior": {
-			"launchSplash": {}
-		}
-	},
-	"packs": [
-		{
-			"name": "splash-presets",
-			"label": "Splash Presets",
-			"path": "packs/splash-presets",
-			"type": "JournalEntry",
-			"ownership": {
-				"PLAYER": "NONE",
-				"ASSISTANT": "OWNER"
-			}
+			"url": "https://avatars2.githubusercontent.com/u/71292812?s=400\u0026u=ccdb4eeb7abf551ca8f314e5a9bfd0479a4d3d41\u0026v=4"
 		}
 	]
 }
