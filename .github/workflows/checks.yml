@@ -37,3 +37,8 @@ jobs:
 
       - name: Build
         run: yarn build
+
+      - name: Check API type package
+        run: |
+          yarn build:api-types
+          yarn check:api-types

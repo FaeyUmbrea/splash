@@ -6,69 +6,43 @@ import type {
 	SpriteInitialized as Sprite,
 	StateInitialized as State,
 } from '../datamodel/SplashModel.ts';
-import type { SpriteContext } from '../renderer/SplashRenderer.ts';
-import type { RuntimeSnapshot } from '../renderer/SplashRuntime.ts';
-import type { TriggerBinding, TriggerDefinition, TriggerOptions } from '../triggers/types.ts';
-import type { SplashLayer } from '../utils/settings.ts';
+import type {
+	ActionProcessor,
+	AnimationBuilder,
+	EditorMeta,
+	EffectBuilder,
+	RegisteredType,
+	RuntimeSnapshot,
+	SplashActionData,
+	SplashAnimationData,
+	SplashApi,
+	SplashEffectData,
+	SplashLayer,
+	SplashSpriteData,
+	SpriteBuilder,
+	SpriteContext,
+	TriggerBinding,
+	TriggerDefinition,
+	TriggerOptions,
+} from '../public-api.ts';
 
-export type AnimationBuilder<A extends Animation> = (
-	animation: A,
-	sprite: PIXI.DisplayObject,
-	app: PIXI.Application,
-) => Promise<void> | void;
+export type {
+	ActionProcessor,
+	AnimationBuilder,
+	EditorMeta,
+	EffectBuilder,
+	RegisteredType,
+	SpriteBuilder,
+} from '../public-api.ts';
 
-export type SpriteBuilder<S extends Sprite> = (
-	Sprite: S,
-	state: State,
-	context: SpriteContext,
-) => Promise<PIXI.DisplayObject> | PIXI.DisplayObject;
-
-export type ActionProcessor<A extends Action> = (
-	action: A,
-) => Promise<void> | void;
-
-export type EffectBuilder<E extends Effect> = (
-	app: PIXI.Application,
-	effect: E,
-) => Promise<PIXI.Filter> | PIXI.Filter;
-
-export interface FieldOption { value: string; label: string }
-
-/**
- * Declares one editable property of a registered effect/animation/action, so the editors can render it
- * generically. First-party and third-party registrations go through the same descriptors — no privileged UI.
- */
-export type FieldDef
-	= | { type: 'number'; key: string; label?: string; step?: number; group?: string }
-		| { type: 'text'; key: string; label?: string; group?: string }
-		| { type: 'color'; key: string; label?: string; group?: string }
-		| { type: 'checkbox'; key: string; label?: string; group?: string }
-		| { type: 'code'; key: string; label?: string; hint?: string }
-	// `source` pulls options live from the host (macros, or the splash's state keys); `options` is a static list.
-		| { type: 'select'; key: string; label?: string; placeholder?: string; multiple?: boolean; options?: FieldOption[]; source?: 'macros' | 'states' }
-	// A Record<string, string> editor keyed by value name (used by change-state conditions).
-		| { type: 'conditions'; key: string };
-
-/** Editor metadata carried alongside a registration so the built-in editors can render it with zero hardcoding. */
-export interface EditorMeta {
-	icon?: string;
-	defaults?: Record<string, unknown>;
-	fields?: FieldDef[];
-}
-
-export interface RegisteredType extends EditorMeta {
-	type: string;
-	name: string;
-}
-
-export class SplashAPI {
-	private animations: Map<string, AnimationBuilder<Animation>> = new Map();
+export class SplashAPI implements SplashApi {
+	private animations: Map<string, AnimationBuilder> = new Map();
 	private animationNames: Map<string, string> = new Map();
-	private sprites: Map<string, SpriteBuilder<Sprite>> = new Map();
+	private sprites: Map<string, SpriteBuilder> = new Map();
 	private spriteNames: Map<string, string> = new Map();
-	private actions: Map<string, ActionProcessor<Action>> = new Map();
+	private actions: Map<string, ActionProcessor> = new Map();
 	private actionNames: Map<string, string> = new Map();
-	private effects: Map<string, EffectBuilder<Effect>> = new Map();
+	private effects: Map<string, EffectBuilder> = new Map();
 	private effectNames: Map<string, string> = new Map();
 	private triggers: Map<string, TriggerDefinition> = new Map();
 	// Editor metadata (icon/defaults/fields) per registered type, so the editors render from the registry.
@@ -76,34 +50,34 @@ export class SplashAPI {
 	private actionMeta: Map<string, EditorMeta> = new Map();
 	private effectMeta: Map<string, EditorMeta> = new Map();
 
-	public registerAnimation<A extends Animation>(
+	public registerAnimation<A extends SplashAnimationData>(
 		type: A['type'],
 		name: string,
 		builder: AnimationBuilder<A>,
 		meta: EditorMeta = {},
 	): void {
 		this.animationNames.set(type, name);
-		this.animations.set(type, builder as AnimationBuilder<Animation>);
+		this.animations.set(type, builder as AnimationBuilder);
 		this.animationMeta.set(type, meta);
 	}
 
-	public registerAction<A extends Action>(
+	public registerAction<A extends SplashActionData>(
 		type: A['type'],
 		name: string,
 		processor: ActionProcessor<A>,
 		meta: EditorMeta = {},
 	): void {
-		this.actions.set(type, processor as ActionProcessor<Action>);
+		this.actions.set(type, processor as ActionProcessor);
 		this.actionNames.set(type, name);
 		this.actionMeta.set(type, meta);
 	}
 
-	public registerSprite<S extends Sprite>(
+	public registerSprite<S extends SplashSpriteData>(
 		type: S['type'],
 		name: string,
 		builder: SpriteBuilder<S>,
 	): void {
-		this.sprites.set(type, builder as SpriteBuilder<Sprite>);
+		this.sprites.set(type, builder as SpriteBuilder);
 		this.spriteNames.set(type, name);
 	}
 
@@ -141,13 +115,13 @@ export class SplashAPI {
 		}
 	}
 
-	public registerEffect<E extends Effect>(
+	public registerEffect<E extends SplashEffectData>(
 		type: E['type'],
 		name: string,
 		builder: EffectBuilder<E>,
 		meta: EditorMeta = {},
 	): void {
-		this.effects.set(type, builder as EffectBuilder<Effect>);
+		this.effects.set(type, builder as EffectBuilder);
 		this.effectNames.set(type, name);
 		this.effectMeta.set(type, meta);
 	}

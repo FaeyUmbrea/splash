@@ -1,7 +1,7 @@
 import type { Component } from 'svelte';
-import type { SplashAPI } from './api/api.js';
 import type { PresetModel } from './datamodel/PresetModel.ts';
 import type { SplashModel } from './datamodel/SplashModel.ts';
+import type { SplashApi } from './public-api.js';
 
 declare global {
 	module '*.glsl' {
@@ -23,7 +23,7 @@ declare global {
 
 	interface ModuleConfig {
 		'splash': {
-			api: SplashAPI;
+			api: SplashApi;
 		};
 		'obs-utils': {
 			api: ObsUtilsApi;

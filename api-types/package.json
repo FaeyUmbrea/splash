@@ -1,0 +1,13 @@
+{
+	"name": "@faeyumbrea/splash-api-types",
+	"version": "1.0.0",
+	"description": "Public TypeScript definitions for the Splash module API",
+	"license": "AGPL-3.0-only",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/FaeyUmbrea/splash.git"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
