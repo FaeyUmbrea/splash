@@ -38,7 +38,8 @@ jobs:
       - name: Build
         run: yarn build
 
-      - name: Check API type package
+      - name: Build API type artifact
         run: |
           yarn build:api-types
           yarn check:api-types
+          tar -czf /tmp/splash-api-types.tgz -C .release/api-types package

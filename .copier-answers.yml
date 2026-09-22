@@ -1,8 +1,11 @@
 # Changes here are managed by Copier. Re-answer questions with `copier update`.
-_commit: v1.0.4-4-g2b9a4e0
+_commit: v1.0.4-7-g9a7264e
 _src_path: gh:FaeyUmbrea/module-template
 additional_languages: []
 adopt_existing_module: true
+api_types_build: tsc
+api_types_peer_dependencies:
+- fvtt-types
 author_discord: Faey#0001
 author_name: Faey Umbrea
 author_url: https://github.com/FaeyUmbrea
@@ -11,7 +14,7 @@ checks_workflow: true
 community_files: true
 default_branch: master
 docs_repository: FaeyUmbrea/module-docs
-exports_api_types: false
+exports_api_types: true
 foundry_maximum: '14'
 foundry_minimum: '13.344'
 foundry_verified: '14'
