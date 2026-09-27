@@ -1,4 +1,5 @@
 import type { SplashPage } from '../utils/launch.ts';
+import { PACKAGE_ID } from '../utils/const.ts';
 import { availableActions, runSplashAction } from './splashActions.ts';
 
 const PAGE_FORMATS = CONST.JOURNAL_ENTRY_PAGE_FORMATS;
@@ -7,12 +8,12 @@ const HandlebarsSheet = foundry.applications.sheets.journal.JournalEntryPageHand
 /** Foundry doesn't allow inheriting the core text-page sheet, so this reproduces it with a splash action bar. */
 export class SplashSheet extends HandlebarsSheet {
 	static VIEW_PARTS = {
-		content: { template: 'modules/splash/templates/splash-view.hbs', root: true },
+		content: { template: `modules/${PACKAGE_ID}/templates/splash-view.hbs`, root: true },
 	};
 
 	static EDIT_PARTS = {
 		header: HandlebarsSheet.EDIT_PARTS.header,
-		content: { template: 'modules/splash/templates/splash-edit.hbs' },
+		content: { template: `modules/${PACKAGE_ID}/templates/splash-edit.hbs` },
 		footer: HandlebarsSheet.EDIT_PARTS.footer,
 	};
 

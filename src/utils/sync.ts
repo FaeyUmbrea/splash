@@ -1,6 +1,6 @@
 import type { ActionInitialized, SplashInitialized } from '../datamodel/SplashModel.ts';
 import type { RuntimeSnapshot, SplashRuntime } from '../renderer/SplashRuntime.ts';
-import { ID } from './const.js';
+import { ID, PACKAGE_ID } from './const.js';
 
 /**
  * Synced-mode wiring. A synced splash's runtime snapshot lives in a page flag synced by Foundry. Only a GM
@@ -164,7 +164,7 @@ export function createSyncDriver(uuid: string, splash: SplashInitialized, runtim
 	const proxy = (snapshot: RuntimeSnapshot) => {
 		clearTimeout(proxyTimer);
 		proxyTimer = setTimeout(() => {
-			game.socket?.emit(`module.${ID}`, {
+			game.socket?.emit(`module.${PACKAGE_ID}`, {
 				eventType: 'splashStateProxy',
 				senderId: game.userId,
 				payload: { uuid, snapshot },
@@ -179,7 +179,7 @@ export function createSyncDriver(uuid: string, splash: SplashInitialized, runtim
 				if (isWriter()) {
 					recordVote(uuid, game.userId ?? '', action.optionId ?? '', splash, runtime);
 				} else {
-					game.socket?.emit(`module.${ID}`, {
+					game.socket?.emit(`module.${PACKAGE_ID}`, {
 						eventType: 'splashActionIntent',
 						senderId: game.userId,
 						payload: { uuid, action, sourceId },
@@ -238,7 +238,7 @@ export function registerSyncHooks(): void {
 
 /** Socket listener: the GM tallies forwarded votes and persists proxied state edits. */
 export function registerSyncSocket(): void {
-	game.socket?.on(`module.${ID}`, async (event: ActionIntentEvent | StateProxyEvent) => {
+	game.socket?.on(`module.${PACKAGE_ID}`, async (event: ActionIntentEvent | StateProxyEvent) => {
 		if (game.users?.activeGM?.id !== game.userId) return;
 		const uuid = event?.payload?.uuid;
 		if (!uuid) return;

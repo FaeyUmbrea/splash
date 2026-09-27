@@ -1,5 +1,5 @@
 import type { RuntimeSnapshot } from '../renderer/SplashRuntime.ts';
-import { ID } from './const.js';
+import { PACKAGE_ID } from './const.js';
 
 /** Players (and DMs) on an open splash report state so an OBS spectator client can mirror them. */
 
@@ -19,7 +19,7 @@ export function createPresenceReporter(uuid: string): PresenceReporter {
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	const emit = (snapshot: RuntimeSnapshot | null) => {
-		game.socket?.emit(`module.${ID}`, {
+		game.socket?.emit(`module.${PACKAGE_ID}`, {
 			eventType: 'splashPresence',
 			senderId: game.userId,
 			payload: { uuid, snapshot },

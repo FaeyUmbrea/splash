@@ -4,6 +4,7 @@ import { SplashAPI } from '../api/api.ts';
 import { openSplashEditorApp } from '../apps/SplashEditorApplication.ts';
 import { openSplashTriggersApp } from '../apps/SplashTriggersApplication.ts';
 import { canTriggerSplash, canViewSplash } from '../utils/launch.ts';
+import { getObsUtilsModule } from '../utils/obsUtils.ts';
 import { broadcastOpenHandout } from '../utils/socket.ts';
 
 export interface SplashActionDef {
@@ -23,7 +24,7 @@ export function availableActions(page: SplashPage): SplashActionDef[] {
 	if (system.layer === 'handout') {
 		defs.push({ action: 'open-handout', icon: 'fa-solid fa-window-maximize', label: 'splash.actions.openHandout', disabled: !canView });
 		// Stream to OBS clients. Only offered when OBS Utils is present; the broadcast itself is splash-native.
-		if (game.modules?.get('obs-utils')?.active) {
+		if (getObsUtilsModule()?.active) {
 			defs.push({ action: 'stream', icon: 'fa-solid fa-tower-broadcast', label: 'splash.actions.stream', disabled: !canView });
 		}
 	} else {

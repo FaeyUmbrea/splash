@@ -25,7 +25,13 @@ declare global {
 		'splash': {
 			api: SplashApi;
 		};
+		'splash-premium': {
+			api: SplashApi;
+		};
 		'obs-utils': {
+			api: ObsUtilsApi;
+		};
+		'obs-utils-premium': {
 			api: ObsUtilsApi;
 		};
 	}

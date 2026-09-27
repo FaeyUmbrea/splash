@@ -1,5 +1,6 @@
 import type { ButtonImageCreate, SpriteCreate } from '../datamodel/SplashModel.ts';
 import type { PresetPayload } from '../utils/presets.ts';
+import { PACKAGE_ID } from '../utils/const.ts';
 
 const HandlebarsSheet = foundry.applications.sheets.journal.JournalEntryPageHandlebarsSheet;
 
@@ -50,12 +51,12 @@ interface PresetView {
 /** Preview sheet for `splash.preset` pages. Edit mode carries only the header and a note, since presets are authored from the editor. */
 export class PresetSheet extends HandlebarsSheet {
 	static VIEW_PARTS = {
-		content: { template: 'modules/splash/templates/preset-view.hbs', root: true },
+		content: { template: `modules/${PACKAGE_ID}/templates/preset-view.hbs`, root: true },
 	};
 
 	static EDIT_PARTS = {
 		header: HandlebarsSheet.EDIT_PARTS.header,
-		content: { template: 'modules/splash/templates/preset-edit.hbs' },
+		content: { template: `modules/${PACKAGE_ID}/templates/preset-edit.hbs` },
 		footer: HandlebarsSheet.EDIT_PARTS.footer,
 	};
 

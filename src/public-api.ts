@@ -1,3 +1,5 @@
+export type SplashModuleId = 'splash' | 'splash-premium';
+
 /** A Splash data object selected by its registered `type`. */
 export interface SplashTypedData {
 	type: string;
@@ -115,7 +117,7 @@ export interface TriggerDefinition {
 
 export type TriggerOptions = Omit<TriggerDefinition, 'type' | 'label'>;
 
-/** Supported runtime API exposed as `game.modules.get('splash')?.api`. */
+/** Supported runtime API exposed by the active `splash` or `splash-premium` package. */
 export interface SplashApi {
 	registerAnimation: <A extends SplashAnimationData>(
 		type: A['type'],

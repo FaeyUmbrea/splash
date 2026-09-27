@@ -1,6 +1,6 @@
 import type { TriggerBinding, TriggerOptions } from './types.ts';
 import { SplashAPI } from '../api/api.ts';
-import { ID } from '../utils/const.js';
+import { ID, PACKAGE_ID } from '../utils/const.js';
 import { setPendingTrigger } from './context.ts';
 
 interface LibWrapper { register: (id: string, target: string, fn: (...a: unknown[]) => unknown, type: string) => void }
@@ -17,7 +17,7 @@ export function registerDoorIndicator(): void {
 	const libWrapper = (globalThis as { libWrapper?: LibWrapper }).libWrapper;
 	if (!game.modules?.get('lib-wrapper')?.active || !libWrapper) return;
 	try {
-		libWrapper.register(ID, 'foundry.canvas.containers.DoorControl.prototype.draw', async function (this: DoorControlLike, wrapped: (...a: unknown[]) => Promise<unknown>, ...args: unknown[]) {
+		libWrapper.register(PACKAGE_ID, 'foundry.canvas.containers.DoorControl.prototype.draw', async function (this: DoorControlLike, wrapped: (...a: unknown[]) => Promise<unknown>, ...args: unknown[]) {
 			const result = await wrapped(...args);
 			try {
 				this.__splashBadge?.destroy();
@@ -54,7 +54,7 @@ export function registerDoorWrap(): void {
 		return;
 	}
 	try {
-		libWrapper.register(ID, 'foundry.canvas.containers.DoorControl.prototype._onMouseDown', function (this: { wall?: { document?: { ds?: number; getFlag: (s: string, k: string) => unknown } } }, wrapped: (...a: unknown[]) => unknown, ...args: unknown[]) {
+		libWrapper.register(PACKAGE_ID, 'foundry.canvas.containers.DoorControl.prototype._onMouseDown', function (this: { wall?: { document?: { ds?: number; getFlag: (s: string, k: string) => unknown } } }, wrapped: (...a: unknown[]) => unknown, ...args: unknown[]) {
 			const doc = this.wall?.document;
 			const uuid = doc?.getFlag(ID, 'launchSplash') as string | undefined;
 			if (doc?.ds === CONST.WALL_DOOR_STATES.LOCKED && uuid) {

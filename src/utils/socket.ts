@@ -1,7 +1,8 @@
 import type { SplashLayer } from './settings.ts';
 import { openSplashOverlay } from '../apps/overlay.ts';
-import { ID } from './const.js';
+import { PACKAGE_ID } from './const.js';
 import { canTriggerSplash, canViewSplash, isSplashPage } from './launch.ts';
+import { getObsUtilsModule } from './obsUtils.ts';
 
 interface SplashSocketEvent {
 	eventType: 'showSplash' | 'closeSplash' | 'openHandout' | 'closeHandout' | 'unlockDoor';
@@ -19,7 +20,7 @@ async function unlockWall(doorUuid?: string): Promise<void> {
 }
 
 export function registerSocket(): void {
-	game.socket?.on(`module.${ID}`, handleEvent);
+	game.socket?.on(`module.${PACKAGE_ID}`, handleEvent);
 	Hooks.on('splash.unlock-door', (doorUuid?: string) => {
 		if (game.user?.isGM) void unlockWall(doorUuid);
 		else broadcastUnlockDoor(doorUuid);
@@ -28,7 +29,7 @@ export function registerSocket(): void {
 
 /** Handout stream events apply only on OBS/stream clients, which self-identify via OBS Utils. */
 function isObsClient(): boolean {
-	return game.modules?.get('obs-utils')?.api?.isOBS?.() ?? false;
+	return getObsUtilsModule()?.api?.isOBS?.() ?? false;
 }
 
 async function handleEvent({ eventType, targetUser, senderId, payload }: SplashSocketEvent): Promise<void> {
@@ -60,7 +61,7 @@ async function handleEvent({ eventType, targetUser, senderId, payload }: SplashS
 }
 
 export function broadcastShowSplash(uuid: string, layer: SplashLayer = 'full', targetUser?: string): void {
-	game.socket?.emit(`module.${ID}`, {
+	game.socket?.emit(`module.${PACKAGE_ID}`, {
 		eventType: 'showSplash',
 		targetUser,
 		senderId: game.userId,
@@ -69,7 +70,7 @@ export function broadcastShowSplash(uuid: string, layer: SplashLayer = 'full', t
 }
 
 export function broadcastCloseSplash(targetUser?: string, skipOutro = false): void {
-	game.socket?.emit(`module.${ID}`, {
+	game.socket?.emit(`module.${PACKAGE_ID}`, {
 		eventType: 'closeSplash',
 		targetUser,
 		senderId: game.userId,
@@ -79,7 +80,7 @@ export function broadcastCloseSplash(targetUser?: string, skipOutro = false): vo
 
 /** Broadcast a handout open for the Director stream view. Only OBS-mode clients act on it. GM-only. */
 export function broadcastOpenHandout(uuid: string): void {
-	game.socket?.emit(`module.${ID}`, {
+	game.socket?.emit(`module.${PACKAGE_ID}`, {
 		eventType: 'openHandout',
 		senderId: game.userId,
 		payload: { uuid },
@@ -88,7 +89,7 @@ export function broadcastOpenHandout(uuid: string): void {
 
 /** Broadcast a handout close. Only OBS-mode clients act on it. GM-only. */
 export function broadcastCloseHandout(uuid: string): void {
-	game.socket?.emit(`module.${ID}`, {
+	game.socket?.emit(`module.${PACKAGE_ID}`, {
 		eventType: 'closeHandout',
 		senderId: game.userId,
 		payload: { uuid },
@@ -97,7 +98,7 @@ export function broadcastCloseHandout(uuid: string): void {
 
 /** Ask the GM to open a door, since players can't write wall documents. */
 export function broadcastUnlockDoor(doorUuid?: string): void {
-	game.socket?.emit(`module.${ID}`, {
+	game.socket?.emit(`module.${PACKAGE_ID}`, {
 		eventType: 'unlockDoor',
 		senderId: game.userId,
 		payload: { doorUuid },

@@ -6,6 +6,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { availableActions, runSplashAction } from '../../sheet/splashActions.ts';
 	import { allSplashPages, createSplashPage } from '../../utils/discovery.ts';
+	import { getObsUtilsModule } from '../../utils/obsUtils.ts';
 	import { allPresets } from '../../utils/presets.ts';
 	import { ContextMenu, IconButton, ListRow, Select, Tabs, TextField } from '../ui';
 
@@ -206,7 +207,7 @@
 							<span class='chip layer'>{layerMeta[page.system.layer]?.label ?? page.system.layer}</span>
 						</span>
 						<span class='row-actions'>
-							{#if page.system.layer === 'handout' && game.modules?.get('obs-utils')?.active}
+							{#if page.system.layer === 'handout' && getObsUtilsModule()?.active}
 								<IconButton icon='fa-solid fa-tower-broadcast' title={game.i18n.localize('splash.actions.stream')} onclick={e => streamAction(e, page)} />
 							{/if}
 							<IconButton icon={page.system.layer === 'handout' ? 'fa-solid fa-window-maximize' : 'fa-solid fa-play'} title={game.i18n.localize('splash.manager.launch')} onclick={e => primaryAction(e, page)} />

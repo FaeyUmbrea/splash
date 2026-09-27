@@ -8,8 +8,10 @@ import { SplashModel } from './datamodel/SplashModel.js';
 import { PresetSheet } from './sheet/PresetSheet.ts';
 import { SplashSheet } from './sheet/SplashSheet.ts';
 import { setupTriggers } from './triggers/setup.ts';
+import { PACKAGE_ID } from './utils/const.ts';
 import { registerKeybindings } from './utils/keyboard.js';
 import { listTriggerableSplashPages } from './utils/launch.ts';
+import { getObsUtilsModule } from './utils/obsUtils.ts';
 import { registerSettings } from './utils/settings.ts';
 import { setupAPI } from './utils/setup.js';
 import { registerSocket } from './utils/socket.ts';
@@ -19,7 +21,7 @@ import './css/splash.scss';
 let obsCompatLoaded = false;
 /** OBS Utils is optional. Its compat bundle is code-split and only imported once OBS Utils is present. */
 function loadObsUtilsCompat(): void {
-	if (obsCompatLoaded || !game.modules?.get('obs-utils')?.api) return;
+	if (obsCompatLoaded || !getObsUtilsModule()?.api) return;
 	obsCompatLoaded = true;
 	void import('./compat/obsUtils.ts').then(m => m.registerObsUtilsCompat());
 }
@@ -31,14 +33,14 @@ Hooks.once('init', () => {
 	});
 
 	// Shared action-bar partial used by both view and edit templates.
-	foundry.applications.handlebars.loadTemplates(['modules/splash/templates/splash-actions.hbs']);
+	foundry.applications.handlebars.loadTemplates([`modules/${PACKAGE_ID}/templates/splash-actions.hbs`]);
 
-	foundry.applications.apps.DocumentSheetConfig.registerSheet(JournalEntryPage, 'splash', SplashSheet, {
+	foundry.applications.apps.DocumentSheetConfig.registerSheet(JournalEntryPage, PACKAGE_ID, SplashSheet, {
 		types: ['splash.splash'],
 		makeDefault: true,
 	});
 
-	foundry.applications.apps.DocumentSheetConfig.registerSheet(JournalEntryPage, 'splash', PresetSheet, {
+	foundry.applications.apps.DocumentSheetConfig.registerSheet(JournalEntryPage, PACKAGE_ID, PresetSheet, {
 		types: ['splash.preset'],
 		makeDefault: true,
 	});
@@ -54,7 +56,7 @@ Hooks.once('init', () => {
 
 	const api = SplashAPI.getInstance();
 
-	const moduleData = (game as InitGame)?.modules?.get('splash');
+	const moduleData = (game as InitGame)?.modules?.get(PACKAGE_ID);
 	if (moduleData) {
 		moduleData.api = api;
 	}
@@ -64,7 +66,7 @@ Hooks.once('init', () => {
 
 	// Catch OBS Utils whether it initializes before or after us.
 	Hooks.once('obs-utils.init', loadObsUtilsCompat);
-	if (game.modules?.get('obs-utils')?.active) Hooks.once('ready', loadObsUtilsCompat);
+	if (getObsUtilsModule()?.active) Hooks.once('ready', loadObsUtilsCompat);
 
 	Hooks.call('splash.init');
 });

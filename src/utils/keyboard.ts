@@ -1,7 +1,7 @@
-import { ID } from './const.js';
+import { PACKAGE_ID } from './const.js';
 
 export function registerKeybindings(): void {
-	(game as ReadyGame | undefined)?.keybindings?.register(ID, 'close-splash', {
+	(game as ReadyGame | undefined)?.keybindings?.register(PACKAGE_ID, 'close-splash', {
 		editable: [{ key: 'KeyQ', modifiers: ['CONTROL'] }],
 		restricted: false,
 		name: 'Close Splash',

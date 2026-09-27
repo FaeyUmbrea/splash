@@ -2,7 +2,8 @@ import type { RuntimeSnapshot } from '../renderer/SplashRuntime.ts';
 import { mount, unmount } from 'svelte';
 import { SplashAPI } from '../api/api.ts';
 import SplashDirectorTab from '../svelte/director/SplashDirectorTab.svelte';
-import { ID } from '../utils/const.js';
+import { ID, PACKAGE_ID } from '../utils/const.js';
+import { getObsUtilsModule } from '../utils/obsUtils.ts';
 import { SETTING_OBS_LAST_STATE, SETTING_SPECTATED_USER } from '../utils/settings.ts';
 
 interface PresenceEvent {
@@ -26,7 +27,7 @@ let openMode: string | null = null;
 
 /** Imported only when OBS Utils is present (see index.ts). Director tab for the GM; spectate mirror for the OBS client. */
 export function registerObsUtilsCompat(): void {
-	const api = game.modules?.get('obs-utils')?.api;
+	const api = getObsUtilsModule()?.api;
 	if (!api) return;
 	if (game.user?.isGM) {
 		// OBS Utils 5.1.2+ lets the registering module mount its own UI (cross-bundle-safe). On older versions
@@ -52,7 +53,7 @@ export function registerObsUtilsCompat(): void {
 
 /** Director: close everything the OBS clients are showing — the mirror and any streamed handouts. */
 export function broadcastClearStream(): void {
-	game.socket?.emit(`module.${ID}`, { eventType: 'splashClearStream', senderId: game.userId ?? '' } satisfies ClearStreamEvent);
+	game.socket?.emit(`module.${PACKAGE_ID}`, { eventType: 'splashClearStream', senderId: game.userId ?? '' } satisfies ClearStreamEvent);
 }
 
 /** OBS client: mirror the player named in the `spectatedUser` setting, and remember what it shows so a reload restores it. */
@@ -67,7 +68,7 @@ function registerSpectator(): void {
 		void closeSpectate();
 	});
 
-	game.socket?.on(`module.${ID}`, async (event: PresenceEvent | ClearStreamEvent) => {
+	game.socket?.on(`module.${PACKAGE_ID}`, async (event: PresenceEvent | ClearStreamEvent) => {
 		if (event?.eventType === 'splashClearStream') {
 			await clearAll();
 			return;
