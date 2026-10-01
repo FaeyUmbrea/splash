@@ -48,16 +48,16 @@
 	<span class='sublabel'>{game.i18n.localize('splash.editor.originEditor.sublabel')}</span>
 	<div class='bar' bind:this={barEl} role='presentation' onclick={addOrigin}>
 		{#each origins as o, i (i)}
-			<div
+			<button
+				type='button'
 				class='marker'
 				style={`left:${(o / Math.max(1, width)) * 100}%`}
-				role='button'
-				tabindex='-1'
+				tabindex='0'
 				title={`x=${o}`}
 				onpointerdown={e => dragMarker(i, e)}
 				onclick={e => e.stopPropagation()}
 				oncontextmenu={e => removeOrigin(i, e)}
-			></div>
+			></button>
 		{/each}
 		{#if origins.length === 0}
 			<span class='empty'>{game.i18n.localize('splash.editor.originEditor.empty')}</span>
@@ -99,6 +99,9 @@
 		}
 
 		.marker {
+			padding: 0;
+			border: 0;
+			min-height: 0;
 			position: absolute;
 			top: 0;
 			bottom: 0;

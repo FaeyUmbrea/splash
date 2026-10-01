@@ -57,7 +57,7 @@ Use the `pages` fixture for the two clients and drive state through `page.evalua
 cross-client propagation with `expect.poll`. **Always** undo world mutations in a `finally`:
 
 ```ts
-test('…', async ({ pages: { gmPage, playerPage } }) => {
+test('…', async ({ pages: { gmPage } }) => {
 	const uuid = await uuidOf(gmPage, 'E2E Lock');
 	try {
 		// … act on gmPage, assert on playerPage via expect.poll …

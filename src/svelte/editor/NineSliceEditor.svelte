@@ -73,8 +73,8 @@
 	}
 </script>
 
-<div class='nine-slice-backdrop' role='presentation' onclick={onClose}>
-	<div class='nine-slice-editor' role='dialog' aria-label={title} onclick={e => e.stopPropagation()}>
+<div class='nine-slice-backdrop' role='presentation' onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+	<div class='nine-slice-editor' role='dialog' aria-label={title} tabindex='-1'>
 		<header>
 			<span>{game.i18n.format('splash.editor.nineSliceEditor.headerTitle', { title })}</span>
 			<span class='header-actions'>

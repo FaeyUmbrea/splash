@@ -1,7 +1,7 @@
 <svelte:options runes={true} />
 <script lang='ts'>
 	import type { SplashPage } from '../../utils/launch.ts';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { closeSplashOverlay } from '../../apps/overlay.ts';
 	import { SvelteRenderer } from '../../apps/SvelteRenderer.ts';
 	import { SplashModel } from '../../datamodel/SplashModel.ts';
@@ -14,7 +14,7 @@
 
 	const { page }: { page: SplashPage } = $props();
 
-	const model = new EditorModel(page);
+	const model = new EditorModel(untrack(() => page));
 	onDestroy(() => model.destroy());
 
 	$effect(() => {

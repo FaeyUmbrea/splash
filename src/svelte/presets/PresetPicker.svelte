@@ -60,8 +60,8 @@
 	onDestroy(() => hooks.forEach(([h], i) => Hooks.off(h, ids[i])));
 </script>
 
-<div class='preset-picker-backdrop' role='presentation' onclick={onClose}>
-	<div class='preset-picker' role='dialog' aria-label={title} tabindex='-1' onclick={e => e.stopPropagation()}>
+<div class='preset-picker-backdrop' role='presentation' onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+	<div class='preset-picker' role='dialog' aria-label={title} tabindex='-1'>
 		<header>
 			<span class='title'>{title}</span>
 			<button type='button' class='x' title={game.i18n.localize('splash.presets.presetPicker.close')} aria-label={game.i18n.localize('splash.presets.presetPicker.close')} onclick={onClose}><i class='fa-solid fa-xmark'></i></button>
