@@ -38,7 +38,7 @@ Targets Foundry VTT v13, maximum v14.
 
 ### Translation
 
-Splash currently ships English only. Translations are welcome — open a PR adding a `lang/<code>.json` and registering it in `module.json`.
+Help translate Splash on [Void Monster Translations](https://translate.void.monster/projects/splash/module/). Please submit human translations in languages you know. New languages also need an entry in `module.json` before they can be used in Foundry.
 
 ## Building
 
