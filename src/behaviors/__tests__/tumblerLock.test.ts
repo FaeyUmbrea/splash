@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { runInNewContext } from 'node:vm';
+import { describe, expect, it, vi } from 'vitest';
 import { tumblerLock } from '../tumblerLock.ts';
 
+/** Build a prefab for structural checks against its stored sprite records. */
 function build(codeword: string) {
 	return tumblerLock.build({ codeword }, { stateKey: 'initial' }) as Array<Record<string, any>>;
 }
@@ -57,5 +59,45 @@ describe('tumblerLock.build', () => {
 	it('places every sprite in the target state', () => {
 		const sprites = build('A');
 		expect(sprites.every(s => s.states.initial)).toBe(true);
+	});
+});
+
+/** Execute the generated unlock script with the same globals and scope tree available during playback. */
+function tryCombination(displayed: string) {
+	const sprites = tumblerLock.build({ codeword: 'OPEN' }, { stateKey: 'initial' });
+	const unlock = sprites.find(sprite => sprite?.type === 'button' && sprite.name === 'Unlock');
+	if (unlock?.type !== 'button' || unlock.onClick?.type !== 'script' || !unlock.onClick.source) {
+		throw new Error('The tumbler prefab has no unlock script.');
+	}
+	const context = unlock.context;
+	const wheels = context?.Wheels;
+	if (!Array.isArray(wheels)) throw new Error('The unlock script has no wheel references.');
+	const child = new Map(wheels.map((id, index) => [id, { child: new Map([['Middle', { text: displayed[index] }]]) }]));
+	const api = { unlockDoor: vi.fn(), close: vi.fn() };
+	const notifications = { info: vi.fn(), warn: vi.fn() };
+	runInNewContext(unlock.onClick.source, {
+		scope: { parent: { child } },
+		context,
+		api,
+		game: { i18n: { localize: (key: string) => key } },
+		ui: { notifications },
+	});
+	return { api, notifications };
+}
+
+describe('tumbler prefab playback', () => {
+	it('unlocks and closes for the configured word using only playback globals', () => {
+		const { api, notifications } = tryCombination('OPEN');
+		expect(api.unlockDoor).toHaveBeenCalledOnce();
+		expect(api.close).toHaveBeenCalledOnce();
+		expect(notifications.info).toHaveBeenCalledWith('splash.behavior.tumblerLock.unlocked');
+		expect(notifications.warn).not.toHaveBeenCalled();
+	});
+
+	it('keeps the puzzle open for a wrong combination', () => {
+		const { api, notifications } = tryCombination('AAAA');
+		expect(api.unlockDoor).not.toHaveBeenCalled();
+		expect(api.close).not.toHaveBeenCalled();
+		expect(notifications.warn).toHaveBeenCalledWith('splash.behavior.tumblerLock.wrongCombination');
 	});
 });

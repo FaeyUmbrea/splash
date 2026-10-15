@@ -16,7 +16,7 @@ export function findDefaultJournal(): JournalEntry | undefined {
 }
 
 /** A null `journalId` targets the default journal, which is auto-created here only if absent. */
-export async function createSplashPage(opts: { name: string; layer: string; journalId: string | null }): Promise<SplashPage | null> {
+export async function createSplashPage(opts: { name: string; layer: 'scene' | 'hud' | 'full' | 'handout'; journalId: string | null }): Promise<SplashPage | null> {
 	let journal: JournalEntry | undefined | null;
 	if (opts.journalId) {
 		journal = game.journal?.get(opts.journalId);
@@ -25,8 +25,9 @@ export async function createSplashPage(opts: { name: string; layer: string; jour
 	}
 	if (!journal) return null;
 
-	const created = await journal.createEmbeddedDocuments('JournalEntryPage', [
-		{ name: opts.name || 'New Splash', type: 'splash.splash', system: { layer: opts.layer } as never },
-	]);
-	return (created?.[0] ?? null) as SplashPage | null;
+	const page = await JournalEntryPage.create(
+		{ name: opts.name || 'New Splash', type: 'splash.splash', system: { layer: opts.layer } },
+		{ parent: journal },
+	);
+	return isSplashPage(page) ? page : null;
 }

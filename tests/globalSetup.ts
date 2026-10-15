@@ -94,14 +94,10 @@ async function seed(): Promise<Record<string, unknown>> {
 
 	let journal = game.journal.getName('E2E Splashes');
 	if (!journal) journal = await JournalEntry.create({ name: 'E2E Splashes', ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER } });
-	// Upsert: reset an existing page's structure to the canonical baseline.
+	// Existing fixtures belong to the world; only create missing pages.
 	const ensurePage = async (name: string, system: { layer: string; mode: string; children: object[]; handoutSize?: object }) => {
 		const existing = journal.pages.getName(name);
-		if (existing) {
-			const update: Record<string, unknown> = { 'system.==children': system.children, 'system.layer': system.layer, 'system.mode': system.mode };
-			if (system.handoutSize) update['system.==handoutSize'] = system.handoutSize;
-			await existing.update(update);
-		} else {
+		if (!existing) {
 			await journal.createEmbeddedDocuments('JournalEntryPage', [{ name, type: 'splash.splash', system }]);
 		}
 	};

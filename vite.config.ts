@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { visualizer } from 'rollup-plugin-visualizer';
 
@@ -17,6 +18,9 @@ if (releaseChannel !== 'public' && releaseChannel !== 'premium') {
 }
 const moduleId = releaseChannel === 'premium' ? `${moduleJSON.id}-premium` : moduleJSON.id;
 const s_PACKAGE_ID = `modules/${moduleId}`;
+const documentationChannel = releaseChannel === 'premium' ? 'early-access' : 'public';
+const documentationVersion = moduleJSON.version === '0.0.0' ? 'unreleased' : moduleJSON.version;
+const documentationUrl = `https://docs.void.monster/splash/${documentationChannel}/${documentationVersion}/user/`;
 
 // A short additional string to add to Svelte CSS hash values to make yours unique. This reduces the amount of
 // duplicated framework CSS overlap between many TRL packages enabled on Foundry VTT at the same time. 'tst' is chosen
@@ -31,7 +35,8 @@ export default defineConfig(({ mode }) => {
 		? {
 				cssHash: ({ hash, css }: { hash: (css: string) => string; css: string }) => `svelte-${s_SVELTE_HASH_ID}-${hash(css)}`,
 			}
-		: {};
+		// Foundry registers types once during init; component replacement can leave a new API singleton unregistered.
+		: { hmr: false };
 
 	return {
 		root: 'src/', // Source location / esbuild root.
@@ -39,7 +44,8 @@ export default defineConfig(({ mode }) => {
 		publicDir: false, // No public resources to copy.
 		cacheDir: '../.vite-cache', // Relative from root directory.
 		define: {
-			__MODULE_ID__: JSON.stringify(moduleId),
+			'import.meta.env.SPLASH_MODULE_ID': JSON.stringify(moduleId),
+			'import.meta.env.SPLASH_DOCUMENTATION_URL': JSON.stringify(documentationUrl),
 		},
 
 		resolve: {
@@ -64,7 +70,7 @@ export default defineConfig(({ mode }) => {
 		// debugger instance in your IDE and launch it with the URL: 'http://localhost:30001/game'.
 		//
 		// - The top proxy entry redirects requests under the module path for `style.css` and following standard static
-		// directories: `assets`, `lang`, and `packs` and will pull those resources from the main Foundry / 30000 server.
+		// directories: `assets` and `packs` and will pull those resources from the main Foundry / 30000 server.
 		// This is necessary to reference the dev resources as the root is `/src` and there is no public / static
 		// resources served with this particular Vite configuration. Modify the proxy rule as necessary for your
 		// static resources / project.
@@ -73,7 +79,7 @@ export default defineConfig(({ mode }) => {
 			open: '/game',
 			proxy: {
 				// Serves static files from main Foundry server.
-				[`^(/${s_PACKAGE_ID}/(assets|lang|packs|storage|dist/${moduleJSON.id}.css))`]: 'http://localhost:30000',
+				[`^(/${s_PACKAGE_ID}/(assets|packs|storage|dist/${moduleJSON.id}.css))`]: 'http://localhost:30000',
 
 				// All other paths besides package ID path are served from main Foundry server.
 				[`^(?!/${s_PACKAGE_ID}/)`]: 'http://localhost:30000',
@@ -90,7 +96,7 @@ export default defineConfig(({ mode }) => {
 		},
 		build: {
 			outDir: '../dist',
-			emptyOutDir: false,
+			emptyOutDir: true,
 			sourcemap: s_SOURCEMAPS,
 			brotliSize: true,
 			minify: s_COMPRESS,
@@ -110,6 +116,24 @@ export default defineConfig(({ mode }) => {
 		},
 
 		plugins: [
+			{
+				name: 'splash-development-translations',
+				/** Serve this checkout's translations alongside its source during Foundry proxy development. */
+				configureServer(server) {
+					server.middlewares.use(async (request, response, next) => {
+						const path = request.url?.split('?')[0];
+						const language = moduleJSON.languages.find(language => path === `/${s_PACKAGE_ID}/${language.path}`);
+						if (!language) return next();
+						try {
+							const content = await readFile(new URL(language.path, import.meta.url));
+							response.setHeader('Content-Type', 'application/json');
+							response.end(content);
+						} catch (error) {
+							next(error);
+						}
+					});
+				},
+			},
 			svelte({
 				compilerOptions,
 				preprocess: sveltePreprocess(),

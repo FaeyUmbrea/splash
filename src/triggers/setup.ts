@@ -9,6 +9,6 @@ export function setupTriggers(): void {
 	registerDoorIndicator();
 
 	const api = SplashAPI.getInstance();
-	api.registerTrigger('region', game.i18n.localize('splash.triggers.setup.regionLabel'), regionTrigger);
-	api.registerTrigger('door', game.i18n.localize('splash.triggers.setup.doorLabel'), doorTrigger);
+	api.registerTrigger('region', 'splash.triggers.setup.regionLabel', regionTrigger);
+	api.registerTrigger('door', 'splash.triggers.setup.doorLabel', doorTrigger);
 }

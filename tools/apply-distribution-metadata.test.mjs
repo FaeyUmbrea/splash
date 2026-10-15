@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { applyDistributionMetadata } from './apply-distribution-metadata.mjs';
 
+/** Stage a manifest and the project's VMM licence without changing source files. */
 async function fixture() {
 	const directory = await mkdtemp(path.join(tmpdir(), 'distribution-license-'));
 	const manifestPath = path.join(directory, 'module.json');
@@ -14,28 +15,29 @@ async function fixture() {
 		id: 'test-module',
 		title: 'Test Module',
 		authors: [{ name: 'Test Author' }],
-		license: 'AGPL-3.0-only',
+		license: 'LICENSE',
 	}, null, 2)}\n`);
-	await writeFile(licensePath, 'public license\n');
-	return { directory, manifestPath, licensePath };
+	const license = await readFile(new URL('../LICENSE', import.meta.url), 'utf8');
+	await writeFile(licensePath, license);
+	return { directory, manifestPath, licensePath, license };
 }
 
-test('leaves public distribution licensing unchanged', async (context) => {
+test('preserves the VMM licence in public distributions', async (context) => {
 	const files = await fixture();
 	context.after(() => rm(files.directory, { force: true, recursive: true }));
 
 	await applyDistributionMetadata('public', files.manifestPath, files.licensePath);
 
-	assert.equal(await readFile(files.licensePath, 'utf8'), 'public license\n');
+	assert.equal(await readFile(files.licensePath, 'utf8'), files.license);
 	assert.deepEqual(JSON.parse(await readFile(files.manifestPath, 'utf8')), {
 		id: 'test-module',
 		title: 'Test Module',
 		authors: [{ name: 'Test Author' }],
-		license: 'AGPL-3.0-only',
+		license: 'LICENSE',
 	});
 });
 
-test('applies the proprietary license to premium distributions', async (context) => {
+test('preserves the same VMM licence in premium distributions', async (context) => {
 	const files = await fixture();
 	context.after(() => rm(files.directory, { force: true, recursive: true }));
 
@@ -45,9 +47,22 @@ test('applies the proprietary license to premium distributions', async (context)
 		id: 'test-module-premium',
 		title: 'Test Module Premium',
 		authors: [{ name: 'Test Author' }],
-		license: 'All Rights Reserved',
+		license: 'LICENSE',
 	});
-	assert.match(await readFile(files.licensePath, 'utf8'), /^Copyright Test Author\. All rights reserved\./);
+	assert.equal(await readFile(files.licensePath, 'utf8'), files.license);
+});
+
+test('rejects a staged licence that is not VMM before changing the manifest', async (context) => {
+	const files = await fixture();
+	context.after(() => rm(files.directory, { force: true, recursive: true }));
+	const manifest = await readFile(files.manifestPath, 'utf8');
+	await writeFile(files.licensePath, 'All Rights Reserved\n');
+
+	await assert.rejects(
+		applyDistributionMetadata('premium', files.manifestPath, files.licensePath),
+		/The distribution must include the Void Monster Module Licence v1.0/,
+	);
+	assert.equal(await readFile(files.manifestPath, 'utf8'), manifest);
 });
 
 test('rejects unknown release channels', async (context) => {

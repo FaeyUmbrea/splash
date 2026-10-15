@@ -14,6 +14,8 @@ yarn test:e2e:headed   # watch it drive the browser
 
 The HTML report lands in `test-results/playwright-report/`.
 
+Before the first run, install the matching headless browser with `yarn exec playwright install chromium --only-shell`. To keep it on an external drive, set `PLAYWRIGHT_BROWSERS_PATH` to the same external cache directory for both installation and test runs.
+
 ### Prerequisites
 
 1. Foundry is running with the test world **active**, and the **`splash`** + **`lib-wrapper`** modules are
@@ -30,26 +32,27 @@ If a user password is set, pass it via `TEST_INSTALL_PASSWORD`.
 
 ## How it stays clean
 
-- **`globalSetup.ts`** seeds the world's baseline once, **idempotently** (by name, so re-runs are no-ops):
+- **`globalSetup.ts`** seeds the world's baseline once, **idempotently** (by name, so re-runs preserve existing documents):
   the `Player2`/`Player3` users, an `E2E Splashes` journal (a local fullscreen splash + a synced handout
   "lock"), and an `E2E Scene` with a door.
 - **Each test restores anything it changes** in a `finally` block — closes overlays, clears the lock's
-  `flags.splash.runtime`, unbinds doors. The world is always left in the seeded state, so runs never poison
-  one another. Re-running the suite back-to-back must stay green; if it doesn't, a test is leaking state.
+  `flags.splash.runtime`, unbinds doors. Re-running the suite back-to-back must stay green; failures can expose leaked state or nondeterministic synchronization. Existing fixture documents are not reset by setup.
 
-## A dedicated test world (recommended)
+## Existing test worlds and Foundry versions
 
-Running against your day-to-day world clutters it and steals the `Gamemaster` seat. Make a dedicated one:
+Use the existing Splash test world for the Foundry version being checked. Keep its installed game system compatible with that Foundry version. Starting a server, switching systems and migrating worlds are separate operations; the browser suite does not do them. Do not clone Foundry installations or create replacement worlds to run these tests.
 
-1. Log into any world, then use the in-world **Return to Setup** (the _world-overview_ "Go to Setup" button
-   can't return you to setup without a setup password set, so use the in-world one).
-2. On Setup, create a world (any system), enable **`splash`** + **`lib-wrapper`** in it, and launch it.
-3. Run `yarn test:e2e` — `globalSetup` populates everything it needs; nothing else to set up.
+Run the release playback checks against the selected running world:
 
-## Checking a new Foundry version (e.g. v14)
+```bash
+TEST_URL=http://localhost:30001 yarn test:e2e tests/release-playback.spec.ts
+```
 
-The seed _is_ the world data, so there's nothing binary to copy: create a fresh world on the new version,
-enable the two modules, and run the suite. Anything that regressed shows up as a failed test.
+These checks cover a player's gated transition and fresh local playback in HTML and WebGL, plus player-controlled region entry and the initiating-client boundary. They create disposable documents in the existing world and remove them afterwards. Renderer settings, active/viewed scene, token vision and pause state are restored. WebGL actions use pointer coordinates relative to the rendered stage; canvas pixels are attached to the report for inspection, not asserted as a complete visual comparison.
+
+Run the same tests on each claimed Foundry version. A successful server startup or compendium migration does not establish playback compatibility.
+
+For storage-constrained machines, set `PLAYWRIGHT_BROWSERS_PATH` and `TMPDIR` to an external drive before installing browsers and running tests. Reuse an existing compatible browser installation where available.
 
 ## Writing a test
 

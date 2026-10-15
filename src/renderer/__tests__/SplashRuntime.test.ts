@@ -15,7 +15,7 @@ function fakeRenderer() {
 			return handle;
 		}),
 		animate: vi.fn(async () => {}),
-		animationDuration: vi.fn((animation?: { delay?: number; duration?: number } | null) =>
+		animationDuration: vi.fn((animation?: { delay?: number | null; duration?: number | null } | null) =>
 			animation ? (animation.delay ?? 0) + (animation.duration ?? 3000) : 0),
 		destroy: vi.fn(),
 	} satisfies SplashRenderer;
@@ -197,13 +197,11 @@ describe('splashRuntime', () => {
 	it('seeds values from the splash and pushes changes to rendered sprites', async () => {
 		const { renderer, handles } = fakeRenderer();
 		const splash = fixture();
-		// @ts-expect-error plain test fixture
 		splash.values = { digit: '3' };
 		const runtime = new SplashRuntime(splash, renderer);
 		await runtime.initialize();
 
 		expect(runtime.values).toEqual({ digit: '3' });
-		// @ts-expect-error plain test action
 		await runtime.handleAction({ type: 'set-value', key: 'digit', value: '7' });
 		expect(runtime.values.digit).toBe('7');
 		expect(handles[0].updateValues).toHaveBeenLastCalledWith({ digit: '7' });
@@ -235,7 +233,6 @@ describe('splashRuntime', () => {
 		await runtime.handleAction(locked);
 		expect(events).not.toHaveBeenCalled();
 
-		// @ts-expect-error plain test action
 		await runtime.handleAction({ type: 'set-value', key: 'code', value: '42' });
 		// @ts-expect-error plain test action
 		await runtime.handleAction(locked);
@@ -246,7 +243,6 @@ describe('splashRuntime', () => {
 		const { renderer } = fakeRenderer();
 		const external = vi.fn();
 		const splash = fixture();
-		// @ts-expect-error plain test fixture
 		splash.states.second.onEnter = [{ type: 'macro', macro: 'm1' }];
 		const runtime = new SplashRuntime(splash, renderer, () => {}, { externalAction: external });
 		await runtime.initialize();
@@ -274,7 +270,6 @@ describe('splashRuntime', () => {
 			},
 		});
 		await runtime.initialize();
-		// @ts-expect-error plain test action
 		await runtime.handleAction({ type: 'set-value', key: 'k', value: 'v' });
 
 		expect(intercepted).toHaveLength(1);
@@ -286,7 +281,6 @@ describe('splashRuntime', () => {
 		const external = vi.fn();
 		const changed = vi.fn();
 		const splash = fixture();
-		// @ts-expect-error plain test fixture
 		splash.states.second.onEnter = [{ type: 'macro', macro: 'm1' }];
 		const runtime = new SplashRuntime(splash, renderer, () => {}, { externalAction: external, onChanged: changed });
 		await runtime.initialize();
@@ -297,6 +291,59 @@ describe('splashRuntime', () => {
 		expect(runtime.snapshot).toEqual({ loadedStates: ['initial', 'second'], values: { d: 5 }, overrides: {} });
 		expect(external).not.toHaveBeenCalled();
 		expect(changed).not.toHaveBeenCalled();
+	});
+
+	it('drops values absent from a replacement shared snapshot without echoing the reset', async () => {
+		const { renderer, handles } = fakeRenderer();
+		const changed = vi.fn();
+		const shared = vi.fn();
+		const splash = fixture();
+		splash.values = { answer: 'previous answer' };
+		const runtime = new SplashRuntime(splash, renderer, () => {}, { onChanged: changed, onShared: shared });
+		await runtime.initialize();
+		changed.mockClear();
+
+		await runtime.applyShared({ loadedStates: ['initial'], values: {}, overrides: {} });
+
+		expect(runtime.values).toEqual({});
+		expect(handles[0].updateValues).toHaveBeenLastCalledWith({});
+		expect(changed).not.toHaveBeenCalled();
+		expect(shared).toHaveBeenCalledWith({ loadedStates: ['initial'], values: {}, overrides: {} });
+	});
+
+	it('reports a local edit made while a shared state is still loading', async () => {
+		const { renderer } = fakeRenderer();
+		const changed = vi.fn();
+		const runtime = new SplashRuntime(fixture(), renderer, () => {}, { onChanged: changed });
+		await runtime.initialize();
+		changed.mockClear();
+		let finish!: () => void;
+		const gate = new Promise<void>((resolve) => {
+			finish = resolve;
+		});
+		const addSprite = renderer.addSprite.getMockImplementation()!;
+		renderer.addSprite.mockImplementationOnce(async (...args) => {
+			await gate;
+			return addSprite(...args);
+		});
+		const incoming = runtime.applyShared({ loadedStates: ['initial', 'second'], values: { answer: 'remote' }, overrides: {} });
+		await vi.waitFor(() => expect(renderer.addSprite).toHaveBeenCalledTimes(2));
+		const local = runtime.handleAction({ type: 'set-value', key: 'answer', value: 'local' });
+		finish();
+		await Promise.all([incoming, local]);
+		expect(runtime.values.answer).toBe('local');
+		expect(changed).toHaveBeenCalledOnce();
+		expect(changed.mock.calls[0][0].values).toEqual({ answer: 'local' });
+	});
+
+	it('finishes nested state-entry actions within a queued user action', async () => {
+		const { renderer } = fakeRenderer();
+		const splash = fixture();
+		splash.states.second.onEnter = [{ type: 'set-value', key: 'entered', value: 'yes' }];
+		const runtime = new SplashRuntime(splash, renderer);
+		await runtime.initialize();
+		await runtime.handleAction({ type: 'change-state', load: ['second'], unload: [], conditions: {} });
+		expect(runtime.values.entered).toBe('yes');
 	});
 
 	it('reports snapshots after local changes', async () => {
@@ -357,5 +404,45 @@ describe('splashRuntime', () => {
 		await runtime.initialize();
 		runtime.destroy();
 		expect(renderer.destroy).toHaveBeenCalledOnce();
+	});
+	it('does not load states after closing during asset preload', async () => {
+		const { renderer } = fakeRenderer();
+		let finish!: () => void;
+		renderer.preload.mockImplementation(() => new Promise<void>((resolve) => {
+			finish = resolve;
+		}));
+		const changed = vi.fn();
+		const runtime = new SplashRuntime(fixture(), renderer, () => {}, { onChanged: changed });
+		const loading = runtime.initialize();
+		await vi.waitFor(() => expect(renderer.preload).toHaveBeenCalledOnce());
+		runtime.destroy();
+		finish();
+		await loading;
+		expect(renderer.addSprite).not.toHaveBeenCalled();
+		expect(changed).not.toHaveBeenCalled();
+	});
+
+	it('does not start asset work if destroyed before startup begins', async () => {
+		const { renderer } = fakeRenderer();
+		const runtime = new SplashRuntime(fixture(), renderer);
+		const loading = runtime.initialize();
+		runtime.destroy();
+		await loading;
+		expect(renderer.preload).not.toHaveBeenCalled();
+	});
+
+	it('disposes sprite handles once and ignores actions after destruction', async () => {
+		const { renderer, handles } = fakeRenderer();
+		const changed = vi.fn();
+		const runtime = new SplashRuntime(fixture(), renderer, () => {}, { onChanged: changed });
+		await runtime.initialize();
+		changed.mockClear();
+		runtime.destroy();
+		runtime.destroy();
+		await runtime.handleAction({ type: 'set-value', key: 'answer', value: 'yes' } as never);
+		expect(handles.every(handle => handle.destroy.mock.calls.length === 1)).toBe(true);
+		expect(renderer.destroy).toHaveBeenCalledOnce();
+		expect(runtime.values.answer).toBeUndefined();
+		expect(changed).not.toHaveBeenCalled();
 	});
 });

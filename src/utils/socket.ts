@@ -1,6 +1,6 @@
 import type { SplashLayer } from './settings.ts';
 import { openSplashOverlay } from '../apps/overlay.ts';
-import { PACKAGE_ID } from './const.js';
+import { ID, PACKAGE_ID } from './const.js';
 import { canTriggerSplash, canViewSplash, isSplashPage } from './launch.ts';
 import { getObsUtilsModule } from './obsUtils.ts';
 
@@ -12,11 +12,18 @@ interface SplashSocketEvent {
 	payload: { uuid?: string; layer?: SplashLayer; skipOutro?: boolean; doorUuid?: string };
 }
 
-/** Open the wall as if its lock were solved. GM-only (players can't write wall documents). */
-async function unlockWall(doorUuid?: string): Promise<void> {
-	if (!game.user?.isGM || !doorUuid) return;
-	const wall = await fromUuid(doorUuid) as { update?: (d: object) => Promise<unknown> } | null;
-	await wall?.update?.({ ds: CONST.WALL_DOOR_STATES.OPEN });
+/** Open a real door on a GM client; player requests are limited to readable, trigger-bound Splash pages. */
+async function unlockWall(doorUuid?: string, requester = game.user): Promise<void> {
+	if (!game.user?.isGM || !requester || typeof doorUuid !== 'string' || !doorUuid) return;
+	const wall = await fromUuid(doorUuid);
+	if (!(wall instanceof WallDocument) || !wall.door) return;
+	if (!requester.isGM) {
+		const splashUuid = wall.getFlag(ID, 'launchSplash');
+		if (typeof splashUuid !== 'string') return;
+		const page = await fromUuid(splashUuid);
+		if (!isSplashPage(page) || !canViewSplash(page, requester)) return;
+	}
+	await wall.update({ ds: CONST.WALL_DOOR_STATES.OPEN });
 }
 
 export function registerSocket(): void {
@@ -32,7 +39,11 @@ function isObsClient(): boolean {
 	return getObsUtilsModule()?.api?.isOBS?.() ?? false;
 }
 
-async function handleEvent({ eventType, targetUser, senderId, payload }: SplashSocketEvent): Promise<void> {
+/** Use the sender supplied by Foundry's server, never the legacy sender ID in a message body. */
+async function handleEvent(event: SplashSocketEvent, senderId: string): Promise<void> {
+	if (!event || !event.payload || typeof event.payload !== 'object' || typeof senderId !== 'string') return;
+	const { eventType, targetUser, payload } = event;
+	if (['showSplash', 'openHandout', 'closeHandout'].includes(eventType) && typeof payload.uuid !== 'string') return;
 	if (!!targetUser && game.userId !== targetUser) return;
 	const sender = game.users?.get(senderId);
 	if (!sender) return;
@@ -40,7 +51,8 @@ async function handleEvent({ eventType, targetUser, senderId, payload }: SplashS
 	if (eventType === 'showSplash') {
 		const page = await fromUuid(payload.uuid ?? '');
 		if (!isSplashPage(page) || !canTriggerSplash(page, sender)) return;
-		await openSplashOverlay(page, { layer: payload.layer ?? 'full' });
+		const layer = payload.layer === 'scene' || payload.layer === 'hud' ? payload.layer : 'full';
+		await openSplashOverlay(page, { layer });
 	} else if (eventType === 'closeSplash') {
 		if (!sender.isGM) return;
 		Hooks.call('splash.close-splash', { skipOutro: payload.skipOutro });
@@ -52,11 +64,13 @@ async function handleEvent({ eventType, targetUser, senderId, payload }: SplashS
 		await openHandout(page);
 	} else if (eventType === 'closeHandout') {
 		if (!isObsClient()) return;
-		const page = await fromUuid(payload.uuid ?? '') as JournalEntryPage | null;
-		if (!sender.isGM || !page) return;
-		await foundry.applications.instances.get(`splash-handout-${page.id}`)?.close();
+		const page = await fromUuid(payload.uuid ?? '');
+		if (!sender.isGM || !isSplashPage(page)) return;
+		const { closeHandout } = await import('../apps/handout.ts');
+		await closeHandout(page.uuid);
 	} else if (eventType === 'unlockDoor') {
-		await unlockWall(payload.doorUuid);
+		if (game.users?.activeGM?.id !== game.userId) return;
+		await unlockWall(payload.doorUuid, sender);
 	}
 }
 

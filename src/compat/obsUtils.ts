@@ -3,8 +3,10 @@ import { mount, unmount } from 'svelte';
 import { SplashAPI } from '../api/api.ts';
 import SplashDirectorTab from '../svelte/director/SplashDirectorTab.svelte';
 import { ID, PACKAGE_ID } from '../utils/const.js';
+import { canViewSplash, isSplashPage } from '../utils/launch.ts';
 import { getObsUtilsModule } from '../utils/obsUtils.ts';
 import { SETTING_OBS_LAST_STATE, SETTING_SPECTATED_USER } from '../utils/settings.ts';
+import { isRuntimeSnapshot } from '../utils/sync.ts';
 
 interface PresenceEvent {
 	eventType: 'splashPresence';
@@ -59,40 +61,58 @@ export function broadcastClearStream(): void {
 /** OBS client: mirror the player named in the `spectatedUser` setting, and remember what it shows so a reload restores it. */
 function registerSpectator(): void {
 	const readSpectated = (): string | null => (game.settings?.get(ID, SETTING_SPECTATED_USER) as string) || null;
+	let pending = Promise.resolve();
+	/** Keep opening, updates and closing in arrival order, recovering the queue after a failed operation. */
+	const enqueue = (update: () => Promise<void>): Promise<void> => {
+		pending = pending.then(update).catch((error) => {
+			console.error('Splash | spectator update failed', error);
+		});
+		return pending;
+	};
 	spectatedUserId = readSpectated();
-	void restoreLastState();
+	void enqueue(restoreLastState);
 
 	Hooks.on('splash.spectated-changed', () => {
 		spectatedUserId = readSpectated();
 		// Drop the current mirror; the newly-watched player's next presence reopens it.
-		void closeSpectate();
+		void enqueue(closeSpectate);
 	});
 
-	game.socket?.on(`module.${PACKAGE_ID}`, async (event: PresenceEvent | ClearStreamEvent) => {
+	game.socket?.on(`module.${PACKAGE_ID}`, (event: PresenceEvent | ClearStreamEvent, senderId: string) => enqueue(async () => {
+		if (typeof senderId !== 'string') return;
+		const sender = game.users?.get(senderId);
+		if (!sender) return;
 		if (event?.eventType === 'splashClearStream') {
+			if (!sender.isGM) return;
 			await clearAll();
 			return;
 		}
 		if (event?.eventType !== 'splashPresence') return;
-		if (!spectatedUserId || event.senderId !== spectatedUserId) return;
+		if (!spectatedUserId || senderId !== spectatedUserId) return;
+		if (!event.payload || typeof event.payload.uuid !== 'string') return;
 		const { uuid, snapshot } = event.payload;
 		if (!uuid || !snapshot) {
+			await closeSpectate();
+			return;
+		}
+		if (!isRuntimeSnapshot(snapshot)) return;
+		const page = await fromUuid(uuid);
+		if (!isSplashPage(page) || !canViewSplash(page, sender) || !canViewSplash(page)) {
 			await closeSpectate();
 			return;
 		}
 		const api = SplashAPI.getInstance();
 		if (openUuid !== uuid) {
 			await closeSpectate();
-			openUuid = uuid;
-			const page = await fromUuid(uuid);
-			openMode = (page as { system?: { mode?: string } } | null)?.system?.mode ?? 'local';
 			await api.openSpectator(uuid);
+			openUuid = uuid;
+			openMode = (page.system as { mode?: string }).mode ?? 'local';
 		}
 		// Synced splashes get shared state from the sync flag (adopted in openSpectator, kept current by
 		// registerSyncHooks); only local splashes carry the player's private state in the presence snapshot.
 		if (openMode === 'local') await api.applySplashState(uuid, snapshot);
 		saveLastState({ uuid, snapshot: openMode === 'local' ? snapshot : null, mode: openMode ?? 'local' });
-	});
+	}));
 }
 
 function saveLastState(state: LastState | null): void {
@@ -103,11 +123,16 @@ function saveLastState(state: LastState | null): void {
 async function restoreLastState(): Promise<void> {
 	const last = game.settings?.get(ID, SETTING_OBS_LAST_STATE) as LastState | null;
 	if (!last?.uuid) return;
+	const page = await fromUuid(last.uuid);
+	if (!isSplashPage(page) || !canViewSplash(page)) {
+		saveLastState(null);
+		return;
+	}
 	const api = SplashAPI.getInstance();
+	await api.openSpectator(last.uuid);
 	openUuid = last.uuid;
 	openMode = last.mode;
-	await api.openSpectator(last.uuid);
-	if (last.mode === 'local' && last.snapshot) await api.applySplashState(last.uuid, last.snapshot);
+	if (last.mode === 'local' && isRuntimeSnapshot(last.snapshot)) await api.applySplashState(last.uuid, last.snapshot);
 }
 
 /** Close everything this OBS client is showing: the mirror and any streamed handouts. */

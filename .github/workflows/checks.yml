@@ -31,12 +31,17 @@ jobs:
         run: yarn lint
 
 
+      - name: Type check
+        run: yarn check:types
+
       - name: Unit tests
         run: yarn test:unit
 
-
       - name: Build
         run: yarn build
+
+      - name: Distribution tests
+        run: node --test tools/*.test.mjs
 
       - name: Build API type artifact
         run: |

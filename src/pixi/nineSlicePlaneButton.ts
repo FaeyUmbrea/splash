@@ -1,19 +1,19 @@
 import type { ButtonImageInitialized as ButtonImage, ButtonLabelInitialized as ButtonLabel } from '../datamodel/SplashModel.ts';
 
 interface NineSlicePlaneButtonSettings {
-	width?: number;
-	height?: number;
+	width?: number | null;
+	height?: number | null;
 
 	onTap: (() => void) | (() => Promise<void>);
 
 	label: ButtonLabel;
 	image: ButtonImage;
 
-	hoverLabel?: ButtonLabel;
-	hoverImage?: ButtonImage;
+	hoverLabel?: ButtonLabel | null;
+	hoverImage?: ButtonImage | null;
 
-	clickLabel?: ButtonLabel;
-	clickImage?: ButtonImage;
+	clickLabel?: ButtonLabel | null;
+	clickImage?: ButtonImage | null;
 
 	tint?: string;
 	hoverTint?: string;

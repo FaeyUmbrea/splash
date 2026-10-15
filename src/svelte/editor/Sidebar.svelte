@@ -9,25 +9,20 @@
 
 	const { model }: { model: EditorModel } = $props();
 
-	let tab = $state('object');
 	const tabs: Tab[] = [
 		{ id: 'object', label: game.i18n.localize('splash.editor.sidebar.tabObject'), icon: 'fa-solid fa-cube' },
 		{ id: 'state', label: game.i18n.localize('splash.editor.sidebar.tabState'), icon: 'fa-solid fa-clapperboard' },
 		{ id: 'splash', label: game.i18n.localize('splash.editor.sidebar.tabSplash'), icon: 'fa-solid fa-image' },
 	];
 
-	// Selecting an object jumps to the Object tab.
-	$effect(() => {
-		if (model.selectedId) tab = 'object';
-	});
 </script>
 
 <div class='sidebar'>
-	<div class='tabs'><Tabs {tabs} bind:value={tab} /></div>
+	<div class='tabs'><Tabs {tabs} bind:value={model.inspector} /></div>
 	<div class='content'>
-		{#if tab === 'object'}
+		{#if model.inspector === 'object'}
 			<ObjectTab {model} />
-		{:else if tab === 'state'}
+		{:else if model.inspector === 'state'}
 			<StateTab {model} />
 		{:else}
 			<SplashTab {model} />

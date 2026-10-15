@@ -25,6 +25,7 @@ import type {
 	TriggerDefinition,
 	TriggerOptions,
 } from '../public-api.ts';
+import { localize } from '../utils/i18n.ts';
 
 export type {
 	ActionProcessor,
@@ -139,14 +140,14 @@ export class SplashAPI implements SplashApi {
 	// read time, which the editors do per render. localize() returns its input unchanged for non-keys, so a
 	// third party may pass either an i18n key or a plain string.
 	private localizeType(type: string, name: string, meta: EditorMeta = {}): RegisteredType {
-		const loc = (s?: string) => (s == null ? s : game.i18n.localize(s));
+		const loc = (s?: string) => (s == null ? s : localize(s));
 		return {
 			type,
-			name: game.i18n.localize(name),
+			name: localize(name),
 			icon: meta.icon,
 			defaults: meta.defaults,
 			fields: meta.fields?.map((f) => {
-				if (f.type === 'select') return { ...f, label: loc(f.label), placeholder: loc(f.placeholder), options: f.options?.map(o => ({ ...o, label: game.i18n.localize(o.label) })) };
+				if (f.type === 'select') return { ...f, label: loc(f.label), placeholder: loc(f.placeholder), options: f.options?.map(o => ({ ...o, label: localize(o.label) })) };
 				if (f.type === 'code') return { ...f, label: loc(f.label), hint: loc(f.hint) };
 				if (f.type === 'conditions') return { ...f };
 				return { ...f, label: loc(f.label) };
@@ -166,17 +167,25 @@ export class SplashAPI implements SplashApi {
 		return Array.from(this.actionNames.entries()).map(([type, name]) => this.localizeType(type, name, this.actionMeta.get(type)));
 	}
 
-	/** First-party triggers (door, region) register through this same API. */
+	/** Register trigger callbacks with a label or translation key; resolve the label when read. */
 	public registerTrigger(type: string, label: string, options: TriggerOptions): void {
 		this.triggers.set(type, { type, label, ...options });
 	}
 
-	public get registeredTriggers(): TriggerDefinition[] {
-		return Array.from(this.triggers.values());
+	/** Resolve a trigger label when read, after Foundry has loaded its translations. */
+	private localizeTrigger(trigger: TriggerDefinition): TriggerDefinition {
+		return { ...trigger, label: localize(trigger.label) };
 	}
 
+	/** Read the registered triggers with labels resolved in the current locale. */
+	public get registeredTriggers(): TriggerDefinition[] {
+		return Array.from(this.triggers.values()).map(trigger => this.localizeTrigger(trigger));
+	}
+
+	/** Find a trigger by type and resolve its label without changing the registration. */
 	public getTrigger(type: string): TriggerDefinition | undefined {
-		return this.triggers.get(type);
+		const trigger = this.triggers.get(type);
+		return trigger ? this.localizeTrigger(trigger) : undefined;
 	}
 
 	public bindingsForSplash(splashUuid: string): TriggerBinding[] {
@@ -188,13 +197,18 @@ export class SplashAPI implements SplashApi {
 		uuid: string,
 		{ layer = 'full', global = false, targetUser }: { layer?: SplashLayer; global?: boolean; targetUser?: string } = {},
 	): Promise<void> {
-		const { canTriggerSplash, isSplashPage } = await import('../utils/launch.ts');
+		const { canTriggerSplash, canViewSplash, isSplashPage } = await import('../utils/launch.ts');
 		const page = await fromUuid(uuid);
 		if (!isSplashPage(page)) {
 			ui.notifications?.warn(`Splash | ${uuid} is not a splash journal page.`);
 			return;
 		}
-		if (!canTriggerSplash(page)) {
+		if (global && !game.user?.isGM) {
+			ui.notifications?.warn('Splash | Only a GM can launch a global splash.');
+			return;
+		}
+		const canShow = global || targetUser ? canTriggerSplash(page) : canViewSplash(page);
+		if (!canShow) {
 			ui.notifications?.warn('Splash | You lack permission to show this splash.');
 			return;
 		}
@@ -257,9 +271,9 @@ export class SplashAPI implements SplashApi {
 
 	/** Open a splash on this client as a passive spectator mirror: no input, no presence, driven by applySplashState. */
 	public async openSpectator(uuid: string): Promise<void> {
-		const { isSplashPage } = await import('../utils/launch.ts');
+		const { canViewSplash, isSplashPage } = await import('../utils/launch.ts');
 		const page = await fromUuid(uuid);
-		if (!isSplashPage(page)) return;
+		if (!isSplashPage(page) || !canViewSplash(page)) return;
 		const layer = (page.system as SplashInitialized).layer;
 		if (layer === 'handout') {
 			const { openHandout } = await import('../apps/handout.ts');
@@ -287,8 +301,8 @@ export class SplashAPI implements SplashApi {
 	public async closeSpectator(uuid: string): Promise<void> {
 		const { closeSplashOverlay } = await import('../apps/overlay.ts');
 		await closeSplashOverlay({ skipOutro: true });
-		const page = await fromUuid(uuid) as JournalEntryPage | null;
-		if (page) await foundry.applications.instances.get(`splash-handout-${page.id}`)?.close();
+		const { closeHandout } = await import('../apps/handout.ts');
+		await closeHandout(uuid);
 	}
 
 	/** Close the active splash locally; `global` (GM only) kills it for the whole table. */

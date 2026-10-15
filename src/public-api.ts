@@ -64,7 +64,7 @@ export interface FieldOption {
 /** Describes one property rendered by Splash's built-in editors. */
 export type FieldDef
 	= | { type: 'number'; key: string; label?: string; step?: number; group?: string }
-		| { type: 'text'; key: string; label?: string; group?: string }
+		| { type: 'text'; key: string; label?: string; group?: string; source?: 'values' }
 		| { type: 'color'; key: string; label?: string; group?: string }
 		| { type: 'checkbox'; key: string; label?: string; group?: string }
 		| { type: 'code'; key: string; label?: string; hint?: string }
@@ -108,6 +108,7 @@ export interface TriggerBinding {
 /** A trigger type registered by Splash or another module. */
 export interface TriggerDefinition {
 	type: string;
+	/** Display label, localized in the current language when read from the registry. */
 	label: string;
 	icon: string;
 	createBinding: (splashUuid: string) => Promise<boolean>;
@@ -142,6 +143,7 @@ export interface SplashApi {
 		builder: EffectBuilder<E>,
 		meta?: EditorMeta,
 	) => void;
+	/** Register a trigger with a display label or i18n key; labels are localized when read. */
 	registerTrigger: (type: string, label: string, options: TriggerOptions) => void;
 	readonly registeredAnimations: RegisteredType[];
 	readonly registeredEffects: RegisteredType[];
@@ -149,6 +151,7 @@ export interface SplashApi {
 	readonly registeredTriggers: TriggerDefinition[];
 	getTrigger: (type: string) => TriggerDefinition | undefined;
 	bindingsForSplash: (splashUuid: string) => TriggerBinding[];
+	/** Show locally for an Observer; targeting another client requires Owner, and global launch requires a GM. */
 	show: (
 		uuid: string,
 		options?: { layer?: SplashLayer; global?: boolean; targetUser?: string },

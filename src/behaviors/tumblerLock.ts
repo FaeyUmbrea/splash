@@ -1,6 +1,7 @@
 import type { SpriteCreate } from '../datamodel/SplashModel.ts';
 import type { PrefabBehavior } from './index.ts';
 import { nanoid } from 'nanoid';
+import { localize } from '../utils/i18n.ts';
 
 /**
  * The output is a plain portable splash; interactivity rides in two inline macros parameterized by
@@ -27,9 +28,9 @@ const Y0 = 200;
 export const tumblerLock: PrefabBehavior = {
 	key: 'tumbler-lock',
 	// Getters, not eager calls: this is imported before game.i18n exists, and in Node when buildPresets bundles it.
-	get label() { return game.i18n.localize('splash.behavior.tumblerLock.label'); },
+	get label() { return localize('splash.behavior.tumblerLock.label'); },
 	icon: 'fa-solid fa-lock',
-	fields: [{ key: 'codeword', get label() { return game.i18n.localize('splash.behavior.tumblerLock.codeword'); }, type: 'text', default: 'OPEN' }],
+	fields: [{ key: 'codeword', get label() { return localize('splash.behavior.tumblerLock.codeword'); }, type: 'text', default: 'OPEN' }],
 
 	build(config, { stateKey }) {
 		const word = (String(config.codeword ?? '').toUpperCase().replace(/[^A-Z]/g, '') || 'OPEN');

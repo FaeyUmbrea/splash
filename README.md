@@ -104,7 +104,7 @@ yarn linkFoundry
 
 ## License
 
-AGPL-3.0-only
+The current source and future public and early-access releases use the [Void Monster Module Licence v1.0](LICENSE). Earlier releases retain the licences distributed with them.
 
 ## Code contributions
 

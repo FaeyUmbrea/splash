@@ -1,5 +1,22 @@
 # Changelog
 
+## Version 1.2.0
+
+### Added
+
+- A clearer editor with object explanations, discoverable arrangement controls and an Appearance / Placement / Behaviour inspector.
+- Preview state/value controls, restart and feedback for incomplete actions. Value fields suggest existing names.
+
+### Changed
+
+- Public and early-access builds use the Void Monster Module Licence v1.0. Earlier releases retain their original licences.
+
+### Fixed
+
+- Failed saves and undo retain the editable draft and support retry.
+- Shared edits, counters, votes and OBS mirroring preserve updates reliably.
+- Global Close clears playback and GM controls. Imported handouts, trigger permissions, button readability and tumbler alignment are corrected.
+
 ## Version 1.1.0
 
 ### Added

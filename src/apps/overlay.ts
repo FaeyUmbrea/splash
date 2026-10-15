@@ -1,9 +1,9 @@
+import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
 import type { SplashPage } from '../utils/launch.ts';
 import type { SplashLayer } from '../utils/settings.ts';
 import SplashUI from '../svelte/SplashUI.svelte';
+import { OVERLAY_ID } from '../utils/const.ts';
 import { SvelteRenderer } from './SvelteRenderer.ts';
-
-const OVERLAY_ID = 'splash-application';
 
 export interface SplashOptions {
 	layer?: SplashLayer;
@@ -18,7 +18,7 @@ function applyLayerClasses(layer: SplashLayer | null): void {
 
 /** The fullscreen splash-mode application. */
 class SplashOverlayApplication extends SvelteRenderer {
-	protected override _onClose(options: foundry.applications.api.ApplicationV2.ClosingOptions): void {
+	protected override _onClose(options: foundry.applications.api.ApplicationV2.RenderOptions): void {
 		super._onClose(options);
 		applyLayerClasses(null);
 	}
@@ -37,7 +37,8 @@ export async function openSplashOverlay(page: SplashPage, { layer = 'full', skip
 }
 
 export async function closeSplashOverlay({ skipOutro = false }: { skipOutro?: boolean } = {}): Promise<void> {
-	await foundry.applications.instances.get(OVERLAY_ID)?.close({ skipOutro } as foundry.applications.api.ApplicationV2.ClosingOptions);
+	const overlay = foundry.applications.instances.get(OVERLAY_ID) as SvelteApplication | undefined;
+	await overlay?.close({ skipOutro });
 }
 
 export function getSplashOverlay(): foundry.applications.api.ApplicationV2.Any | undefined {

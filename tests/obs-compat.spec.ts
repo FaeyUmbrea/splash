@@ -3,7 +3,7 @@ import { expect, obsTest as test } from './fixtures.ts';
 
 /**
  * OBS Utils integration. Three sessions: GM (director), an OBS client, and an interacting player. The GM
- * emits the same socket events the Director tab does; the OBS client's compat layer reacts. Every test
+ * selects the watched user through the same Splash setting as the Director tab; the OBS client's compat layer reacts. Every test
  * restores the world (closes splashes, clears the spectate selection, resets renderers).
  *
  * Requires obs-utils and lib-wrapper enabled in the world.
@@ -21,9 +21,9 @@ async function userId(page: Page): Promise<string> {
 	return page.evaluate(() => (globalThis as any).game.userId as string);
 }
 async function closeHandouts(page: Page): Promise<void> {
-	await page.evaluate(() => {
+	await page.evaluate(async () => {
 		for (const app of [...(globalThis as any).foundry.applications.instances.values()]) {
-			if (app.id?.startsWith?.('splash-handout-')) app.close();
+			if (app.id?.startsWith?.('splash-handout-')) await app.close();
 		}
 	});
 }
@@ -59,7 +59,7 @@ test('the director pushes a handout onto the OBS client', async ({ pages: { gmPa
 });
 
 test('the OBS client mirrors a player\'s local splash interaction', async ({ pages: { gmPage, obsPage, playerPage } }) => {
-	const obsId = await userId(obsPage);
+	const originalSpectated = await gmPage.evaluate(() => (globalThis as any).game.settings.get('splash', 'spectatedUser'));
 	const playerPid = await userId(playerPage);
 	const localUuid = await uuidOf(gmPage, 'E2E Local');
 	await useRenderer(obsPage, 'html');
@@ -68,21 +68,15 @@ test('the OBS client mirrors a player\'s local splash interaction', async ({ pag
 		await playerPage.evaluate(u => (globalThis as any).game.modules.get('splash').api.openHandout(u), localUuid);
 		await expect(playerPage.locator('.splash-handout')).toBeVisible();
 
-		// Director selects this player for the OBS client to spectate (same event broadcastSpectate emits).
-		await gmPage.evaluate(({ target, uid }) => {
-			const g = globalThis as any;
-			g.game.socket.emit('module.splash', { eventType: 'splashSpectate', targetUser: target, senderId: g.game.userId, payload: { userId: uid } });
-		}, { target: obsId, uid: playerPid });
-		await playerPage.waitForTimeout(200);
+		// The Director selection is a world setting; wait for its change to reach the OBS client.
+		await gmPage.evaluate(uid => (globalThis as any).game.settings.set('splash', 'spectatedUser', uid), playerPid);
+		await expect.poll(() => obsPage.evaluate(() => (globalThis as any).game.settings.get('splash', 'spectatedUser'))).toBe(playerPid);
 
 		// The player interacts; their presence snapshot broadcasts and the OBS client mirrors it.
 		await playerPage.locator('.splash-handout').getByText('Set', { exact: true }).click();
 		await expect(obsPage.locator('.splash-handout').getByText('Code: 1')).toBeVisible();
 	} finally {
-		await gmPage.evaluate(({ target }) => {
-			const g = globalThis as any;
-			g.game.socket.emit('module.splash', { eventType: 'splashSpectate', targetUser: target, senderId: g.game.userId, payload: { userId: null } });
-		}, { target: obsId });
+		await gmPage.evaluate(value => (globalThis as any).game.settings.set('splash', 'spectatedUser', value), originalSpectated);
 		await closeHandouts(playerPage);
 		await closeHandouts(obsPage);
 		await useRenderer(obsPage, 'webgl');

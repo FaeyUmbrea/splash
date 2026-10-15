@@ -7,6 +7,7 @@ import type {
 import type { RenderedSprite, SplashRenderer, SplashValues, SpriteOverrides } from './SplashRenderer.ts';
 import type { SpriteNode, SpriteTree } from './spriteTree.ts';
 import { getChildrenWithState } from '../utils/helpers.ts';
+import { incrementValue } from '../utils/incrementValue.ts';
 import { interpolate } from '../utils/interpolate.ts';
 import { buildSpriteTree } from './spriteTree.ts';
 
@@ -27,12 +28,15 @@ export interface SplashRuntimeOptions {
 	/** Executes action types the runtime does not handle itself (e.g. macros). */
 	externalAction?: (action: ActionInitialized) => Promise<void> | void;
 	/**
-	 * Pre-empts action handling; returning true consumes the action. Synced
-	 * players use this to forward intents to the GM instead of acting locally.
+	 * Pre-empts action handling; returning true consumes the action. The shared
+	 * driver uses this for value commands and votes, which the active GM accepts
+	 * against shared state rather than executing on the initiating client.
 	 */
 	interceptAction?: (action: ActionInitialized, sourceId?: string) => Promise<boolean> | boolean;
 	/** Notified after loaded states or values change (used to persist shared state). */
 	onChanged?: (snapshot: RuntimeSnapshot) => void;
+	/** Observes adopted shared state separately from local edits. */
+	onShared?: (snapshot: RuntimeSnapshot) => void;
 	/** What launched this splash (e.g. `{ door }`), exposed to inline macros as `api.trigger`. */
 	trigger?: Record<string, unknown>;
 }
@@ -49,14 +53,17 @@ export class SplashRuntime {
 	#externalAction: (action: ActionInitialized) => Promise<void> | void;
 	#interceptAction: (action: ActionInitialized, sourceId?: string) => Promise<boolean> | boolean;
 	#onChanged: (snapshot: RuntimeSnapshot) => void;
+	#onShared: (snapshot: RuntimeSnapshot) => void;
 
 	#rendered: Map<string, RenderedSprite> = new Map();
 	#loadedStates: string[] = [];
 	#changingBlocked = false;
 	#suppressAnimIn = false;
 	#mirroring = false;
+	#operations = Promise.resolve();
 	// Without this, teardown broadcasts `loadedStates: []` and blanks the next synced open.
 	#tearingDown = false;
+	#destroyed = false;
 	#values: SplashValues = {};
 	#overrides: Record<string, SpriteOverrides> = {};
 	#trigger: Record<string, unknown>;
@@ -66,7 +73,7 @@ export class SplashRuntime {
 		splash: SplashInitialized,
 		renderer: SplashRenderer,
 		events: SplashEventSink = () => {},
-		{ externalAction = () => {}, interceptAction = () => false, onChanged = () => {}, trigger = {} }: SplashRuntimeOptions = {},
+		{ externalAction = () => {}, interceptAction = () => false, onChanged = () => {}, onShared = () => {}, trigger = {} }: SplashRuntimeOptions = {},
 	) {
 		this.#splash = splash;
 		this.#renderer = renderer;
@@ -74,6 +81,7 @@ export class SplashRuntime {
 		this.#externalAction = externalAction;
 		this.#interceptAction = interceptAction;
 		this.#onChanged = onChanged;
+		this.#onShared = onShared;
 		this.#trigger = trigger;
 		this.#values = { ...(splash.values ?? {}) };
 	}
@@ -94,6 +102,7 @@ export class SplashRuntime {
 
 	/** Set an ephemeral property override on a sprite (synced, never persisted); null/undefined clears the property. */
 	setOverride(spriteId: string, property: string, value: unknown): void {
+		if (this.#destroyed) return;
 		const current = this.#overrides[spriteId] ?? {};
 		if (value === undefined || value === null) delete current[property];
 		else current[property] = value;
@@ -104,13 +113,28 @@ export class SplashRuntime {
 		this.#emitChanged();
 	}
 
-	/** Mirror an authoritative shared snapshot. onEnter actions are suppressed; only the executing (GM) client runs side effects. */
-	async applyShared(snapshot: RuntimeSnapshot): Promise<void> {
+	/** Replace shared playback state without rerunning state-entry actions or echoing changes. */
+	applyShared(snapshot: RuntimeSnapshot): Promise<void> {
+		return this.#enqueue(() => this.#applyShared(snapshot));
+	}
+
+	/** Keep startup, user actions and shared adoption ordered, while allowing later work after a failure. */
+	#enqueue(operation: () => Promise<void>): Promise<void> {
+		const update = this.#operations.then(operation);
+		this.#operations = update.catch((error) => {
+			console.error('Splash | runtime operation failed', error);
+		});
+		return update;
+	}
+
+	/** Finish one shared adoption before another snapshot or local action changes the same runtime. */
+	async #applyShared(snapshot: RuntimeSnapshot): Promise<void> {
+		if (this.#destroyed) return;
 		this.#mirroring = true;
 		try {
-			for (const [key, value] of Object.entries(snapshot.values)) {
-				if (this.#values[key] !== value) this.#setValue(key, value);
-			}
+			// A shared snapshot replaces values, including keys removed by a reset.
+			this.#values = { ...snapshot.values };
+			for (const rendered of this.#rendered.values()) rendered.updateValues(this.#values);
 			for (const stateId of snapshot.loadedStates) {
 				if (!this.#loadedStates.includes(stateId)) await this.loadState(stateId);
 			}
@@ -127,17 +151,25 @@ export class SplashRuntime {
 					if (local[property] !== value) this.setOverride(spriteId, property, value);
 				}
 			}
+			if (!this.#destroyed) this.#onShared(this.snapshot);
 		} finally {
 			this.#mirroring = false;
 		}
 	}
 
 	/** Preload assets and bring up the initial states. skipAnimations is for restoring clients, which must show the splash instantly. */
-	async initialize({ skipAnimations = false }: { skipAnimations?: boolean } = {}): Promise<void> {
+	initialize(options: { skipAnimations?: boolean } = {}): Promise<void> {
+		return this.#enqueue(() => this.#initialize(options));
+	}
+
+	/** Run initial state-entry actions within startup rather than queuing them behind startup itself. */
+	async #initialize({ skipAnimations = false }: { skipAnimations?: boolean }): Promise<void> {
+		if (this.#destroyed) return;
 		this.#suppressAnimIn = skipAnimations;
 		try {
 			await this.#renderer.preload(this.#splash.children);
 			for (const state of this.#splash.initialState) {
+				if (this.#destroyed) return;
 				if (state) await this.loadState(state);
 			}
 		} finally {
@@ -146,8 +178,13 @@ export class SplashRuntime {
 	}
 
 	/** Apply a sprite-triggered action. Value/state actions stay in-instance (so open splashes don't cross-talk); the rest goes to the external executor. */
-	async handleAction(action: ActionInitialized, sourceId?: string): Promise<void> {
-		if (await this.#interceptAction(action, sourceId)) return;
+	handleAction(action: ActionInitialized, sourceId?: string): Promise<void> {
+		return this.#enqueue(() => this.#handleAction(action, sourceId));
+	}
+
+	/** Execute nested actions in the current operation so state entry and drop actions cannot queue behind themselves. */
+	async #handleAction(action: ActionInitialized, sourceId?: string): Promise<void> {
+		if (this.#destroyed || await this.#interceptAction(action, sourceId) || this.#destroyed) return;
 		switch (action.type) {
 			case 'script':
 				await this.#runScript((action as { source?: string }).source ?? '', sourceId);
@@ -156,17 +193,7 @@ export class SplashRuntime {
 				this.#setValue(action.key ?? '', action.value ?? '');
 				break;
 			case 'increment-value': {
-				const current = Number(this.#values[action.key ?? ''] ?? 0);
-				let next = current + (action.step ?? 1);
-				const { min, max, wrap } = action;
-				if (wrap && min !== null && max !== null && min !== undefined && max !== undefined) {
-					if (next > max) next = min;
-					if (next < min) next = max;
-				} else {
-					if (max !== null && max !== undefined) next = Math.min(next, max);
-					if (min !== null && min !== undefined) next = Math.max(next, min);
-				}
-				this.#setValue(action.key ?? '', next);
+				this.#setValue(action.key ?? '', incrementValue(this.#values[action.key ?? ''], action));
 				break;
 			}
 			case 'change-state':
@@ -194,7 +221,7 @@ export class SplashRuntime {
 		if (draggable?.valueKey) this.#setValue(draggable.valueKey, zoneId);
 		if (!zoneId) return;
 		const zone = children.find(c => c?.id === zoneId) as { onDrop?: ActionInitialized | null } | undefined;
-		if (zone?.onDrop) await this.handleAction(zone.onDrop, zoneId);
+		if (zone?.onDrop) await this.#handleAction(zone.onDrop, zoneId);
 	}
 
 	// --- inline-macro execution (materialized tree + scope) ------------------
@@ -274,7 +301,8 @@ export class SplashRuntime {
 	async #executeOnEnter(stateId: string): Promise<void> {
 		if (this.#mirroring) return;
 		for (const action of this.#splash.states?.[stateId]?.onEnter ?? []) {
-			if (action) await this.handleAction(action);
+			if (this.#destroyed) return;
+			if (action) await this.#handleAction(action);
 		}
 	}
 
@@ -303,6 +331,10 @@ export class SplashRuntime {
 			onAction: action => this.handleAction(action, child.id),
 		});
 		if (!sprite) return 0;
+		if (this.#destroyed) {
+			sprite.destroy();
+			return 0;
+		}
 		sprite.updateValues(this.#values);
 		// A sprite added while an override already exists (e.g. a restoring/synced client) adopts it.
 		if (this.#overrides[child.id]) sprite.applyOverrides({ ...this.#overrides[child.id] });
@@ -313,10 +345,11 @@ export class SplashRuntime {
 
 	/** Load a state: instantiate its sprites or transition already-rendered ones. */
 	async loadState(stateId: string): Promise<number | undefined> {
-		if (this.#loadedStates.includes(stateId)) return;
+		if (this.#destroyed || this.#loadedStates.includes(stateId)) return;
 		const children = getChildrenWithState(this.#splash, stateId);
 		let longestTimeout = 0;
 		for (const child of children) {
+			if (this.#destroyed) return;
 			const state = this.#determineState(child, [stateId, ...this.#loadedStates]);
 			if (!state) continue;
 			const rendered = this.#rendered.get(child.id);
@@ -326,6 +359,7 @@ export class SplashRuntime {
 				rendered.transition(state);
 			}
 		}
+		if (this.#destroyed) return;
 		this.#loadedStates.push(stateId);
 		this.#emitChanged();
 		await this.#executeOnEnter(stateId);
@@ -432,8 +466,12 @@ export class SplashRuntime {
 		return false;
 	}
 
+	/** Dispose drawing once and prevent pending asset loads from reopening states. */
 	destroy(): void {
+		if (this.#destroyed) return;
+		this.#destroyed = true;
 		this.#tearingDown = true;
+		for (const sprite of this.#rendered.values()) sprite.destroy();
 		this.#rendered.clear();
 		this.#renderer.destroy();
 	}

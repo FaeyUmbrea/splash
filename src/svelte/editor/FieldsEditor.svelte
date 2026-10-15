@@ -9,6 +9,8 @@
 		fields,
 		value,
 		states = [],
+		valueKeys = [],
+		stateLabels = {},
 		onChange,
 	}: {
 		fields: FieldDef[];
@@ -16,12 +18,15 @@
 		value: Record<string, unknown>;
 		/** State keys, for `select` fields with `source: 'states'`. */
 		states?: string[];
+		valueKeys?: string[];
+		stateLabels?: Record<string, string>;
 		onChange: (patch: Record<string, unknown>) => void;
 	} = $props();
 
 	const macroOptions = $derived((game.macros?.contents ?? []).map(m => ({ value: m.id as string, label: m.name as string })));
-	const stateOptions = $derived(states.map(s => ({ value: s, label: s })));
+	const stateOptions = $derived(states.map(s => ({ value: s, label: stateLabels[s] ?? s })));
 
+	/** Resolve registry field options using the current document labels and Foundry macros. */
 	function optionsFor(f: FieldDef): SelectItem[] {
 		if (f.type !== 'select') return [];
 		if (f.source === 'macros') return macroOptions;
@@ -48,7 +53,7 @@
 	{#if f.type === 'number'}
 		<NumberField label={f.label} step={f.step} value={(value[f.key] as number) ?? null} onChange={v => set(f.key, v)} />
 	{:else if f.type === 'text'}
-		<TextField label={f.label} value={(value[f.key] as string) ?? ''} onChange={v => set(f.key, v)} />
+		<TextField label={f.label} suggestions={f.source === 'values' ? valueKeys : []} hint={f.source === 'values' ? game.i18n.localize('splash.editor.inspector.valueHint') : undefined} value={(value[f.key] as string) ?? ''} onChange={v => set(f.key, v)} />
 	{:else if f.type === 'color'}
 		<ColorField label={f.label} value={(value[f.key] as string) ?? ''} onChange={v => set(f.key, v)} />
 	{:else if f.type === 'checkbox'}
@@ -62,7 +67,7 @@
 			onChange={v => set(f.key, v)}
 		/>
 	{:else if f.type === 'conditions'}
-		<ConditionsField label={game.i18n.localize('splash.editor.actionEditor.conditionsLabel')} value={value[f.key] as Record<string, string> | null} onChange={v => set(f.key, v)} />
+		<ConditionsField {valueKeys} label={game.i18n.localize('splash.editor.actionEditor.conditionsLabel')} value={value[f.key] as Record<string, string> | null} onChange={v => set(f.key, v)} />
 	{:else if f.type === 'code'}
 		{#if f.hint}<span class='sublabel'>{f.hint}</span>{/if}
 		<textarea

@@ -1,6 +1,7 @@
 import type { Create, Initialized } from './helpers.ts';
 
-function BaseAnimationModelSchemaCreator(choice: string, props) {
+/** Preserve the animation discriminator and property field in derived schema types. */
+function BaseAnimationModelSchemaCreator<const Type extends string, Props extends foundry.data.fields.DataField.Any>(choice: Type, props: Props) {
 	const fields = foundry.data.fields;
 	return {
 		type: new fields.StringField({ required: true, choices: [choice] }),

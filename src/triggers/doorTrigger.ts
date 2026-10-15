@@ -1,6 +1,7 @@
 import type { TriggerBinding, TriggerOptions } from './types.ts';
 import { SplashAPI } from '../api/api.ts';
 import { ID, PACKAGE_ID } from '../utils/const.js';
+import { format, localize } from '../utils/i18n.ts';
 import { setPendingTrigger } from './context.ts';
 
 interface LibWrapper { register: (id: string, target: string, fn: (...a: unknown[]) => unknown, type: string) => void }
@@ -41,7 +42,7 @@ export function registerDoorIndicator(): void {
 	}
 
 	// A flag change alone may not force the control to redraw.
-	Hooks.on('updateWall', (doc: { object?: { doorControl?: { draw: () => unknown } } }, changed: object) => {
+	Hooks.on('updateWall', (doc, changed) => {
 		if (foundry.utils.hasProperty(changed, `flags.${ID}`)) doc.object?.doorControl?.draw();
 	});
 }
@@ -79,13 +80,13 @@ export const doorTrigger: TriggerOptions = {
 		const scene = canvas?.scene as unknown as SceneLike | null;
 		const doors = (scene?.walls?.contents ?? []).filter(w => w.door > 0);
 		if (!scene || doors.length === 0) {
-			ui.notifications?.warn(game.i18n.localize('splash.triggers.doorTrigger.noDoors'));
+			ui.notifications?.warn(localize('splash.triggers.doorTrigger.noDoors'));
 			return false;
 		}
-		const options = doors.map((w, i) => `<option value="${w.id}">${game.i18n.format('splash.triggers.doorTrigger.doorOption', { index: i + 1 })}</option>`).join('');
+		const options = doors.map((w, i) => `<option value="${w.id}">${format('splash.triggers.doorTrigger.doorOption', { index: i + 1 })}</option>`).join('');
 		const wallId = await foundry.applications.api.DialogV2.prompt({
-			window: { title: game.i18n.localize('splash.triggers.doorTrigger.bindTitle') },
-			content: `<p>${game.i18n.localize('splash.triggers.doorTrigger.bindPrompt')}</p><select name="door" style="width:100%">${options}</select>`,
+			window: { title: localize('splash.triggers.doorTrigger.bindTitle') },
+			content: `<p>${localize('splash.triggers.doorTrigger.bindPrompt')}</p><select name="door" style="width:100%">${options}</select>`,
 			ok: { callback: (_e: Event, button: HTMLButtonElement) => (button.form?.elements.namedItem('door') as HTMLSelectElement)?.value },
 		}).catch(() => null);
 		if (!wallId) return false;
@@ -98,7 +99,7 @@ export const doorTrigger: TriggerOptions = {
 		for (const scene of (game.scenes ?? []) as unknown as Iterable<SceneLike>) {
 			for (const wall of scene.walls) {
 				const uuid = wall.getFlag(ID, 'launchSplash') as string | undefined;
-				if (uuid) bindings.push({ id: wall.uuid, type: 'door', splashUuid: uuid, summary: game.i18n.format('splash.triggers.doorTrigger.bindingSummary', { scene: scene.name }), sceneId: scene.id });
+				if (uuid) bindings.push({ id: wall.uuid, type: 'door', splashUuid: uuid, summary: format('splash.triggers.doorTrigger.bindingSummary', { scene: scene.name }), sceneId: scene.id });
 			}
 		}
 		return bindings;

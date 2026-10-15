@@ -21,7 +21,7 @@ export interface PresetSummary {
 /** The payload as stored on a preset page's `system.payload`. */
 export type PresetPayload
 	= | ({ type: 'nineslice' } & ButtonImageCreate)
-		| ({ type: 'button' } & Record<string, unknown>)
+		| ({ type: 'button' } & Pick<ButtonSpriteCreate, 'label' | 'image' | 'hoverLabel' | 'hoverImage' | 'clickLabel' | 'clickImage' | 'tint' | 'hoverTint' | 'clickTint' | 'onClick'>)
 		| { type: 'animation'; value: AnimationCreate }
 		| { type: 'sprite'; value: SpriteCreate }
 		| { type: 'spriteGroup'; value: SpriteCreate[] };
@@ -66,19 +66,17 @@ export function presetThumb(payload: PresetPayload): string {
 
 /** Style, label, and image set carry over; the action is stripped. */
 export function buttonSpriteToPreset(btn: ButtonSpriteCreate): PresetPayload {
-	const b = btn as Record<string, unknown>;
-	const variant = (key: string) => (b[key] ? foundry.utils.deepClone(b[key]) : null);
 	return {
 		type: 'button',
-		label: foundry.utils.deepClone(b.label),
-		image: foundry.utils.deepClone(b.image),
-		clickLabel: variant('clickLabel'),
-		clickImage: variant('clickImage'),
-		hoverLabel: variant('hoverLabel'),
-		hoverImage: variant('hoverImage'),
-		tint: (b.tint as string) ?? '',
-		hoverTint: (b.hoverTint as string) ?? '',
-		clickTint: (b.clickTint as string) ?? '',
+		label: foundry.utils.deepClone(btn.label),
+		image: foundry.utils.deepClone(btn.image),
+		clickLabel: btn.clickLabel ? foundry.utils.deepClone(btn.clickLabel) : null,
+		clickImage: btn.clickImage ? foundry.utils.deepClone(btn.clickImage) : null,
+		hoverLabel: btn.hoverLabel ? foundry.utils.deepClone(btn.hoverLabel) : null,
+		hoverImage: btn.hoverImage ? foundry.utils.deepClone(btn.hoverImage) : null,
+		tint: btn.tint ?? '',
+		hoverTint: btn.hoverTint ?? '',
+		clickTint: btn.clickTint ?? '',
 		onClick: sanitizeAction(),
 	};
 }
@@ -145,12 +143,12 @@ export function allPresets(kind?: PresetKind): PresetSummary[] {
 	if (!library) return [];
 	return library.pages.contents
 		.filter(page => page.type === 'splash.preset')
-		.map((page) => {
+		.flatMap((page): PresetSummary[] => {
 			const system = page.system as { payload?: PresetPayload; behavior?: string | null };
 			const payload = system.payload;
-			return payload && { uuid: page.uuid, name: page.name, kind: payload.type, img: presetThumb(payload), behavior: system.behavior ?? null };
-		})
-		.filter((s): s is PresetSummary => !!s && (!kind || s.kind === kind));
+			if (!payload || (kind && payload.type !== kind) || !page.uuid) return [];
+			return [{ uuid: page.uuid, name: page.name, kind: payload.type, img: presetThumb(payload), behavior: system.behavior ?? null }];
+		});
 }
 
 /**
@@ -175,7 +173,7 @@ export async function compendiumPresets(kind?: PresetKind): Promise<PresetSummar
 				if (page.type !== 'splash.preset') continue;
 				const source = (page.system as { toObject?: () => { payload?: PresetPayload; behavior?: string | null } }).toObject?.();
 				const payload = source?.payload;
-				if (payload && (!kind || payload.type === kind)) {
+				if (payload && page.uuid && (!kind || payload.type === kind)) {
 					out.push({ uuid: page.uuid, name: page.name, kind: payload.type, img: presetThumb(payload), behavior: source?.behavior ?? null });
 				}
 			}
@@ -191,10 +189,11 @@ export async function savePreset(payload: PresetPayload, name: string): Promise<
 		ui.notifications?.warn('Splash | Only a GM can save presets.');
 		return null;
 	}
-	const created = await library.createEmbeddedDocuments('JournalEntryPage', [
+	const page = await JournalEntryPage.create(
 		{ name: name || `New ${payload.type}`, type: 'splash.preset', system: { payload: normalizePresetPayload(payload) } },
-	]);
-	return (created?.[0] ?? null) as JournalEntryPage | null;
+		{ parent: library },
+	);
+	return page ?? null;
 }
 
 /**
@@ -215,10 +214,10 @@ export async function promptAndSavePreset(payload: PresetPayload, defaultName: s
 		return;
 	}
 	const safeName = defaultName.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c] ?? c));
-	const name = await foundry.applications.api.DialogV2.prompt({
+	const name = await foundry.applications.api.DialogV2.prompt<foundry.applications.api.DialogV2.PromptConfig>({
 		window: { title: 'Save preset' },
 		content: `<input type="text" name="name" value="${safeName}" style="width:100%" autofocus />`,
-		ok: { label: 'Save', callback: (_event: unknown, button: { form: HTMLFormElement }) => (button.form.elements.namedItem('name') as HTMLInputElement)?.value },
+		ok: { label: 'Save', callback: (_event, button) => (button.form?.elements.namedItem('name') as HTMLInputElement | null)?.value },
 	}).catch(() => null);
 	if (name == null) return;
 	const saved = await savePreset(payload, String(name).trim() || defaultName);

@@ -1,17 +1,12 @@
 <script lang='ts'>
 	import type { SplashInitialized } from '../datamodel/SplashModel.ts';
 	import type { SvelteApplication } from '../mixins/SvelteApplicationMixin.svelte.ts';
-	import type { PresenceReporter } from '../utils/presence.ts';
-	import type { SyncDriver } from '../utils/sync.ts';
-	import { onDestroy, onMount } from 'svelte';
-	import { SplashAPI } from '../api/api.ts';
+	import type { RuntimeSnapshot } from '../renderer/SplashRuntime.ts';
+	import { onMount } from 'svelte';
+	import { SplashPlayback } from '../apps/SplashPlayback.ts';
 	import { HtmlRenderer } from '../renderer/HtmlRenderer.svelte.ts';
 	import { PixiRenderer } from '../renderer/PixiRenderer.ts';
 	import { selectRenderer } from '../renderer/selectRenderer.ts';
-	import { SplashRuntime } from '../renderer/SplashRuntime.ts';
-	import { consumePendingTrigger } from '../triggers/context.ts';
-	import { createPresenceReporter } from '../utils/presence.ts';
-	import { createSyncDriver, registerRuntime, unregisterRuntime } from '../utils/sync.ts';
 
 	export let foundryApp: SvelteApplication;
 
@@ -31,68 +26,39 @@
 	let view: HTMLCanvasElement;
 	let htmlStage: HTMLDivElement;
 	let loading = true;
-	let runtime: SplashRuntime | undefined;
-	let sync: SyncDriver | undefined;
-	let presence: PresenceReporter | undefined;
+	let failed = false;
 
-	// close-requested stays instance-scoped (this window only); everything else becomes a global hook.
-	function emitEvent(event: string, ...args: unknown[]) {
-		if (event === 'splash.close-requested') {
-			foundryApp.close();
-			return;
-		}
-		Hooks.call(event, ...args);
-	}
+	/** Observe playback state without attaching preview data to a world document. */
+	export let onSnapshot: ((snapshot: RuntimeSnapshot) => void) | undefined;
+	/** Preview can keep its controls open when a handout requests closure. */
+	export let onCloseRequested: ((skipOutro: boolean) => void) | undefined;
 
-	onMount(async () => {
+	onMount(() => {
 		const renderer = rendererKind === 'webgl' ? new PixiRenderer(view) : new HtmlRenderer(htmlStage);
-		const synced = splashConfig.mode === 'synced' && !!pageUuid && !spectate;
-		// Any non-spectator client (players and DMs) reports presence so a spectator can follow it: local
-		// carries private state, synced just signals open/close (its shared state rides the sync flag).
-		const reportsPresence = !!pageUuid && !spectate;
-		runtime = new SplashRuntime(splashConfig, renderer, emitEvent, {
-			trigger: consumePendingTrigger() ?? undefined,
-			externalAction: action => SplashAPI.getInstance().processAction(action),
-			// A spectator consumes local input so its state comes only from applied snapshots.
-			interceptAction: action => spectate || (sync?.interceptAction(action) ?? false),
-			onChanged: (snapshot) => {
-				sync?.onChanged(snapshot);
-				presence?.onChanged(snapshot);
-			},
+		const playback = new SplashPlayback(splashConfig, renderer, {
+			app: foundryApp,
+			pageUuid,
+			spectate,
+			skipAnimations,
+			onSnapshot,
+			onClose: onCloseRequested,
 		});
-		if (pageUuid) registerRuntime(pageUuid, runtime);
-		if (synced) sync = createSyncDriver(pageUuid!, splashConfig, runtime);
-		if (reportsPresence) presence = createPresenceReporter(pageUuid!);
-		await runtime.initialize({ skipAnimations });
-		await sync?.connect();
-		loading = false;
-		// Play the splash out before the app tears down (unless an emergency close passes skipOutro).
-		foundryApp.onPreClose = () => runtime?.playOut();
+		void playback.start().then((ready) => {
+			if (ready) loading = false;
+		}).catch((error) => {
+			console.error('Splash | Playback failed to initialise.', error);
+			loading = false;
+			failed = true;
+		});
+		return () => playback.dispose();
 	});
 
-	const closeHook = Hooks.on('splash.close-splash', (opts?: { skipOutro?: boolean }) => {
-		foundryApp.close({ skipOutro: !!opts?.skipOutro });
-	});
-
-	const changeStatesHook = Hooks.on(
-		'splash.change-states',
-		({ load, unload }: { load?: string[]; unload?: string[] }) => {
-			runtime?.changeStates({ load, unload });
-		},
-	);
-
-	onDestroy(() => {
-		presence?.dispose();
-		sync?.dispose();
-		if (pageUuid && runtime) unregisterRuntime(pageUuid, runtime);
-		runtime?.destroy();
-		Hooks.off('splash.close-splash', closeHook);
-		Hooks.off('splash.change-states', changeStatesHook);
-	});
 </script>
 
 <div class='splash-stage'>
-	{#if loading}
+	{#if failed}
+		<div class='loading'><span>{game.i18n.localize('splash.ui.splashUI.failed')}</span></div>
+	{:else if loading}
 		<div class='loading'><span>{game.i18n.localize('splash.ui.splashUI.loading')}</span></div>
 	{/if}
 	{#if rendererKind === 'webgl'}

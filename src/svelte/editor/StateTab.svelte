@@ -17,7 +17,7 @@
 
 	<div class='subsection'>
 		<span class='sublabel'>{game.i18n.localize('splash.editor.stateTab.onEnter')}</span>
-		<ActionListEditor actions={(def.onEnter as Record<string, unknown>[]) ?? []} {states} onChange={a => model.setStateOnEnter(a)} />
+		<ActionListEditor actions={(def.onEnter as Record<string, unknown>[]) ?? []} {states} valueKeys={model.valueKeys} stateLabels={model.stateLabels} onChange={a => model.setStateOnEnter(a)} />
 	</div>
 </div>
 

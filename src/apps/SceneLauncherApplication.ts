@@ -5,7 +5,7 @@ import SceneLauncher from '../svelte/SceneLauncher.svelte';
 export default class SceneLauncherApplication extends SvelteApplicationMixin(foundry.applications.api.ApplicationV2) {
 	protected override root = SceneLauncher;
 
-	sidebarButton?: { active?: boolean };
+	sidebarButton?: { name: string; active?: boolean };
 
 	static override DEFAULT_OPTIONS = {
 		id: 'splash-scene-launcher',
@@ -36,7 +36,7 @@ export default class SceneLauncherApplication extends SvelteApplicationMixin(fou
 let launcher: SceneLauncherApplication | undefined;
 
 /** Toggle the launcher from its scene-controls button. */
-export async function toggleSceneLauncher(active: boolean, sidebarButton: { active?: boolean }): Promise<void> {
+export async function toggleSceneLauncher(active: boolean, sidebarButton: { name: string; active?: boolean }): Promise<void> {
 	if (active) {
 		launcher ??= new SceneLauncherApplication();
 		launcher.sidebarButton = sidebarButton;

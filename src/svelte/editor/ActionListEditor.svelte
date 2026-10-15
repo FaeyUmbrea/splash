@@ -8,10 +8,14 @@
 	const {
 		actions,
 		states,
+		valueKeys = [],
+		stateLabels = {},
 		onChange,
 	}: {
 		actions: Action[];
 		states: string[];
+		valueKeys?: string[];
+		stateLabels?: Record<string, string>;
 		onChange: (actions: Action[]) => void;
 	} = $props();
 
@@ -33,7 +37,7 @@
 				<span>{game.i18n.format('splash.editor.actionListEditor.actionN', { n: i + 1 })}</span>
 				<IconButton icon='fa-solid fa-trash' title={game.i18n.localize('splash.editor.actionListEditor.removeAction')} danger onclick={() => remove(i)} />
 			</div>
-			<ActionEditor {action} {states} onChange={a => setAt(i, a)} />
+			<ActionEditor {action} {states} {valueKeys} {stateLabels} onChange={a => setAt(i, a)} />
 		</div>
 	{/each}
 	<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.actionListEditor.addAction')} onclick={add} />

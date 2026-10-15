@@ -6,7 +6,7 @@
 	"packageManager": "yarn@4.9.2",
 	"description": "Interactive fullscreen handouts for Foundry VTT",
 	"author": "Faey Umbrea",
-	"license": "AGPL-3.0-only",
+	"license": "SEE LICENSE IN LICENSE",
 	"homepage": "https://github.com/FaeyUmbrea/splash",
 	"repository": {
 		"type": "git",
@@ -27,6 +27,7 @@
 		"test:e2e": "playwright test",
 		"test:e2e:headed": "playwright test --headed",
 		"lint": "eslint .",
+		"check:types": "tsc --noEmit",
 		"lint:fix": "eslint . --fix",
 		"linkFoundry": "node tools/foundryLink.js",
 		"build:api-types": "node tools/build-api-types.mjs",
@@ -41,22 +42,25 @@
 		"@foundryvtt/foundryvtt-cli": "^3.0.3",
 		"@playwright/test": "^1.60.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
-		"@vitest/coverage-istanbul": "^5.0.2",
+		"@vitest/coverage-istanbul": "5.0.3",
 		"esbuild": "^0.28.0",
 		"eslint": "^10.4.0",
 		"eslint-plugin-antfu": "^3.2.3",
 		"eslint-plugin-format": "^2.0.1",
 		"eslint-plugin-svelte": "^3.17.1",
-		"fvtt-types": "13.346.0-beta.20251209192131",
+		"fvtt-types": "14.366.0-beta.20261009164208",
 		"globals": "^17.6.0",
 		"jsdom": "^29.1.1",
 		"rollup-plugin-visualizer": "^7.0.1",
 		"sass": "^1.99.0",
 		"stylus": "^0.64.0",
 		"svelte-preprocess": "^6.0.3",
-		"typescript": "^5.8.3",
+		"typescript": "~5.9.3",
 		"vite": "^8.0.13",
 		"vite-plugin-glsl": "^1.5.1",
-		"vitest": "^5.0.2"
+		"vitest": "5.0.3"
+	},
+	"resolutions": {
+		"oxfmt/tinypool": "2.1.2"
 	}
 }

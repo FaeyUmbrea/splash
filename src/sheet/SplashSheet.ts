@@ -25,10 +25,12 @@ export class SplashSheet extends HandlebarsSheet {
 
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		context.text = { ...this.document.text };
-		context.uuid = this.document.uuid;
-		context.splashActions = availableActions(this.splashPage);
-		return context;
+		return {
+			...context,
+			text: { ...this.document.text },
+			uuid: this.document.uuid ?? '',
+			splashActions: availableActions(this.splashPage),
+		};
 	}
 
 	async _prepareContentContext(context, _options) {
@@ -42,8 +44,8 @@ export class SplashSheet extends HandlebarsSheet {
 
 	/** Re-rendering over an in-progress edit would discard unsaved ProseMirror changes. */
 	_canRender(options) {
-		if (options.resync || !this.rendered || !this.options.window.frame) return true;
-		return !this._isEditorDirty();
+		if (options.resync || !this.rendered || !this.options.window.frame) return;
+		if (this._isEditorDirty()) return false;
 	}
 
 	_isEditorDirty(): boolean {

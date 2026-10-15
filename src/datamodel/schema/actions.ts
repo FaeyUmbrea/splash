@@ -1,6 +1,7 @@
 import type { Create, Initialized } from './helpers.ts';
 
-function BaseActionSchemaCreator(choice: string) {
+/** Preserve the literal discriminator in derived schema types. */
+function BaseActionSchemaCreator<const Type extends string>(choice: Type) {
 	const fields = foundry.data.fields;
 	return {
 		type: new fields.StringField({ required: true, choices: [choice] }),

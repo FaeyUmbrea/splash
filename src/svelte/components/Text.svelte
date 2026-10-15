@@ -16,3 +16,9 @@
 	style:color={sprite.fillColor}
 	style:text-align={sprite.align}
 >{display}</span>
+
+<style>
+	span {
+		display: block;
+	}
+</style>

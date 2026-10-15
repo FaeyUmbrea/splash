@@ -1,9 +1,15 @@
 import type { SpriteCreate, StateCreate } from '../../datamodel/SplashModel.ts';
 import type { SplashPage } from '../../utils/launch.ts';
+import type { AuthoringIssue } from './actionValidation.ts';
+import type { Alignment } from './selectionGeometry.ts';
 import type { SpriteType } from './spriteFactory.ts';
 import { nanoid } from 'nanoid';
+import { format, localize } from '../../utils/i18n.ts';
 import { materializeSprite } from '../../utils/presets.ts';
+import { actionProblems } from './actionValidation.ts';
+import { discoverValueKeys } from './authoringValues.ts';
 import { DocumentStore } from './documentStore.svelte.ts';
+import { alignedPlacements } from './selectionGeometry.ts';
 import { createSprite } from './spriteFactory.ts';
 
 /** An object as the editor (and a human) thinks of it, not the raw sprite schema. */
@@ -69,8 +75,12 @@ function defaultPlacement(): Record<string, unknown> {
 
 /** The editor's conceptual layer over the splash data model; writes are optimistic-then-atomic via the DocumentStore. */
 export class EditorModel {
-	readonly store: DocumentStore;
+	readonly store: DocumentStore<SplashPage>;
 	activeState = $state('');
+	/** The inspector task selected by the most recent object or state interaction. */
+	inspector = $state('object');
+	/** Which creation library is open; null keeps the visual workspace unobstructed. */
+	adding = $state<'object' | 'prefab' | null>(null);
 	selectedIds = $state<string[]>([]);
 	/** The group currently "entered" for member-level editing (Figma-style isolation). null = top level. */
 	activeGroup = $state<string | null>(null);
@@ -96,7 +106,7 @@ export class EditorModel {
 		return children.map((raw) => {
 			const type = raw.type ?? 'image';
 			counts[type] = (counts[type] ?? 0) + 1;
-			const typeLabel = TYPE_LABEL[type] ? game.i18n.localize(TYPE_LABEL[type]) : game.i18n.localize('splash.editor.editorModel.typeObject');
+			const typeLabel = TYPE_LABEL[type] ? localize(TYPE_LABEL[type]) : localize('splash.editor.editorModel.typeObject');
 			const name = (raw.name && raw.name.trim()) ? raw.name : `${typeLabel} ${counts[type]}`;
 			const placement = raw.states?.[this.activeState] as StateCreate | undefined;
 			return { id: raw.id ?? '', type, name, raw, inState: !!placement, placement };
@@ -117,7 +127,7 @@ export class EditorModel {
 			let group = byGroup[gid];
 			if (!group) {
 				const stored = (this.data.groups as Record<string, { name?: string }> | undefined)?.[gid]?.name;
-				group = { kind: 'group', groupId: gid, name: stored || game.i18n.format('splash.editor.editorModel.groupName', { n: ++count }), members: [], inState: false };
+				group = { kind: 'group', groupId: gid, name: stored || format('splash.editor.editorModel.groupName', { n: ++count }), members: [], inState: false };
 				byGroup[gid] = group;
 				nodes.push(group);
 			}
@@ -126,6 +136,31 @@ export class EditorModel {
 		for (const group of Object.values(byGroup)) group.inState = group.members.some(m => m.inState);
 		return nodes;
 	});
+
+	/** Broken built-in action connections, with enough context to open their owning inspector. */
+	readonly actionIssues = $derived.by(() => {
+		const keys = this.states.map(state => state.key);
+		const issues: AuthoringIssue[] = [];
+		for (const state of this.states) {
+			for (const action of this.data.states?.[state.key]?.onEnter ?? []) {
+				for (const problem of actionProblems(action as Record<string, unknown>, keys)) {
+					issues.push({ owner: state.label, state: state.key, message: problem.message, missingState: problem.state });
+				}
+			}
+		}
+		for (const object of this.objects) {
+			const sprite = object.raw as Record<string, unknown>;
+			for (const field of ['onClick', 'onDrop']) {
+				for (const problem of actionProblems(sprite[field] as Record<string, unknown> | undefined, keys)) {
+					issues.push({ owner: object.name, objectId: object.id, message: problem.message, missingState: problem.state });
+				}
+			}
+		}
+		return issues;
+	});
+
+	/** Existing value names shared by bindings and action fields. */
+	readonly valueKeys = $derived(discoverValueKeys(this.data));
 
 	readonly objectsInState = $derived(this.objects.filter(o => o.inState));
 	readonly selectedObjects = $derived(this.objects.filter(o => this.selectedIds.includes(o.id)));
@@ -146,6 +181,9 @@ export class EditorModel {
 			isInitial: initial.includes(key),
 		}));
 	});
+
+	/** Friendly labels for state pickers; saved actions still use stable keys. */
+	readonly stateLabels = $derived(Object.fromEntries(this.states.map(state => [state.key, state.label])));
 
 	readonly activeStateDef = $derived(
 		(this.data.states?.[this.activeState] ?? { label: '', onEnter: [] }) as { label?: string; onEnter?: unknown[] },
@@ -181,7 +219,7 @@ export class EditorModel {
 				d.children = children;
 			},
 			// `==` replaces the whole array while the rest of `system` merges; `{recursive:false}` would reset all of `system`.
-			() => this.page.update({ 'system.==children': children }),
+			{ 'system.==children': children },
 		);
 	}
 
@@ -197,7 +235,7 @@ export class EditorModel {
 				d.states = states as never;
 			},
 			// `==` replaces the whole states map; see `#setChildren` on why not `{recursive:false}`.
-			() => this.page.update({ 'system.==states': states }),
+			{ 'system.==states': states },
 		);
 	}
 
@@ -209,14 +247,15 @@ export class EditorModel {
 		this.store.write(
 			// Mirror must delete the leaf too; setting null would look like an external edit and record a phantom undo step.
 			d => (clearing ? deleteLeaf(d as object, path) : foundry.utils.setProperty(d as object, path, value)),
-			() => this.page.update({ [key]: value }),
+			{ [key]: value },
 		);
 	}
 
 	setFields(changes: Record<string, unknown>, options: object = {}) {
 		this.store.write(
 			(d) => { for (const [p, v] of Object.entries(changes)) foundry.utils.setProperty(d as object, p, v); },
-			() => this.page.update(Object.fromEntries(Object.entries(changes).map(([p, v]) => [`system.${p}`, v])), options),
+			Object.fromEntries(Object.entries(changes).map(([p, v]) => [`system.${p}`, v])),
+			options,
 		);
 	}
 
@@ -328,6 +367,7 @@ export class EditorModel {
 			this.selectedIds = [];
 			return;
 		}
+		this.inspector = 'object';
 		const ids = this.#selectionFor(id);
 		if (additive) {
 			const allSelected = ids.every(x => this.selectedIds.includes(x));
@@ -341,6 +381,7 @@ export class EditorModel {
 
 	/** Replace (or extend) the selection with a set of ids, used by the lasso. Group-aware like select(). */
 	selectMany(ids: string[], additive = false) {
+		if (ids.length) this.inspector = 'object';
 		const expanded = ids.flatMap(id => this.#selectionFor(id));
 		const unique = expanded.filter((id, i) => expanded.indexOf(id) === i);
 		this.selectedIds = additive
@@ -382,6 +423,7 @@ export class EditorModel {
 			}
 		}
 		this.#mutateChildren(next => void next.push(sprite));
+		this.inspector = 'object';
 		this.selectedIds = sprite.id ? [sprite.id] : [];
 		return sprite.id ?? '';
 	}
@@ -391,6 +433,7 @@ export class EditorModel {
 		this.#mutateChildren((next) => {
 			for (const sprite of sprites) next.push(sprite);
 		});
+		this.inspector = 'object';
 		this.selectedIds = sprites.map(s => s.id).filter(Boolean) as string[];
 	}
 
@@ -399,13 +442,67 @@ export class EditorModel {
 		this.selectedIds = this.selectedIds.filter(x => x !== id);
 	}
 
+	/** Duplicate objects in one undo step, preserving placements and remapping copied groups' context references. */
+	duplicateObjects(ids: string[]) {
+		const sources = (this.data.children ?? []).filter(sprite => ids.includes(sprite?.id ?? ''));
+		if (!sources.length) return;
+		const groups: Record<string, string> = {};
+		const copies = sources.map((source) => {
+			const copy = foundry.utils.deepClone(source) as SpriteCreate;
+			copy.id = nanoid();
+			if (copy.groupId) copy.groupId = groups[copy.groupId] ??= nanoid();
+			const placement = copy.states?.[this.activeState];
+			if (placement) {
+				placement.x = (placement.x ?? 0) + 16;
+				placement.y = (placement.y ?? 0) + 16;
+			}
+			return copy;
+		});
+		/** Redirect a copied object's reference to its copied group when present. */
+		function remapGroup(value: unknown): unknown {
+			return typeof value === 'string' ? (groups[value] ?? value) : value;
+		}
+		for (const copy of copies) {
+			const context = (copy as { context?: Record<string, unknown> }).context;
+			if (!context) continue;
+			for (const [key, value] of Object.entries(context)) {
+				context[key] = Array.isArray(value) ? value.map(remapGroup) : remapGroup(value);
+			}
+		}
+		const children = [...(this.data.children ?? []), ...copies] as SpriteCreate[];
+		const groupNames = foundry.utils.deepClone(this.data.groups ?? {});
+		for (const [original, copied] of Object.entries(groups)) {
+			if (groupNames[original]) groupNames[copied] = foundry.utils.deepClone(groupNames[original]);
+		}
+		this.store.write(
+			(draft) => {
+				draft.children = children;
+				draft.groups = groupNames;
+			},
+			{ 'system.==children': children, 'system.==groups': groupNames },
+		);
+		this.inspector = 'object';
+		this.selectedIds = copies.map(copy => copy.id!);
+	}
+
+	/** Duplicate one object using the same operation as the selection toolbar. */
 	duplicateObject(id: string) {
-		const source = (this.data.children ?? []).find(c => c?.id === id);
-		if (!source) return;
-		const copy = foundry.utils.deepClone(source) as SpriteCreate;
-		copy.id = nanoid();
-		this.#mutateChildren(next => void next.push(copy));
-		this.selectedIds = copy.id ? [copy.id] : [];
+		this.duplicateObjects([id]);
+	}
+
+	/** Align the current selection within its bounds, or the stage for one object. */
+	alignSelection(alignment: Alignment) {
+		this.setPlacements(alignedPlacements(this.selectedObjects, alignment, { width: this.stageW, height: this.stageH }));
+	}
+
+	/** Move selected placements together above or below all other objects, preserving their relative order. */
+	layerSelection(direction: 'front' | 'back') {
+		const objects = this.selectedObjects.filter(object => object.inState);
+		if (!objects.length) return;
+		const indices = objects.map(object => object.placement?.zIndex ?? 0);
+		const edge = direction === 'front' ? Math.min(...indices) : Math.max(...indices);
+		const delta = this.zExtent(direction) - edge;
+		this.setPlacements(objects.map(object => ({ id: object.id, patch: { zIndex: (object.placement?.zIndex ?? 0) + delta } })));
 	}
 
 	setObjectContent(id: string, patch: Record<string, unknown>) {
@@ -431,6 +528,7 @@ export class EditorModel {
 	applySpritePreset(sprite: SpriteCreate, at?: { x: number; y: number }): string {
 		const placed = materializeSprite(sprite, this.activeState, at);
 		this.#mutateChildren(next => void next.push(placed));
+		this.inspector = 'object';
 		this.selectedIds = placed.id ? [placed.id] : [];
 		return placed.id ?? '';
 	}
@@ -464,6 +562,7 @@ export class EditorModel {
 		this.#mutateChildren((next) => {
 			for (const p of placed) next.push(p);
 		});
+		this.inspector = 'object';
 		this.selectedIds = placed.map(p => p.id).filter(Boolean) as string[];
 	}
 
@@ -540,7 +639,9 @@ export class EditorModel {
 
 	// --- state operations ----------------------------------------------------
 
+	/** Open a state on the canvas and show its settings in the inspector. */
 	setActiveState(key: string) {
+		this.inspector = 'state';
 		this.activeState = key;
 		this.selectedIds = [];
 	}
@@ -575,7 +676,7 @@ export class EditorModel {
 	duplicateState(key: string) {
 		const states = foundry.utils.deepClone(this.data.states ?? {}) as Record<string, { label?: string }>;
 		const newKey = this.#freshStateKey(states);
-		states[newKey] = { ...foundry.utils.deepClone(states[key] ?? {}), label: game.i18n.format('splash.editor.editorModel.stateCopy', { label: states[key]?.label || key }) };
+		states[newKey] = { ...foundry.utils.deepClone(states[key] ?? {}), label: format('splash.editor.editorModel.stateCopy', { label: states[key]?.label || key }) };
 		this.#setStates(states);
 		this.#mutateChildren((next) => {
 			for (const sprite of next) {
@@ -588,7 +689,7 @@ export class EditorModel {
 
 	deleteState(key: string) {
 		if (Object.keys(this.data.states ?? {}).length <= 1) {
-			ui.notifications?.warn(game.i18n.localize('splash.editor.editorModel.needsState'));
+			ui.notifications?.warn(localize('splash.editor.editorModel.needsState'));
 			return;
 		}
 		const states = foundry.utils.deepClone(this.data.states ?? {}) as Record<string, unknown>;

@@ -12,12 +12,10 @@ import type {
 	PanelSpriteInitialized,
 	PixelateEffectInitialized,
 	ScanlinesEffectInitialized,
-	State,
 	TextSpriteInitialized,
 	VideoSpriteInitialized,
 } from '../datamodel/SplashModel.ts';
-import type { SpriteContext } from '../renderer/SplashRenderer.ts';
-import type { DissolveFilterProps } from '../shaders/dissolve/dissolve.js';
+import type { SplashStateData, SpriteContext } from '../public-api.ts';
 import GaugeGraphics from '../pixi/gaugeGraphics.js';
 import NineSlicePlaneButton from '../pixi/nineSlicePlaneButton.js';
 import PanelGraphics from '../pixi/panelGraphics.js';
@@ -122,7 +120,7 @@ export function setupAPI(api: SplashAPI) {
 		icon: 'fa-solid fa-equals',
 		defaults: { type: 'set-value', key: '', value: '' },
 		fields: [
-			{ type: 'text', key: 'key', label: 'splash.editor.actionEditor.key' },
+			{ type: 'text', key: 'key', label: 'splash.editor.actionEditor.key', source: 'values' },
 			{ type: 'text', key: 'value', label: 'splash.editor.actionEditor.value' },
 		],
 	});
@@ -130,7 +128,7 @@ export function setupAPI(api: SplashAPI) {
 		icon: 'fa-solid fa-plus-minus',
 		defaults: { type: 'increment-value', key: '', step: 1, min: null, max: null, wrap: false },
 		fields: [
-			{ type: 'text', key: 'key', label: 'splash.editor.actionEditor.key' },
+			{ type: 'text', key: 'key', label: 'splash.editor.actionEditor.key', source: 'values' },
 			{ type: 'number', key: 'step', label: 'splash.editor.actionEditor.step', group: 'n' },
 			{ type: 'number', key: 'min', label: 'splash.editor.actionEditor.min', group: 'n' },
 			{ type: 'number', key: 'max', label: 'splash.editor.actionEditor.max', group: 'n' },
@@ -157,10 +155,12 @@ async function instantiateDissolve(
 	sprite: PIXI.DisplayObject,
 	app: PIXI.Application,
 ) {
-	const animClass = await DissolveFilter(
-		app,
-		animation?.props as DissolveFilterProps,
-	);
+	if (animation.type !== 'dissolve') return;
+	const origins = animation.props;
+	const props = origins.type === 'fixedOrigins'
+		? { origins: Array.isArray(origins.origins) ? origins.origins.filter((value): value is number => typeof value === 'number') : [], invert: false }
+		: { randomOrigins: typeof origins.randomOrigins === 'boolean' ? origins.randomOrigins : true, numOrigins: typeof origins.numOrigins === 'number' ? origins.numOrigins : undefined, invert: false };
+	const animClass = await DissolveFilter(app, props);
 
 	if (animClass) {
 		setTimeout(() => {
@@ -213,7 +213,7 @@ async function instantiatePixelate(
 	}, animation.delay ?? 0);
 }
 
-async function instantiateImage(image: ImageSpriteInitialized, state: State, _context: SpriteContext) {
+async function instantiateImage(image: ImageSpriteInitialized, state: SplashStateData, _context: SpriteContext) {
 	if (image.type !== 'image') throw new Error('Image type is not \'image\'');
 
 	// An unset source must not throw (PIXI.Sprite.from('') does); an empty placeholder keeps the splash rendering.
@@ -222,7 +222,7 @@ async function instantiateImage(image: ImageSpriteInitialized, state: State, _co
 	return sprite;
 }
 
-async function instantiateText(text: TextSpriteInitialized, state: State, _context: SpriteContext) {
+async function instantiateText(text: TextSpriteInitialized, state: SplashStateData, _context: SpriteContext) {
 	if (text.type !== 'text') throw new Error('Text type is not \'text\'');
 	const sprite = new PIXI.Text(text.text, {
 		fontFamily: text.font,
@@ -234,19 +234,19 @@ async function instantiateText(text: TextSpriteInitialized, state: State, _conte
 	return sprite;
 }
 
-async function instantiatePanel(panel: PanelSpriteInitialized, state: State, _context: SpriteContext) {
+async function instantiatePanel(panel: PanelSpriteInitialized, state: SplashStateData, _context: SpriteContext) {
 	if (panel.type !== 'panel') throw new Error('Panel type is not \'panel\'');
 	const graphics = new PanelGraphics({
 		fill: panel.fill,
 		borderColor: panel.borderColor,
-		borderWidth: panel.borderWidth,
-		radius: panel.radius,
+		borderWidth: panel.borderWidth ?? 0,
+		radius: panel.radius ?? 0,
 	});
 	transitionState(graphics, state);
 	return graphics;
 }
 
-async function instantiateGauge(gauge: GaugeSpriteInitialized, state: State, _context: SpriteContext) {
+async function instantiateGauge(gauge: GaugeSpriteInitialized, state: SplashStateData, _context: SpriteContext) {
 	if (gauge.type !== 'gauge') throw new Error('Gauge type is not \'gauge\'');
 	const graphics = new GaugeGraphics({
 		fillColor: gauge.fillColor,
@@ -257,7 +257,7 @@ async function instantiateGauge(gauge: GaugeSpriteInitialized, state: State, _co
 	return graphics;
 }
 
-async function instantiateHotspot(hotspot: HotspotSpriteInitialized, state: State, context: SpriteContext) {
+async function instantiateHotspot(hotspot: HotspotSpriteInitialized, state: SplashStateData, context: SpriteContext) {
 	if (hotspot.type !== 'hotspot') throw new Error('Hotspot type is not \'hotspot\'');
 	// A transparent, hit-testable rectangle: no fill, but a drawn shape so the hit area exists.
 	const graphics = new PIXI.Graphics();
@@ -274,7 +274,7 @@ async function instantiateHotspot(hotspot: HotspotSpriteInitialized, state: Stat
 	return graphics;
 }
 
-async function instantiateVideo(video: VideoSpriteInitialized, state: State, _context: SpriteContext) {
+async function instantiateVideo(video: VideoSpriteInitialized, state: SplashStateData, _context: SpriteContext) {
 	if (video.type !== 'video') throw new Error('Video type is not \'video\'');
 	// An unset source must not throw; an empty placeholder keeps the splash rendering.
 	const texture = video.src
@@ -291,7 +291,7 @@ async function instantiateVideo(video: VideoSpriteInitialized, state: State, _co
 	return sprite;
 }
 
-async function instantiateButton(button: ButtonSpriteInitialized, state: State, context: SpriteContext) {
+async function instantiateButton(button: ButtonSpriteInitialized, state: SplashStateData, context: SpriteContext) {
 	if (button.type !== 'button') throw new Error('Button type is not \'button\'');
 
 	const buttonConfig = foundry.utils.mergeObject(button, {
@@ -311,5 +311,5 @@ function executeMacro(action: MacroActionInitialized) {
 }
 
 function changeState(action: ChangeStateActionInitialized) {
-	Hooks.call('splash.change-states', action);
+	Hooks.call('splash.change-states', { load: action.load.filter((key): key is string => typeof key === 'string'), unload: action.unload.filter((key): key is string => typeof key === 'string') });
 }

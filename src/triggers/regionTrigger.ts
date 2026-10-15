@@ -1,5 +1,6 @@
 import type { TriggerBinding, TriggerOptions } from './types.ts';
 import { SplashAPI } from '../api/api.ts';
+import { format, localize } from '../utils/i18n.ts';
 import { setPendingTrigger } from './context.ts';
 
 /** Region-behaviour subtype id; the API trigger type is 'region'. */
@@ -48,13 +49,13 @@ export const regionTrigger: TriggerOptions = {
 		const scene = canvas?.scene as unknown as SceneLike | null;
 		const regions = scene?.regions?.contents ?? [];
 		if (!scene || regions.length === 0) {
-			ui.notifications?.warn(game.i18n.localize('splash.triggers.regionTrigger.noRegions'));
+			ui.notifications?.warn(localize('splash.triggers.regionTrigger.noRegions'));
 			return false;
 		}
 		const options = regions.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
 		const regionId = await foundry.applications.api.DialogV2.prompt({
-			window: { title: game.i18n.localize('splash.triggers.regionTrigger.dialogTitle') },
-			content: `<p>${game.i18n.localize('splash.triggers.regionTrigger.dialogPrompt')}</p><select name="region" style="width:100%">${options}</select>`,
+			window: { title: localize('splash.triggers.regionTrigger.dialogTitle') },
+			content: `<p>${localize('splash.triggers.regionTrigger.dialogPrompt')}</p><select name="region" style="width:100%">${options}</select>`,
 			ok: { callback: (_e: Event, button: HTMLButtonElement) => (button.form?.elements.namedItem('region') as HTMLSelectElement)?.value },
 		}).catch(() => null);
 		if (!regionId) return false;
@@ -73,7 +74,7 @@ export const regionTrigger: TriggerOptions = {
 						id: behavior.uuid,
 						type: 'region',
 						splashUuid: behavior.system.splashUuid,
-						summary: game.i18n.format('splash.triggers.regionTrigger.bindingSummary', { region: region.name, scene: scene.name }),
+						summary: format('splash.triggers.regionTrigger.bindingSummary', { region: region.name, scene: scene.name }),
 						sceneId: scene.id,
 					});
 				}

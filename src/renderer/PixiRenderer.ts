@@ -25,6 +25,7 @@ function placeOverlay(el: HTMLElement, state: StateInitialized): void {
 	el.style.zIndex = String(state.zIndex ?? 0);
 }
 
+/** Own one PIXI object and refresh its runtime-driven text or gauge. */
 class PixiRenderedSprite implements RenderedSprite {
 	#values: SplashValues = {};
 	#overrides: SpriteOverrides = {};
@@ -64,8 +65,9 @@ class PixiRenderedSprite implements RenderedSprite {
 	}
 
 	destroy(): void {
-		this.object.destroy();
+		if (this.object.destroyed) return;
 		this.stage.removeChild(this.object);
+		this.object.destroy();
 	}
 }
 
@@ -224,8 +226,10 @@ export class PixiRenderer implements SplashRenderer {
 		}
 	}
 
+	#disposed = false;
+
 	async preload(sprites: SpriteInitialized[]): Promise<void> {
-		const urls: string[] = [];
+		const urls: (string | undefined)[] = [];
 		for (const sprite of sprites) {
 			if (sprite.type === 'image') {
 				urls.push((sprite as ImageSpriteInitialized).img);
@@ -236,6 +240,7 @@ export class PixiRenderer implements SplashRenderer {
 		}
 		// Skip blanks and never let one missing asset abort the whole splash (matches the HTML renderer's tolerance).
 		for (const url of urls) {
+			if (this.#disposed) return;
 			if (!url) continue;
 			try {
 				await PIXI.Assets.load(url);
@@ -251,6 +256,7 @@ export class PixiRenderer implements SplashRenderer {
 		animIn: AnimationInitialized | null | undefined,
 		context: SpriteContext,
 	): Promise<RenderedSprite | undefined> {
+		if (this.#disposed) return;
 		// No PIXI object: these types overlay DOM elements on the host instead of going through buildSprite.
 		if (sprite.type === 'text-input') {
 			return new DomInputSprite(this.#host, sprite as TextInputSpriteInitialized, state, context);
@@ -263,13 +269,22 @@ export class PixiRenderer implements SplashRenderer {
 		}
 		const object = await this.#api.buildSprite(sprite, state, context);
 		if (!object) return undefined;
+		if (this.#disposed) {
+			object.destroy();
+			return;
+		}
 		if (animIn) {
 			await this.#api.buildAnimation(animIn, object, this.#app);
 		}
 		for (const effect of sprite.effects ?? []) {
+			if (this.#disposed) break;
 			if (!effect) continue;
 			const filter = await this.#api.buildEffect(this.#app, effect);
 			if (filter) object.filters = [...(object.filters ?? []), filter];
+		}
+		if (this.#disposed) {
+			object.destroy();
+			return;
 		}
 		this.#app.stage.addChild(object);
 		return new PixiRenderedSprite(object, this.#app.stage, sprite);
@@ -285,7 +300,10 @@ export class PixiRenderer implements SplashRenderer {
 		return animation ? (animation.delay ?? 0) + (animation.duration ?? 3000) : 0;
 	}
 
+	/** Release the renderer once, including when an asset or sprite builder is still pending. */
 	destroy(): void {
+		if (this.#disposed) return;
+		this.#disposed = true;
 		this.#resizeObserver?.disconnect();
 		// Destroy the whole Application to release the WebGL context (browsers cap ~16). removeView:false leaves the canvas for Svelte.
 		this.#app.destroy(false, { children: true });

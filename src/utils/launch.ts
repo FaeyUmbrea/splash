@@ -1,9 +1,12 @@
 /** Permission and discovery helpers for triggering splashes (GM + page owners). */
 
-export type SplashPage = JournalEntryPage.OfType<'splash.splash'>;
+/** A saved Splash page with the stable ID and UUID needed by editor, trigger and playback operations. */
+export type SplashPage = JournalEntryPage.Stored<'splash.splash'>;
 
+/** Accept only persisted Splash pages; temporary documents cannot be used for world-connected playback. */
 export function isSplashPage(page: unknown): page is SplashPage {
-	return (page as JournalEntryPage | undefined)?.type === 'splash.splash';
+	const document = page as JournalEntryPage | null | undefined;
+	return document?.type === 'splash.splash' && typeof document.id === 'string' && typeof document.uuid === 'string';
 }
 
 export function canTriggerSplash(page: SplashPage, user = game.user): boolean {
@@ -24,24 +27,21 @@ export function listTriggerableSplashPages(user = game.user): SplashPage[] {
 		.filter(page => isSplashPage(page) && canTriggerSplash(page, user)) as SplashPage[];
 }
 
-/**
- * Raise a trigger-bound splash to OBSERVER so players can read it; Foundry delivers a blank shell otherwise.
- * Both the page AND its parent journal need it. Levels only rise, never clobbering a higher hand-tuned one.
- * Gotcha: raising the journal exposes sibling pages that inherit its default ownership, so keep
- * trigger-launched splashes in their own journal if siblings must stay hidden.
- */
+/** Grant read access to the bound page while preserving parent/sibling permissions and inherited owners. */
 export async function grantTriggerVisibility(page: SplashPage): Promise<void> {
 	if (!game.user?.isGM) return;
-	const { OBSERVER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+	const { INHERIT, NONE, OBSERVER } = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+	const parentOwnership = page.parent?.ownership ?? {};
+	const pageDefault = page.ownership.default ?? NONE;
+	const effectiveDefault = pageDefault === INHERIT ? (parentOwnership.default ?? NONE) : pageDefault;
+	if (effectiveDefault >= OBSERVER) return;
 
-	const pageDefault = page.ownership?.default ?? 0;
-	if (pageDefault < OBSERVER) {
-		await page.update({ ownership: { ...page.ownership, default: OBSERVER } });
+	const ownership = { ...page.ownership, default: OBSERVER };
+	if (pageDefault === INHERIT) {
+		// Replacing inheritance with Observer must retain higher per-user access from the parent.
+		for (const [userId, level] of Object.entries(parentOwnership)) {
+			if (userId !== 'default' && level > OBSERVER && page.ownership[userId] === undefined) ownership[userId] = level;
+		}
 	}
-
-	const journal = page.parent as JournalEntry | undefined;
-	const journalDefault = journal?.ownership?.default ?? 0;
-	if (journal && journalDefault < OBSERVER) {
-		await journal.update({ ownership: { ...journal.ownership, default: OBSERVER } });
-	}
+	await page.update({ ownership });
 }

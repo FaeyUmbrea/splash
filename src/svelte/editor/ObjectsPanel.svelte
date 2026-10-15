@@ -8,16 +8,16 @@
 	import { promptAndSavePreset } from '../../utils/presets.ts';
 	import PresetPicker from '../presets/PresetPicker.svelte';
 	import { ContextMenu, IconButton } from '../ui';
+	import ObjectLibrary from './ObjectLibrary.svelte';
 
 	const { model }: { model: EditorModel } = $props();
 
-	let addMenu = $state<{ x: number; y: number } | null>(null);
 	let rowMenu = $state<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
-	let prefabPicking = $state(false);
 
+	/** Switch from the object library to existing reusable prefabs. */
 	function openPrefabPicker() {
-		addMenu = null;
-		prefabPicking = true;
+		model.adding = null;
+		model.adding = 'prefab';
 	}
 	function savePrefab() {
 		const sprites = model.selectedObjects.map(o => o.raw);
@@ -45,28 +45,14 @@
 		'drop-zone': 'fa-solid fa-bullseye',
 	};
 
-	const addItems = $derived<ContextMenuItem[]>([
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addImage'), icon: 'fa-solid fa-image', action: () => add('image') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addText'), icon: 'fa-solid fa-font', action: () => add('text') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addButton'), icon: 'fa-solid fa-hand-pointer', action: () => add('button') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addPanel'), icon: 'fa-solid fa-square', action: () => add('panel') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addGauge'), icon: 'fa-solid fa-bars-progress', action: () => add('gauge') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addHotspot'), icon: 'fa-solid fa-arrow-pointer', action: () => add('hotspot') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addVideo'), icon: 'fa-solid fa-film', action: () => add('video') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addTextInput'), icon: 'fa-solid fa-keyboard', action: () => add('text-input') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addDraggable'), icon: 'fa-solid fa-hand-back-fist', action: () => add('draggable') },
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addDropZone'), icon: 'fa-solid fa-bullseye', action: () => add('drop-zone') },
-		{ separator: true } as ContextMenuItem,
-		{ label: game.i18n.localize('splash.editor.objectsPanel.addPrefab'), icon: 'fa-solid fa-cubes', action: openPrefabPicker },
-	]);
-
+	/** Add the chosen object to the active state and close the library. */
 	function add(type: SpriteType) {
 		model.addObject(type);
-		addMenu = null;
+		model.adding = null;
 	}
 
 	async function placeBehavior(key: string) {
-		addMenu = null;
+		model.adding = null;
 		const behavior = getBehavior(key);
 		if (!behavior) return;
 		const content = behavior.fields
@@ -187,7 +173,7 @@
 		{#if model.selectedIds.length > 1}
 			<IconButton icon='fa-solid fa-floppy-disk' title={game.i18n.localize('splash.editor.objectsPanel.savePrefab')} onclick={savePrefab} />
 		{/if}
-		<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.objectsPanel.addObject')} onclick={e => (addMenu = { x: e.clientX, y: e.clientY })} />
+		<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.objectsPanel.addObject')} onclick={() => (model.adding = 'object')} />
 	</header>
 
 	<div class='list'>
@@ -267,14 +253,14 @@
 	</div>
 {/snippet}
 
-{#if addMenu}
-	<ContextMenu x={addMenu.x} y={addMenu.y} items={addItems} onClose={() => (addMenu = null)} />
+{#if model.adding === 'object'}
+	<ObjectLibrary onAdd={add} onPrefab={openPrefabPicker} onClose={() => (model.adding = null)} />
 {/if}
 {#if rowMenu}
 	<ContextMenu x={rowMenu.x} y={rowMenu.y} items={rowMenu.items} onClose={() => (rowMenu = null)} />
 {/if}
-{#if prefabPicking}
-	<PresetPicker kind='spriteGroup' title={game.i18n.localize('splash.editor.objectsPanel.placePrefabTitle')} onPick={applyPrefab} onClose={() => (prefabPicking = false)} />
+{#if model.adding === 'prefab'}
+	<PresetPicker kind='spriteGroup' title={game.i18n.localize('splash.editor.objectsPanel.placePrefabTitle')} onPick={applyPrefab} onClose={() => (model.adding = null)} />
 {/if}
 
 <style lang='scss'>

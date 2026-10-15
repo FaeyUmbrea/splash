@@ -5,7 +5,8 @@ import { AnimationFieldCreator } from './animations.ts';
 import { EffectFieldCreator } from './effects.ts';
 import { StateSchemaCreator } from './states.ts';
 
-function BaseSpriteSchemaCreator(choice: string) {
+/** Preserve the literal discriminator in derived schema types. */
+function BaseSpriteSchemaCreator<const Type extends string>(choice: Type) {
 	const fields = foundry.data.fields;
 	return {
 		type: new fields.StringField({ required: true, choices: [choice] }),

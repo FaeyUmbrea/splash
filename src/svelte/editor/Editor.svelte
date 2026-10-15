@@ -1,21 +1,22 @@
 <svelte:options runes={true} />
 <script lang='ts'>
-	import type { SplashPage } from '../../utils/launch.ts';
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import type { EditorModel } from './editorModel.svelte.ts';
+	import { onMount } from 'svelte';
 	import { closeSplashOverlay } from '../../apps/overlay.ts';
 	import { SvelteRenderer } from '../../apps/SvelteRenderer.ts';
 	import { SplashModel } from '../../datamodel/SplashModel.ts';
+	import { DOCUMENTATION_URL, PATREON_URL } from '../../utils/const.ts';
 	import PreviewHost from '../PreviewHost.svelte';
+	import ArrangementToolbar from './ArrangementToolbar.svelte';
 	import CanvasFrame from './CanvasFrame.svelte';
-	import { EditorModel } from './editorModel.svelte.ts';
+	import ConnectionIssues from './ConnectionIssues.svelte';
+	import EditorStart from './EditorStart.svelte';
 	import ObjectsPanel from './ObjectsPanel.svelte';
+	import SaveStatus from './SaveStatus.svelte';
 	import Sidebar from './Sidebar.svelte';
 	import StatesPanel from './StatesPanel.svelte';
 
-	const { page }: { page: SplashPage } = $props();
-
-	const model = new EditorModel(untrack(() => page));
-	onDestroy(() => model.destroy());
+	const { model }: { model: EditorModel } = $props();
 
 	$effect(() => {
 		if (!model.data.states?.[model.activeState]) {
@@ -32,7 +33,7 @@
 		const splash = new SplashModel(foundry.utils.deepClone(model.data));
 		new SvelteRenderer(
 			PreviewHost,
-			{ splashConfig: splash },
+			{ splashConfig: splash, issues: foundry.utils.deepClone(model.actionIssues) },
 			{ id: 'splash-application', classes: ['splash-overlay', 'splash-preview'] },
 		).render(true);
 	}
@@ -42,6 +43,7 @@
 		return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || (el as HTMLElement).isContentEditable);
 	}
 
+	/** Handle document shortcuts while leaving editable fields' native history intact. */
 	function onKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && !isTyping() && model.activeGroup) {
 			event.preventDefault();
@@ -53,7 +55,7 @@
 			model.deleteSelected();
 			return;
 		}
-		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
+		if (event.defaultPrevented || isTyping() || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
 		event.preventDefault();
 		if (event.shiftKey) model.redo();
 		else model.undo();
@@ -67,11 +69,17 @@
 
 <div class='splash-editor themed'>
 	<header class='toolbar'>
+		<ArrangementToolbar {model} />
 		<div class='spacer'></div>
+		<a class='help-link' href={DOCUMENTATION_URL} target='_blank' rel='noopener noreferrer'><i class='fa-solid fa-book-open'></i> {game.i18n.localize('splash.editor.editor.guide')}</a>
+		<a class='help-link' href={PATREON_URL} target='_blank' rel='noopener noreferrer'><i class='fa-solid fa-heart'></i> Patreon</a>
 		<button type='button' class='tool' title={game.i18n.localize('splash.editor.editor.undoTooltip')} aria-label={game.i18n.localize('splash.editor.editor.undo')} disabled={!model.canUndo} onclick={() => model.undo()}><i class='fa-solid fa-rotate-left'></i></button>
 		<button type='button' class='tool' title={game.i18n.localize('splash.editor.editor.redoTooltip')} aria-label={game.i18n.localize('splash.editor.editor.redo')} disabled={!model.canRedo} onclick={() => model.redo()}><i class='fa-solid fa-rotate-right'></i></button>
 		<button type='button' class='tool' title={game.i18n.localize('splash.actions.preview')} aria-label={game.i18n.localize('splash.actions.preview')} onclick={preview}><i class='fa-solid fa-play'></i></button>
 	</header>
+
+	<SaveStatus store={model.store} />
+	<ConnectionIssues issues={model.actionIssues} />
 
 	<div class='workspace'>
 		<aside class='left'>
@@ -79,7 +87,11 @@
 			<div class='dock states'><StatesPanel {model} /></div>
 		</aside>
 
-		<CanvasFrame {model} />
+		{#if model.objects.length}
+			<CanvasFrame {model} />
+		{:else}
+			<EditorStart onScratch={() => (model.adding = 'object')} onPrefab={() => (model.adding = 'prefab')} />
+		{/if}
 
 		<aside class='right'>
 			<Sidebar {model} />
@@ -116,6 +128,14 @@
 			border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 			flex: 0 0 auto;
 
+			.help-link {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				color: #bbb;
+				font-size: 12px;
+				white-space: nowrap;
+			}
 			.spacer {
 				flex: 1;
 			}
@@ -176,7 +196,7 @@
 		}
 
 		.right {
-			width: 300px;
+			width: 360px;
 			border-left: 1px solid rgba(255, 255, 255, 0.08);
 		}
 	}

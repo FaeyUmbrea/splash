@@ -121,7 +121,8 @@
 				"undo": "Undo",
 				"undoTooltip": "Undo (Ctrl+Z)",
 				"redo": "Redo",
-				"redoTooltip": "Redo (Ctrl+Shift+Z)"
+				"redoTooltip": "Redo (Ctrl+Shift+Z)",
+				"guide": "User guide"
 			},
 			"originEditor": {
 				"sublabel": "Origins — click to add, drag to move, right-click to remove",
@@ -158,11 +159,11 @@
 				"pickMacro": "Pick a macro",
 				"loadStates": "Load states…",
 				"unloadStates": "Unload states…",
-				"conditionsLabel": "Conditions (value gate)",
+				"conditionsLabel": "Only run when these values match",
 				"removeCondition": "Remove condition",
 				"addCondition": "Add condition",
 				"valueKey": "value key",
-				"key": "Key",
+				"key": "Value name",
 				"value": "Value",
 				"step": "Step",
 				"min": "Min",
@@ -306,7 +307,7 @@
 				"borderColor": "Border color",
 				"borderWidth": "Border width",
 				"cornerRadius": "Corner radius",
-				"valueKey": "Value key",
+				"valueKey": "Shared value",
 				"min": "Min",
 				"max": "Max",
 				"fillColor": "Fill color",
@@ -392,11 +393,114 @@
 				"rowInStateOff": "Not in this state — click to add",
 				"toggleInState": "Toggle in state",
 				"placePrefabTitle": "Place prefab"
+			},
+			"inspector": {
+				"appearance": "Appearance",
+				"placement": "Placement",
+				"behaviour": "Behaviour",
+				"advanced": "Advanced: macro data",
+				"presets": "Reusable presets",
+				"noBehaviour": "This object displays content. Use a button, hotspot, input or draggable object to add interaction.",
+				"hotspotAppearance": "A hotspot is invisible during playback. Place it over the part of your handout players should click.",
+				"selectObject": "Select an object on the canvas or in the object list to change its appearance, placement or behaviour.",
+				"artworkVariants": "Hover, pressed and nine-slice artwork",
+				"motion": "Animation and effects",
+				"valueHint": "Choose an existing value name or type a new one. Use the same name wherever objects should share that value.",
+				"showAdvancedActions": "Show scripts and macros",
+				"hideAdvancedActions": "Hide scripts and macros"
+			},
+			"start": {
+				"title": "What would you like to make?",
+				"intro": "Build a handout from objects, or start with a reusable prefab. States let the same handout change as players interact with it.",
+				"scratch": "Start from scratch",
+				"scratchHint": "Choose your first object. Add artwork, text and interaction as you go."
+			},
+			"library": {
+				"title": "Add an object",
+				"intro": "Choose what this part of your handout should do. You can change its settings after placing it.",
+				"prefab": "Use an existing prefab",
+				"prefabHint": "Place a reusable group or a ready-made interactive object.",
+				"display": "Display content",
+				"interaction": "Add interaction",
+				"types": {
+					"image": {
+						"name": "Image",
+						"hint": "Show artwork, a map or a handout background."
+					},
+					"text": {
+						"name": "Text",
+						"hint": "Add a title, clue or instructions."
+					},
+					"panel": {
+						"name": "Panel",
+						"hint": "Add a coloured background or border."
+					},
+					"video": {
+						"name": "Video",
+						"hint": "Play a video inside your handout."
+					},
+					"button": {
+						"name": "Button",
+						"hint": "Give players a labelled action to click."
+					},
+					"hotspot": {
+						"name": "Hotspot",
+						"hint": "Make part of an image clickable without a visible button."
+					},
+					"text-input": {
+						"name": "Text input",
+						"hint": "Let players enter an answer or other text."
+					},
+					"gauge": {
+						"name": "Gauge",
+						"hint": "Show a value as a progress bar."
+					},
+					"draggable": {
+						"name": "Draggable object",
+						"hint": "Let players move an object into a drop zone."
+					},
+					"drop-zone": {
+						"name": "Drop zone",
+						"hint": "Accept matching draggable objects and run an action."
+					}
+				}
+			},
+			"arrangement": {
+				"title": "Arrange selected objects",
+				"group": "Group",
+				"align": "Align",
+				"layer": "Layer",
+				"chooseAlignment": "Choose edge…",
+				"chooseLayer": "Change order…",
+				"left": "Left",
+				"center": "Horizontal centre",
+				"right": "Right",
+				"top": "Top",
+				"middle": "Vertical centre",
+				"bottom": "Bottom"
+			},
+			"validation": {
+				"valueName": "Choose a value name for this action.",
+				"macro": "Choose the macro this action should run.",
+				"script": "Add the script this action should run.",
+				"vote": "Enter the option this vote should count toward.",
+				"chooseStates": "Choose at least one state to load or unload.",
+				"missingState": "This action refers to a state that no longer exists: {state}. Choose a replacement.",
+				"connections": "Action connections needing attention: {count}"
+			},
+			"save": {
+				"failed": "Changes could not be saved. Your edits are still here; keep this editor open and retry saving.",
+				"retry": "Retry save",
+				"saving": "Saving…",
+				"saved": "Saved",
+				"closeTitle": "Discard unsaved changes?",
+				"closeWarning": "These edits could not be saved. Closing now discards the unsaved draft. Choose No to keep editing or retry saving."
 			}
 		},
 		"ui": {
 			"splashUI": {
-				"loading": "Loading"
+				"loading": "Loading",
+				"failed": "Splash could not start. Close it and try again."
 			},
 			"triggersPanel": {
 				"introLead": "Sources that launch",
@@ -467,7 +571,16 @@
 		"preview": {
 			"previewHost": {
 				"exitPreview": "Exit preview",
-				"escHint": "(Esc)"
+				"escHint": "(Esc)",
+				"testControls": "Test handout",
+				"restart": "Restart preview",
+				"localTest": "Interact with the handout and watch its states and values change. Restart returns it to its initial configuration.",
+				"closed": "The handout requested to close. Restart to test it again.",
+				"states": "States",
+				"values": "Current values",
+				"loaded": "Loaded",
+				"unloaded": "Unloaded",
+				"noValues": "No values have been set yet."
 			}
 		},
 		"behavior": {

@@ -1,6 +1,7 @@
 import type { ButtonImageCreate, SpriteCreate } from '../datamodel/SplashModel.ts';
 import type { PresetPayload } from '../utils/presets.ts';
 import { PACKAGE_ID } from '../utils/const.ts';
+import { format, localize } from '../utils/i18n.ts';
 
 const HandlebarsSheet = foundry.applications.sheets.journal.JournalEntryPageHandlebarsSheet;
 
@@ -31,7 +32,7 @@ function borderImageCss(img: ButtonImageCreate | undefined | null): string | nul
 	return `border-image: url(${safe}) ${t} ${r} ${b} ${l} fill / ${t}px ${r}px ${b}px ${l}px stretch; border-style: solid; border-width: ${t}px ${r}px ${b}px ${l}px;`;
 }
 
-function baseName(url: string | undefined): string {
+function baseName(url: string | undefined | null): string {
 	return url ? url.split('/').pop() ?? url : '—';
 }
 
@@ -67,45 +68,45 @@ export class PresetSheet extends HandlebarsSheet {
 	#describe(payload: PresetPayload | null): PresetView {
 		const kind = payload?.type ?? 'unknown';
 		const meta = KIND_META[kind];
-		const kindLabel = meta ? game.i18n.localize(meta.label) : kind;
+		const kindLabel = meta ? localize(meta.label) : kind;
 		const icon = meta?.icon ?? 'fa-solid fa-question';
 		const view: PresetView = { kind, kindLabel, icon, rows: [], demo: false, demoLabel: '', text: null, image: null, swatch: false, members: [] };
 		if (!payload) return view;
 
 		if (payload.type === 'nineslice') {
 			view.demo = true;
-			view.demoLabel = game.i18n.localize('splash.sheet.presetSheet.preview');
-			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowImage'), value: baseName(payload.url) });
-			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowInsets'), value: `L ${payload.leftWidth ?? 0} · T ${payload.topHeight ?? 0} · R ${payload.rightWidth ?? 0} · B ${payload.bottomHeight ?? 0}` });
+			view.demoLabel = localize('splash.sheet.presetSheet.preview');
+			view.rows.push({ label: localize('splash.sheet.presetSheet.rowImage'), value: baseName(payload.url) });
+			view.rows.push({ label: localize('splash.sheet.presetSheet.rowInsets'), value: `L ${payload.leftWidth ?? 0} · T ${payload.topHeight ?? 0} · R ${payload.rightWidth ?? 0} · B ${payload.bottomHeight ?? 0}` });
 		} else if (payload.type === 'button') {
 			const b = payload as Record<string, unknown>;
 			view.demo = true;
-			view.demoLabel = (b.label as { text?: string })?.text || game.i18n.localize('splash.sheet.presetSheet.kindButton');
-			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowLabel'), value: (b.label as { text?: string })?.text || '—' });
+			view.demoLabel = (b.label as { text?: string })?.text || localize('splash.sheet.presetSheet.kindButton');
+			view.rows.push({ label: localize('splash.sheet.presetSheet.rowLabel'), value: (b.label as { text?: string })?.text || '—' });
 			const variants = ['hoverImage', 'clickImage', 'hoverLabel', 'clickLabel'].filter(k => b[k]);
-			if (variants.length) view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowVariants'), value: variants.join(', ') });
+			if (variants.length) view.rows.push({ label: localize('splash.sheet.presetSheet.rowVariants'), value: variants.join(', ') });
 		} else if (payload.type === 'animation') {
 			const v = payload.value as Record<string, unknown>;
 			const props = (v.props ?? {}) as Record<string, unknown>;
 			view.swatch = v.type === 'glitch';
-			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowEffect'), value: String(v.type ?? '—') });
-			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowDuration'), value: `${v.duration ?? 0} ms` });
-			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowDelay'), value: `${v.delay ?? 0} ms` });
+			view.rows.push({ label: localize('splash.sheet.presetSheet.rowEffect'), value: String(v.type ?? '—') });
+			view.rows.push({ label: localize('splash.sheet.presetSheet.rowDuration'), value: `${v.duration ?? 0} ms` });
+			view.rows.push({ label: localize('splash.sheet.presetSheet.rowDelay'), value: `${v.delay ?? 0} ms` });
 			const origins = (v.type === 'dissolve' ? props : (props.origins ?? {})) as Record<string, unknown>;
-			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowOrigins'), value: origins.type === 'fixedOrigins' ? game.i18n.format('splash.sheet.presetSheet.originsFixed', { n: ((origins.origins as unknown[]) ?? []).length }) : game.i18n.format('splash.sheet.presetSheet.originsRandom', { n: (origins.numOrigins as number) ?? 0 }) });
+			view.rows.push({ label: localize('splash.sheet.presetSheet.rowOrigins'), value: origins.type === 'fixedOrigins' ? format('splash.sheet.presetSheet.originsFixed', { n: ((origins.origins as unknown[]) ?? []).length }) : format('splash.sheet.presetSheet.originsRandom', { n: (origins.numOrigins as number) ?? 0 }) });
 			if (v.type === 'glitch') {
-				view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowBands'), value: String(props.bands ?? '—') });
-				view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowIntensity'), value: String(props.intensity ?? '—') });
-				view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowInvert'), value: props.invert ? game.i18n.localize('splash.sheet.presetSheet.yes') : game.i18n.localize('splash.sheet.presetSheet.no') });
+				view.rows.push({ label: localize('splash.sheet.presetSheet.rowBands'), value: String(props.bands ?? '—') });
+				view.rows.push({ label: localize('splash.sheet.presetSheet.rowIntensity'), value: String(props.intensity ?? '—') });
+				view.rows.push({ label: localize('splash.sheet.presetSheet.rowInvert'), value: props.invert ? localize('splash.sheet.presetSheet.yes') : localize('splash.sheet.presetSheet.no') });
 			}
 		} else if (payload.type === 'sprite') {
 			this.#describeSpriteInto(view, payload.value);
 		} else if (payload.type === 'spriteGroup') {
-			view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowMembers'), value: String(payload.value?.length ?? 0) });
+			view.rows.push({ label: localize('splash.sheet.presetSheet.rowMembers'), value: String(payload.value?.length ?? 0) });
 			view.members = (payload.value ?? []).map((s) => {
 				const r = s as Record<string, unknown>;
 				return {
-					name: (r.name as string) || (KIND_META[String(r.type)] ? game.i18n.localize(KIND_META[String(r.type)].label) : String(r.type)),
+					name: (r.name as string) || (KIND_META[String(r.type)] ? localize(KIND_META[String(r.type)].label) : String(r.type)),
 					glyph: SPRITE_GLYPH[String(r.type)] ?? 'fa-solid fa-shapes',
 					image: r.type === 'image' && r.img ? String(r.img) : null,
 				};
@@ -116,21 +117,20 @@ export class PresetSheet extends HandlebarsSheet {
 
 	#describeSpriteInto(view: PresetView, sprite: SpriteCreate): void {
 		const s = sprite as Record<string, unknown>;
-		view.rows.push({ label: game.i18n.localize('splash.sheet.presetSheet.rowSprite'), value: KIND_META[String(s.type)] ? game.i18n.localize(KIND_META[String(s.type)].label) : String(s.type) });
+		view.rows.push({ label: localize('splash.sheet.presetSheet.rowSprite'), value: KIND_META[String(s.type)] ? localize(KIND_META[String(s.type)].label) : String(s.type) });
 		if (s.type === 'image') {
 			view.image = (s.img as string) || null;
 		} else if (s.type === 'text') {
 			view.text = (s.text as string) || '';
 		} else if (s.type === 'button') {
 			view.demo = true;
-			view.demoLabel = (s.label as { text?: string })?.text || game.i18n.localize('splash.sheet.presetSheet.kindButton');
+			view.demoLabel = (s.label as { text?: string })?.text || localize('splash.sheet.presetSheet.kindButton');
 		}
 	}
 
 	async _prepareContext(options) {
 		const context = await super._prepareContext(options);
-		context.preset = this.#describe(this.#payload());
-		return context;
+		return { ...context, preset: this.#describe(this.#payload()) };
 	}
 
 	/** Applies dynamic CSS (border-image, fonts, colours) that can't live safely in an HTML attribute. */

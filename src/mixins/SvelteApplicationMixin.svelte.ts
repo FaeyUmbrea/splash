@@ -25,11 +25,16 @@ function SvelteApplicationMixin<
 
 		#mount: object = {};
 
+		/** Close options supported by the shared host, including an immediate close that skips playback outro. */
+		override async close(options?: DeepPartial<foundry.applications.api.ApplicationV2.ClosingOptions> & { skipOutro?: boolean }) {
+			return super.close(options);
+		}
+
 		/** Awaited in `_preClose` (unless `skipOutro`) so the component can run an outro while the DOM is still live. */
-		onPreClose?: (options: foundry.applications.api.ApplicationV2.ClosingOptions & { skipOutro?: boolean }) => Promise<void> | void;
+		onPreClose?: (options: foundry.applications.api.ApplicationV2.RenderOptions & { skipOutro?: boolean }) => Promise<void> | void;
 
 		protected override async _preClose(
-			options: foundry.applications.api.ApplicationV2.ClosingOptions & { skipOutro?: boolean },
+			options: foundry.applications.api.ApplicationV2.RenderOptions & { skipOutro?: boolean },
 		): Promise<void> {
 			// A thrown outro must not abort the close, or the app zombies on screen.
 			if (!options?.skipOutro) {
@@ -63,7 +68,7 @@ function SvelteApplicationMixin<
 			}
 		}
 
-		protected override _onClose(options: foundry.applications.api.ApplicationV2.ClosingOptions): void {
+		protected override _onClose(options: foundry.applications.api.ApplicationV2.RenderOptions): void {
 			super._onClose(options);
 			svelte.unmount(this.#mount);
 		}

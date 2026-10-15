@@ -19,6 +19,13 @@ export interface ActiveSplash {
 	layer: SplashLayer;
 }
 
+/** Nullable object field used for the global launch setting; its stored shape is unchanged. */
+export type ActiveSplashSetting = foundry.data.fields.ObjectField<
+	{ nullable: true; initial: null },
+	ActiveSplash | null,
+	ActiveSplash | null
+>;
+
 export function registerSettings(): void {
 	game.settings?.registerMenu(ID, 'manager', {
 		name: 'splash.manager.menuName',
@@ -47,11 +54,11 @@ export function registerSettings(): void {
 	game.settings?.register(ID, SETTING_ACTIVE_SPLASH, {
 		scope: 'world',
 		config: false,
-		type: Object,
+		type: new foundry.data.fields.ObjectField<{ nullable: true; initial: null }, ActiveSplash | null, ActiveSplash | null>({ nullable: true, initial: null }),
 		default: null,
 		onChange: async (value) => {
 			const { applyActiveSplash } = await import('../apps/controller.ts');
-			await applyActiveSplash(value as ActiveSplash | null);
+			await applyActiveSplash(value);
 		},
 	});
 

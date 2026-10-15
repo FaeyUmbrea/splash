@@ -2,6 +2,12 @@ import type { SplashPage } from '../utils/launch.ts';
 import SplashUI from '../svelte/SplashUI.svelte';
 import { SvelteRenderer } from './SvelteRenderer.ts';
 
+/** Include the parent journal so native imports retaining page IDs have independent windows. */
+function handoutId(uuid: string): string {
+	return `splash-handout-${uuid}`;
+}
+
+/** Windowed playback of one saved Splash page. */
 class HandoutApplication extends SvelteRenderer {
 	#title: string;
 
@@ -12,7 +18,7 @@ class HandoutApplication extends SvelteRenderer {
 			SplashUI,
 			{ splashConfig: page.system, pageUuid: page.uuid, spectate },
 			{
-				id: `splash-handout-${page.id}`,
+				id: handoutId(page.uuid),
 				classes: ['splash-handout'],
 				window: {
 					frame: true,
@@ -33,11 +39,17 @@ class HandoutApplication extends SvelteRenderer {
 	}
 }
 
+/** Open this page, or focus its existing window without confusing another journal's embedded ID. */
 export async function openHandout(page: SplashPage, spectate = false): Promise<void> {
-	const existing = foundry.applications.instances.get(`splash-handout-${page.id}`);
+	const existing = foundry.applications.instances.get(handoutId(page.uuid));
 	if (existing) {
 		existing.bringToFront();
 		return;
 	}
 	new HandoutApplication(page, spectate).render(true);
+}
+
+/** Close only the requested saved page's window, including imported pages with duplicate embedded IDs. */
+export async function closeHandout(uuid: string): Promise<void> {
+	await foundry.applications.instances.get(handoutId(uuid))?.close();
 }

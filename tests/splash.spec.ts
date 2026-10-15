@@ -2,8 +2,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.ts';
 
 /**
- * Splash E2E. Each test restores the seeded baseline. Sprite clicks force the `html` renderer because the
- * WebGL canvas is not clickable, only DOM sprites are.
+ * Splash E2E. Tests preserve the existing fixtures and use pointer targets for both renderers.
  */
 
 test.describe.configure({ mode: 'serial' });
@@ -58,6 +57,70 @@ test('a fullscreen splash renders and its button is interactive', async ({ pages
 	await closeBtn.click();
 	await expect(gmPage.locator('#splash-application')).toHaveCount(0);
 });
+
+/** Click the authored Close using the saved fixture's bounds when its sprites live in a canvas. */
+async function clickOverlayClose(page: Page, renderer: 'html' | 'webgl', uuid: string): Promise<void> {
+	const stage = page.locator('#splash-application .splash-stage');
+	await expect(stage).toBeVisible();
+	await expect(stage.locator('.loading')).toHaveCount(0);
+	if (renderer === 'html') {
+		await stage.getByText('Close', { exact: true }).click();
+	} else {
+		await expect(stage.locator('canvas')).toBeVisible();
+		// Read authored bounds rather than rewriting existing fixtures to match a fixed pointer target.
+		const position = await page.evaluate((u) => {
+			const config = (globalThis as any).fromUuidSync(u).system;
+			const button = config.children.find((child: any) => child.type === 'button' && child.onClick.type === 'close');
+			const state = button.states[config.initialState[0]];
+			return { x: state.x + state.width / 2, y: state.y + state.height / 2 };
+		}, uuid);
+		await stage.click({ position });
+	}
+}
+
+for (const renderer of ['html', 'webgl'] as const) {
+	test(`${renderer}: authored Close ends a global launch and removes the GM controls`, async ({ pages: { gmPage, playerPage } }, testInfo) => {
+		const uuid = await uuidOf(gmPage, 'E2E Full');
+		const original = await gmPage.evaluate(() => {
+			const g = globalThis as any;
+			return { active: g.game.settings.get('splash', 'activeSplash'), renderer: g.game.settings.get('splash', 'renderer') };
+		});
+		const playerRenderer = await playerPage.evaluate(() => (globalThis as any).game.settings.get('splash', 'renderer'));
+		try {
+			await useRenderer(gmPage, renderer);
+			await useRenderer(playerPage, renderer);
+			await gmPage.evaluate(u => (globalThis as any).game.modules.get('splash').api.launch(u, { global: true }), uuid);
+			await expect(gmPage.locator('#splash-gm-controls .gm-live')).toBeVisible();
+			await expect(playerPage.locator('#splash-application')).toBeVisible();
+			await clickOverlayClose(playerPage, renderer, uuid);
+			await expect(playerPage.locator('#splash-application')).toHaveCount(0);
+			await expect(gmPage.locator('#splash-application')).toBeVisible();
+			await expect(gmPage.locator('#splash-gm-controls .gm-live')).toBeVisible();
+			await expect.poll(() => gmPage.evaluate(() => (globalThis as any).game.settings.get('splash', 'activeSplash')?.uuid)).toBe(uuid);
+			await playerPage.reload();
+			await playerPage.waitForFunction(() => (globalThis as any).game?.ready);
+			await expect(playerPage.locator('#splash-application')).toBeVisible();
+			await clickOverlayClose(gmPage, renderer, uuid);
+			await expect(gmPage.locator('#splash-application')).toHaveCount(0);
+			await expect(playerPage.locator('#splash-application')).toHaveCount(0);
+			await expect(gmPage.locator('#splash-gm-controls .gm-live')).toHaveCount(0);
+			await expect.poll(() => gmPage.evaluate(() => (globalThis as any).game.settings.get('splash', 'activeSplash'))).toBeNull();
+			await testInfo.attach('closed-global-overlay', { body: await gmPage.screenshot(), contentType: 'image/png' });
+			await gmPage.reload();
+			await gmPage.waitForFunction(() => (globalThis as any).game?.ready);
+			await expect(gmPage.locator('#splash-application')).toHaveCount(0);
+			await expect(gmPage.locator('#splash-gm-controls .gm-live')).toHaveCount(0);
+			await expect.poll(() => gmPage.evaluate(() => (globalThis as any).game.settings.get('splash', 'activeSplash'))).toBeNull();
+		} finally {
+			await gmPage.evaluate(async (saved) => {
+				const g = globalThis as any;
+				await g.game.settings.set('splash', 'renderer', saved.renderer);
+				await g.game.settings.set('splash', 'activeSplash', saved.active);
+			}, original);
+			await useRenderer(playerPage, playerRenderer);
+		}
+	});
+}
 
 async function openLockBoth(gmPage: Page, playerPage: Page, uuid: string): Promise<void> {
 	await useRenderer(gmPage, 'html');

@@ -5,25 +5,30 @@
 	const {
 		value,
 		label,
+		valueKeys = [],
 		onChange,
 	}: {
 		value: Record<string, string> | null | undefined;
 		label: string;
+		valueKeys?: string[];
 		/** Replace the whole conditions map, or null when it empties. */
 		onChange: (conditions: Record<string, string> | null) => void;
 	} = $props();
 
 	const conditions = $derived(value ?? {});
 
+	/** Change the required value of one named condition. */
 	function setCondition(key: string, v: string) {
 		onChange({ ...conditions, [key]: v });
 	}
+	/** Remove a condition, using null when none remain. */
 	function removeCondition(key: string) {
 		const next = { ...conditions };
 		delete next[key];
 		onChange(Object.keys(next).length ? next : null);
 	}
 	let newKey = $state('');
+	/** Add a condition for the chosen or newly typed value name. */
 	function addCondition() {
 		const key = newKey.trim();
 		if (!key) return;
@@ -42,7 +47,7 @@
 		</div>
 	{/each}
 	<div class='cond-add'>
-		<TextField bind:value={newKey} placeholder={game.i18n.localize('splash.editor.actionEditor.valueKey')} />
+		<TextField suggestions={valueKeys} bind:value={newKey} placeholder={game.i18n.localize('splash.editor.actionEditor.valueKey')} />
 		<IconButton icon='fa-solid fa-plus' title={game.i18n.localize('splash.editor.actionEditor.addCondition')} onclick={addCondition} />
 	</div>
 </div>

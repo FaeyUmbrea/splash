@@ -6,7 +6,7 @@ Before submitting code, tests, build configuration or technical documentation, r
 
 Include this statement when you accept it:
 
-> I have read and accept the Void Monster Open Source Code Contributor Agreement v1.0 for the contributions in this pull request.
+> I have read and accept the Void Monster Proprietary Code Contributor Agreement v1.0 for the contributions in this pull request.
 
 Acceptance covers the contributions identified in that submission. It does not apply retroactively to earlier work. Third-party material retains its own licence; identify it and its licence separately.
 

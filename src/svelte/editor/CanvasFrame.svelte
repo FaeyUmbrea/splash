@@ -3,9 +3,10 @@
 	import type { ContextMenuItem } from '../ui';
 	import type { EditorModel, EditorObject } from './editorModel.svelte.ts';
 	import type { SpriteType } from './spriteFactory.ts';
-	import { spriteDefaultSize } from '../components/index.ts';
+	import { spriteDefaultSize } from '../../utils/spriteSize.ts';
 	import { ContextMenu } from '../ui';
 	import EditorSprite from './EditorSprite.svelte';
+	import { objectBounds as rectOf } from './selectionGeometry.ts';
 
 	const { model }: { model: EditorModel } = $props();
 
@@ -37,12 +38,6 @@
 	const marqueeRect = $derived(marquee
 		? { x: Math.min(marquee.x0, marquee.x1), y: Math.min(marquee.y0, marquee.y1), w: Math.abs(marquee.x1 - marquee.x0), h: Math.abs(marquee.y1 - marquee.y0) }
 		: null);
-
-	function rectOf(obj: EditorObject) {
-		const p = obj.placement ?? {};
-		const fb = spriteDefaultSize(obj.type);
-		return { x: p.x ?? 0, y: p.y ?? 0, w: p.width ?? fb.width ?? 100, h: p.height ?? fb.height ?? 40 };
-	}
 
 	function boundingBox(ids: string[]) {
 		let minX = Infinity;

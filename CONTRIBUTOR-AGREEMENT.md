@@ -1,4 +1,4 @@
-# Void Monster Open Source Code Contributor Agreement
+# Void Monster Proprietary Code Contributor Agreement
 
 Version 1.0.
 
@@ -8,9 +8,9 @@ This agreement covers code, tests, build configuration and accompanying technica
 
 You retain ownership of your contributions. Your own right to use and license your work is unchanged.
 
-You submit your contributions under the same open-source licence as the module. You also permit distribution under future compatible open-source licences. This agreement does not grant a general right to make those contributions proprietary.
+For modules that are not open source, including source-available modules distributed under proprietary terms, you submit your contributions under the module's licence and additionally grant Faey Umbrea a worldwide, non-exclusive, perpetual, royalty-free licence to use, reproduce, modify, adapt, combine, publish, distribute and sublicense your contributions and modified versions of them for any purpose.
 
-You separately grant Faey Umbrea a worldwide, non-exclusive, perpetual, royalty-free licence to use, reproduce, modify, combine, distribute and sublicense your contributions in early-access builds of the same module, including paid builds distributed under proprietary terms. This grant is limited to early-access distribution; it does not authorise permanently proprietary releases or unrelated proprietary products. Public open-source releases retain their applicable open-source permissions.
+This grant permits distribution under any licence terms Faey Umbrea chooses, including open-source, source-available, proprietary and commercial terms, and changing those terms for future distributions. No payment or contractual requirement for individual attribution is attached to this grant.
 
 The grant is irrevocable to the extent permitted by applicable law. Ceasing to contribute does not withdraw permissions already granted. Rights that applicable law does not allow you to waive or grant away remain unaffected.
 
